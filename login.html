@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイムカードシステム ログイン</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-container { background: #fff; padding: 2rem 2.5rem; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); min-width: 320px; }
+        h2 { text-align: center; color: #333; }
+        label { display: block; margin-top: 1rem; color: #555; }
+        input[type="text"], input[type="password"], button { width: 100%; box-sizing: border-box; padding: 0.7rem; margin-top: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+        button { margin-top: 1.5rem; padding: 0.8rem; background: #1976d2; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+        button:hover { background: #1565c0; }
+        .error { color: #d32f2f; margin-top: 1rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>タイムカード ログイン</h2>
+        <form id="loginForm">
+            <label for="username">ユーザー名</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password">パスワード</label>
+            <input type="password" id="password" name="password" required>
+            <button type="submit">ログイン</button>
+            <div class="error" id="errorMsg"></div>
+        </form>
+        <div style="text-align:center; margin-top:1.5rem;">
+            <a href="register.html">新規ユーザー登録はこちら</a>
+        </div>
+    </div>
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const res = await fetch('api/login.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (data.must_reset_password) {
+                window.location.href = './reset_password.html';
+            } else {
+                window.location.href = './punch.html';
+            }
+        } else {
+            document.getElementById('errorMsg').textContent = data.message || 'ログインに失敗しました';
+        }
+    });
+    </script>
+</body>
+</html>

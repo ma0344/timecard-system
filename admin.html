@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者メニュー</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; margin: 0; }
+    .container { max-width: 560px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); padding: 2.5rem 1.5rem; }
+    h2 { text-align: center; color: #1976d2; margin-bottom: 2.5rem; }
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      justify-items: center;
+      margin-bottom: 2rem;
+    }
+    .admin-btn {
+      width: 100%;
+      max-width: 14em;
+      min-width: 14em;
+      height: 80px;
+      font-size: 1.2em;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .admin-btn:active {
+      background: #1565c0;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 1rem 0.2rem; }
+      .admin-grid { grid-template-columns: 1fr; gap: 1.2rem; }
+      .admin-btn { height: 60px; font-size: 1em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>管理者メニュー</h2>
+    <div class="admin-grid">
+      <button class="admin-btn" onclick="location.href='./admin_users.html'">ユーザー管理</button>
+      <button class="admin-btn" onclick="location.href='./admin_attendance.html'">勤怠管理</button>
+      <button class="admin-btn" onclick="location.href='./admin_settings.html'">計算設定</button>
+      <button class="admin-btn" onclick="location.href='./punch.html'">打刻画面に戻る</button>
+      <!-- 必要に応じてボタン追加可 -->
+    </div>
+  </div>
+  <script>
+    // fetchWithAuth: 401/403時は自動ログアウト
+    async function fetchWithAuth(url, options) {
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return res;
+    }
+    // 管理者権限チェック（URL直打ち対策）
+    fetchWithAuth('api/check_login.php')
+      .then(res => res && res.json())
+      .then(data => {
+        if (!data || !data.loggedIn) {
+          window.location.href = './login.html';
+        } else if (!data.is_admin) {
+          alert('管理者権限がありません');
+          window.location.href = './punch.html';
+        }
+      });
+  </script>
+</body>
+</html>

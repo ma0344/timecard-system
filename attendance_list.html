@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head style="height: 0px;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤務記録一覧</title>
+    <style>
+        html {
+            height: 100%;
+            margin-top: 0px;
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .fixed-header {
+            position: sticky;
+            top: 0px;
+            z-index: 100;
+            background: #fff;
+            padding: 0;
+            display: block;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            .fixed-header {
+                border-radius: 0;
+                height: auto;
+                padding: 0;
+                justify-content: space-between;
+            }
+        }
+
+        .header-title {
+            font-size: 1.3em;
+            width: -webkit-fill-available;
+            color: #1976d2;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5em;
+            padding: 10px 1em 0 1em;
+        }
+        
+        .header-btns {
+            display: grid;
+            grid-auto-columns: 1fr;
+            grid-auto-flow: column;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding: 10px 0 10px 0;
+            justify-content: center;
+            z-index: 200;
+            align-items: center;
+            max-width: 480px;
+            margin: 0 auto;
+            height: 70px;
+            gap: 0.7em;
+        }
+        .listLabelBox {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 1rem;
+            margin-bottom: 0.3em;
+            background: #ffffff;
+        }
+        @media (max-width: 600px) {
+            .listLabelBox {
+                padding: 0 0.2em;
+            }
+        }
+
+        #listLabel {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 0.7em 0.5em 0.3em 0.5em;
+        }
+
+        .fixed-footer {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            /*width: 100%;*/
+            z-index: 100;
+            background: #fff;
+            padding: 0 0 0 0;
+            display: block;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-btns {
+            display: grid;
+            grid-auto-columns: 1fr;
+            grid-auto-flow: column;
+            gap: 0.7em;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding: 0px 0 0px 0;
+            justify-content: center;
+            z-index: 200;
+            align-items: center;
+            max-width: 480px;
+            margin: 10px auto;
+        }
+
+        .footer-btn {
+            font-size: 1.3em;
+            padding: 0.5em 1.2em;
+            border-radius: 4px;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+        }
+
+        @media (max-width: 600px) {
+            .footer-btn {
+                padding: 0.4em 0.5em;
+            }
+        }
+
+        .footer-btn:active {
+            background: #1565c0;
+        }
+
+        #statsBox {
+            display: grid;
+            row-gap: 0.3em;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+            grid-auto-columns: 1fr;
+            grid-auto-flow: column;
+            height: auto;
+            padding-top: 0.5em;
+            padding-bottom: 0.8em;
+            font-size: 1.1em;
+            color: #1976d2;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        input[type="month" i] {
+            font-size: 1.5em;
+            border: 1px solid #b0bec5;
+            border-radius: 4px;
+            padding: 2px 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            /*margin-bottom: -16px;*/
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scroll-area {
+            overflow-y: scroll;
+            padding: 0 1rem 0 1rem;
+            background: #fff;
+        }
+
+        .footer-btn {
+            font-size: 1.1em;
+            padding: 0.8em 2em;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+            cursor: pointer;
+        }
+
+        .footer-btn:active {
+            background: #1565c0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                max-width: 100vw;
+                height: 100%;
+                margin: 0 auto;
+                border-radius: 0;
+                box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+                padding: 0;
+            }
+
+            .scroll-area {
+                padding: 0 0.2rem 0 0.2rem;
+            }
+
+            .header-btns {
+                padding: 0.8em 0 0.8em 0;
+                height: 70px;
+            }
+
+            input[type="month" i] {
+                font-size: 1em;
+                border: 1px solid #b0bec5;
+                border-radius: 4px;
+                padding: 2px 0;
+                width: 30%;
+            }
+        }
+
+        h2 {
+            text-align: center;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .record-list {
+            list-style: none;
+            padding: 0 0.5rem;
+            margin: 0;
+        }
+
+        .record-row {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.7rem 0;
+            display: block;
+            /* blockに変更 */
+            background: #fff;
+            transition: background 0.2s;
+        }
+
+        /* background: #e3f2fd; */
+        .record-row.active {
+            z-index: 20;
+            position: relative;
+        }
+
+        .record-main {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex: 1 1 0%;
+            gap: 0;
+            width: 100%;
+        }
+
+        .record-date {
+            font-weight: bold;
+            min-width: 4.5em;
+            max-width: 4.5em;
+            width: 4.5em;
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        .record-times {
+            display: flex;
+            flex: 1 1 0%;
+            justify-content: space-between;
+            gap: 0;
+            margin-right: 0em;
+        }
+
+        .record-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 3.5em;
+            flex: 1 1 0%;
+        }
+
+        @media (max-width: 600px) {
+            .record-col {
+                min-width: 3em;
+            }
+        }
+
+        .record-col:nth-child(2) {
+            /* 終業 */
+            margin-right: 0.3em;
+        }
+
+        .record-col:nth-child(3) {
+            /* 休憩 */
+            margin-left: 0.3em;
+        }
+
+        .record-col .label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .record-col .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1976d2;
+            text-align: center;
+            margin-top: 0.1em;
+        }
+
+        .record-summary {
+            font-size: 0.9em;
+            color: #1976d2;
+            margin-left: 1em;
+        }
+
+        /* background: #f1f8e9; */
+        .expand-panel {
+            padding: 1em 0.7em 0em 0.7em;
+            z-index: 20;
+            position: static;
+            width: 100%;
+            box-sizing: border-box;
+            display: block;
+            clear: both;
+        }
+
+        .expand-panel .edit-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.7em;
+        }
+
+        @media (max-width: 600px) {
+            .expand-panel .edit-row {
+                gap: 0.5em;
+                justify-content: space-between;
+            }
+        }
+
+        .expand-panel .edit-row label {
+            align-items: center;
+            min-width: 0;
+        }
+
+        .expand-panel input[type="date"],
+        input[type="month"] {
+            width: 8em;
+            font-size: 1.5em;
+            padding: 0em 0em 0em 0em;
+            height: 1.65em;
+            border: 0.5px solid;
+            border-radius: 0.2em;
+            background: #fff;
+            box-shadow: 0 0 8px 1px #1976d229;
+            color: #1976d2;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            text-align: center;
+            position: relative;
+        }
+
+        @media (max-width: 600px) {
+            .expand-panel input[type="time"] {
+                font-size: 1.8em;
+                height: 1.34em;
+                width: 7em;
+            }
+        }
+
+        @media (max-width: 600px) {
+            input[type="month"] {
+                font-size: 1.2em;
+                border: 1px solid #b0bec5;
+                border-radius: 4px;
+                padding: 2px 0;
+            }
+        }
+
+        .expand-panel input[type="time"] {
+            width: 5em;
+            font-size: 1.5em;
+            padding: 0em 0em 0em 0em;
+            height: 1.65em;
+            border: 0.5px solid;
+            border-radius: 0.2em;
+            background: #fff;
+            box-shadow: 0 0 8px 1px #1976d229;
+            color: #1976d2;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            text-align: center;
+            position: relative;
+        }
+
+        @media (max-width: 600px) {
+            .expand-panel input[type="time"] {
+                font-size: 1.8em;
+                height: 1.34em;
+                width: 3.5em;
+            }
+        }
+
+        .expand-panel input[type="number"] {
+            width: 3.5em;
+            height: 1.34em;
+            font-size: 1.5em;
+            padding: 0em 0em 0em 0em;
+            border: 0.5px solid;
+            border-radius: 0.2em;
+            background: #fff;
+            box-shadow: 0 0 8px 1px #1976d229;
+            color: #1976d2;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            position: relative;
+            text-align: right;
+        }
+
+        @media (max-width: 600px) {
+            .expand-panel input[type=number] {
+                font-size: 1.8em;
+                height: 1.34em;
+                width: 2.5em;
+                padding: 0 0.5em 0 0;
+            }
+        }
+
+        .expand-panel input[type="time"]:focus {
+            border: 1.5px solid rgba(25, 118, 210, 0.08);
+            box-shadow: 0 0 0 2px #90caf991;
+            background: #fff;
+        }
+
+        .break-edit-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-bottom: 0.3em;
+        }
+
+        .break-edit-row button {
+            background: #e57373;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 0.2em 0.7em;
+            font-size: 1.3em;
+            cursor: pointer;
+        }
+
+        .default-btn,
+        .save-btn,
+        .cancel-btn {
+            font-size: 1.3em;
+            padding: 0.7em 1.5em;
+            min-width: 5.5em;
+            border-radius: 4px;
+            margin-top: 0.7em;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+        }
+
+        @media (max-width: 600px) {
+
+            .default-btn,
+            .save-btn,
+            .cancel-btn {
+                font-size: 1.1em;
+                padding: 1em 0.5em;
+                min-width: 7em;
+                cursor: pointer;
+            }
+        }
+
+        .add-break-btn,
+        .delete-btn {
+            font-size: 1.2em;
+            height: 2em;
+            padding: 0em;
+            min-width: 6.5em;
+            border-radius: 4px;
+            margin-top: 0.7em;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+        }
+
+        @media (max-width: 600px) {
+
+            .add-break-btn,
+            .delete-btn {
+                font-size: 1.1em;
+            }
+        }
+
+        .edit-btns {
+            display: flex;
+            gap: 1em;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .break-delete-btns {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5em;
+        }
+
+        .default-btn:disabled,
+        .add-break-btn:disabled,
+        .save-btn:disabled,
+        .cancel-btn:disabled,
+        .delete-btn:disabled {
+            background: #b0bec5 !important;
+            color: #fff !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            opacity: 0.6;
+            border: none;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        /* 管理者専用要素制御 */
+        .admin-only {
+            display: none;
+        }
+
+        body.is-admin .admin-only {
+            display: inline-flex;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="fixed-header">
+            <div class="header-title">
+                <span id="yearLabel" style="display: none;"></span>
+                <a>勤務記録一覧</a>
+                <input type="month" id="monthSelect" />
+            </div>
+            <div id="header-btns" class="header-btns" style="display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 0.7em; margin-top: 0em;">
+                <span style="display: flex; align-items: center;">
+                    <button class="footer-btn" onclick="location.href='punch.html'" style="flex:1;padding:0.8em;font-size:1.1em;background:#1976d2;color:#fff;border:none;border-radius:4px;">打刻画面に戻る</button>
+                </span>
+            </div>
+            <div id="statsBox">
+                <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
+                <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">合計労働時間</span>
+                <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超過勤務時間</span>
+                <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
+                <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
+                <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
+            </div>
+            <div class="listLabelBox">
+                <div id="listLabel">
+                    <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
+                    <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
+                        <div class="record-col">
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
+                        </div>
+                        <div class="record-col">
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
+                        </div>
+                        <div class="record-col">
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
+                        </div>
+                        <div class="record-col">
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">労働</span>
+                        </div>
+                        <div class="record-col">
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-area">
+            <ul class="record-list" id="recordList">
+                <!-- 勤務記録行がここに動的に挿入されます -->
+            </ul>
+        </div>
+        <div class="fixed-footer">
+            <div class="footer-btns">
+                <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
+                <button class="footer-btn" id="addRecordBtn">＋新規追加</button>
+            </div>
+        </div>
+        <script>
+            // fetchラッパー: 未ログインならlogin.htmlへ遷移
+            async function fetchWithAuth(url, options) {
+                const res = await fetch(url, options);
+                if (res.status === 401) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                return res; // 403などは呼び出し側で必要なら処理
+            }
+            // ダミーデータ削除・APIから取得
+            let records = [];
+            // 勤怠ルール設定値
+            let settings = {
+                period_start: 1,
+                period_end: 31,
+                rounding_type: 'floor',
+                rounding_unit: 1,
+                work_hours: 8,
+                work_minutes: 0
+            };
+            // 設定取得
+            async function loadSettings() {
+                const res = await fetchWithAuth('api/settings_get.php');
+                if (!res) return;
+                if (res.ok) settings = await res.json();
+            }
+
+            // 指定年月から「前月period_start日」～「選択月period_end日」までの範囲を計算
+            function calcPeriodRange(monthVal) {
+                // monthVal: "YYYY-MM"
+                const [y, m] = monthVal.split("-").map(Number);
+                // 前月
+                let startYear = y;
+                let startMonth = m - 1;
+                if (startMonth <= 0) {
+                    startYear -= 1;
+                    startMonth += 12;
+                }
+                const pad = n => n.toString().padStart(2, '0');
+                const start = `${startYear}-${pad(startMonth)}-${pad(settings.period_start)}`;
+                const end = `${y}-${pad(m)}-${pad(settings.period_end)}`;
+                return { start, end };
+            }
+
+            async function loadRecordsByPeriod(monthVal) {
+                let url = 'api/attendance_list.php';
+                const { start, end } = calcPeriodRange(monthVal);
+                const options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start, end })
+                };
+                const res = await fetchWithAuth(url, options);
+                if (!res) return;
+                if (res.ok) {
+                    records = await res.json();
+                } else {
+                    records = [];
+                }
+                setYearLabel();
+                renderStatsBox();
+                render();
+                // 勤怠統計情報の表示
+                function renderStatsBox() {
+                    let workDays = 0;
+                    let totalWorkMin = 0;
+                    let totalOverMin = 0;
+                    const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+                    records.forEach((rec) => {
+                        if (rec.clockIn && rec.clockOut) {
+                            workDays++;
+                            // 労働時間（分）
+                            const s = parseTimeStr(rec.clockIn);
+                            const e = parseTimeStr(rec.clockOut);
+                            if (s && e) {
+                                let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
+                                min -= calcTotalBreak(rec.breaks || []);
+                                if (min > 0) totalWorkMin += min;
+                                if (min > baseMin) totalOverMin += min - baseMin;
+                            }
+                        }
+                    });
+                    const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
+                    const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "";
+                    document.getElementById("workDaysValue").textContent = workDays;
+                    document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
+                    document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
+                }
+            }
+            function parseTimeStr(str) {
+                // "HH:MM" or "YYYY-MM-DD HH:MM:SS" → {h, m}
+                if (!str) return null;
+                let t = str.trim();
+                if (t.length > 5) t = t.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+                const [h, m] = t.split(":");
+                if (h === undefined || m === undefined) return null;
+                return { h: parseInt(h, 10), m: parseInt(m, 10) };
+            }
+            function calcTotalBreak(breaks) {
+                let total = 0;
+                for (const b of breaks) {
+                    const s = parseTimeStr(b.start);
+                    const e = parseTimeStr(b.end);
+                    if (s && e) {
+                        total += (e.h * 60 + e.m) - (s.h * 60 + s.m);
+                    }
+                }
+                return total;
+            }
+            // 勤怠ルール設定値・設定取得（重複定義を削除）
+            // ...既に上部で定義済みのためここは削除...
+            // 丸め関数
+            function roundMinutes(min) {
+                const unit = Number(settings.rounding_unit) || 1;
+                if (unit <= 1) return min;
+                if (settings.rounding_type === 'ceil') return Math.ceil(min / unit) * unit;
+                if (settings.rounding_type === 'round') return Math.round(min / unit) * unit;
+                return Math.floor(min / unit) * unit;
+            }
+            // 労働時間（分）計算
+            function calcWorkMin(clockIn, clockOut, breaks) {
+                const s = parseTimeStr(clockIn);
+                const e = parseTimeStr(clockOut);
+                if (!s || !e) return 0;
+                let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
+                min -= calcTotalBreak(breaks);
+                if (min < 0) min = 0;
+                return roundMinutes(min);
+            }
+            const recordList = document.getElementById('recordList');
+            let expandedIdx = null;
+            let addPanelActive = false;
+            document.getElementById('addRecordBtn').onclick = () => {
+                if (addPanelActive) return;
+                addPanelActive = true;
+                expandedIdx = null;
+                render();
+                // 新規追加パネルを先頭に挿入
+                const li = document.createElement('li');
+                li.className = 'record-row active';
+                const today = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+                li.innerHTML = `
+                <div class="expand-panel">
+                    <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${todayStr}"></label>
+                    <div class="edit-row">
+
+                        <label style="display: inline-grid;">始業 <input type="time" id="addIn"></label>
+                        <label style="display: inline-grid;">終業 <input type="time" id="addOut"></label>
+                        <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km</label></label>
+                    </div>
+                    <div class="break-list">
+                        <b>休憩:</b>
+                        <div id="addBreakEditList" style="margin-top: 0.4em;"></div>
+                    </div>
+                    <div class="break-delete-btns">
+                        <button class="add-break-btn" type="button">＋休憩を追加</button>
+                    </div>
+                    <div class="edit-btns">
+                        <button class="default-btn save-btn" disabled>保存</button>
+                        <button class="default-btn cancel-btn">キャンセル</button>
+                    </div>
+                </div>`;
+                // 休憩データ
+                const addRec = { date: todayStr, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+                // 休憩編集UI
+                const breakEditList = li.querySelector('#addBreakEditList');
+                function renderBreaks() {
+                    breakEditList.innerHTML = '';
+                    addRec.breaks.forEach((b, i) => {
+                        const row = document.createElement('div');
+                        row.className = 'break-edit-row';
+                        row.innerHTML = `
+                        <span>${i + 1}.</span>
+                        <input type="time" value="${b.start || ''}" class="break-start">
+                        ～
+                        <input type="time" value="${b.end || ''}" class="break-end">
+                        <button type="button" title="削除">×</button>
+                    `;
+                        const startInput = row.querySelector('.break-start');
+                        const endInput = row.querySelector('.break-end');
+                        startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+                        endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+                        row.querySelector('button').onclick = e => {
+                            e.stopPropagation();
+                            addRec.breaks.splice(i, 1);
+                            renderBreaks();
+                            updateSaveBtn();
+                        };
+                        breakEditList.appendChild(row);
+                    });
+                }
+                li.querySelector('.add-break-btn').onclick = () => {
+                    addRec.breaks.push({ start: '', end: '' });
+                    renderBreaks();
+                    updateSaveBtn();
+                };
+                // バリデーション
+                function toDateObj(dateStr, timeStr) {
+                    if (!dateStr || !timeStr) return null;
+                    return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
+                }
+                function validateInputs() {
+                    const dateVal = li.querySelector('#addDate').value;
+                    const inVal = li.querySelector('#addIn').value;
+                    const outVal = li.querySelector('#addOut').value;
+                    if (!dateVal || !inVal || !outVal) return false;
+                    // 日付重複チェック
+                    if (records.some(r => r.date === dateVal)) return false;
+                    const inDate = toDateObj(dateVal, inVal);
+                    const outDate = toDateObj(dateVal, outVal);
+                    if (inDate && outDate && inDate >= outDate) return false;
+                    for (let i = 0; i < addRec.breaks.length; i++) {
+                        const b = addRec.breaks[i];
+                        const bStart = b.start ? toDateObj(dateVal, b.start) : null;
+                        const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
+                        if (!b.start || !b.end) return false;
+                        if (bStart && bEnd) {
+                            if (bStart >= bEnd) return false;
+                            if (inDate && bStart < inDate) return false;
+                            if (outDate && bEnd > outDate) return false;
+                        }
+                    }
+                    // 選択月以外は追加不可
+                    const monthVal = document.getElementById('monthSelect').value;
+                    if (!dateVal.startsWith(monthVal)) return false;
+                    return true;
+                }
+                function updateSaveBtn() {
+                    li.querySelector('.save-btn').disabled = !validateInputs();
+                }
+                li.querySelector('#addDate').addEventListener('input', e => {
+                    addRec.date = e.target.value;
+                    updateSaveBtn();
+                });
+                li.querySelector('#addIn').addEventListener('input', e => {
+                    addRec.clockIn = e.target.value;
+                    updateSaveBtn();
+                });
+                li.querySelector('#addOut').addEventListener('input', e => {
+                    addRec.clockOut = e.target.value;
+                    updateSaveBtn();
+                });
+                li.querySelector('#addVehicleDistance').addEventListener('input', e => {
+                    addRec.vehicleDistance = Number(e.target.value) || 0;
+                    updateSaveBtn();
+                });
+                renderBreaks();
+                // 保存
+                li.querySelector('.save-btn').onclick = async () => {
+                    if (!validateInputs()) {
+                        alert('入力内容に誤りがあります。');
+                        return;
+                    }
+                    // APIに新規追加
+                    const res = await fetch('api/attendance_update.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            date: addRec.date,
+                            clockIn: addRec.clockIn,
+                            clockOut: addRec.clockOut,
+                            breaks: addRec.breaks,
+                            vehicleDistance: addRec.vehicleDistance
+                        })
+                    });
+                    if (res.ok) {
+                        addPanelActive = false;
+                        await loadRecords();
+                    } else {
+                        alert('新規追加に失敗しました');
+                    }
+                };
+                // キャンセル
+                li.querySelector('.cancel-btn').onclick = () => {
+                    addPanelActive = false;
+                    render();
+                };
+                // 最上部に挿入
+                recordList.insertBefore(li, recordList.firstChild);
+                // オーバーレイは不要
+                document.getElementById('overlay').style.display = 'none';
+            };
+            function formatTime(str) {
+                if (!str) return '-';
+                if (str.length > 5) return str.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+                if (str.length === 5) return str; // "HH:MM"
+                if (str.length === 2 || str.length === 1) return str.padStart(2, '0') + ':00'; // "9"→"09:00"
+                return '-';
+            }
+            function render() {
+                recordList.innerHTML = '';
+                records.forEach((rec, idx) => {
+                    const li = document.createElement('li');
+                    li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
+                    // 労働時間計算
+                    const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
+                    const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
+                    // 超過判定
+                    const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+                    let overStr = '';
+                    if (workMin > baseMin) {
+                        const overMin = workMin - baseMin;
+                        overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`;
+                    }
+                    li.innerHTML = `
+                    <div class="record-main">
+                        <span class="record-date">${formatDateMD(rec.date)}</span>
+                        <div class="record-times">
+                            <div class="record-col">
+                                <!-- <div class="label">始業</div> -->
+                                <div class="value">${formatTime(rec.clockIn)}</div>
+                            </div>
+                            <div class="record-col">
+                                <!-- <div class="label">終業</div> -->
+                                <div class="value">${formatTime(rec.clockOut)}</div>
+                            </div>
+                            <div class="record-col">
+                                <!-- <div class="label">休憩</div> -->
+                                <div class="value">${Math.floor(calcTotalBreak(rec.breaks))}<span style="font-size:0.5em;">分</span></div>
+                            </div>
+                            <div class="record-col">
+                                <!-- <div class="label">労働</div> -->
+                                <div class="value">${workStr}${overStr}</div>
+                            </div>
+                            <div class="record-col">
+                                <!-- <div class="label">車距離</div> -->
+                                <div class="value">${rec.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    li.onclick = (e) => {
+                        // 保存・キャンセルボタン以外のエクスパンドパネル内要素をクリックした場合は何もしない
+                        if (
+                            expandedIdx === idx &&
+                            e.target.closest('.record-row.active') &&
+                            !e.target.classList.contains('save-btn') &&
+                            !e.target.classList.contains('cancel-btn')
+                        ) return;
+                        // ここからadmin_attendance.htmlと同じ挙動に
+                        if (addPanelActive) {
+                            addPanelActive = false;
+                            expandedIdx = idx;
+                            render();
+                            document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                            return;
+                        }
+                        if (expandedIdx !== null && expandedIdx !== idx) {
+                            expandedIdx = idx;
+                            render();
+                            document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                            return;
+                        }
+                        expandedIdx = expandedIdx === idx ? null : idx;
+                        render();
+                        document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                    };
+                    recordList.appendChild(li);
+                    if (expandedIdx === idx) {
+                        const panel = document.createElement('div');
+                        panel.className = 'expand-panel';
+                        panel.innerHTML = `
+                        <div class="edit-row">
+                            <label style="display: inline-grid;">始業 <input type="time" value="${formatTime(rec.clockIn) !== '-' ? formatTime(rec.clockIn) : ''}" id="editIn"></label>
+                            <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
+                            <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="editVehicleDistance" value="${rec.vehicleDistance ?? 0}"> km</label></label>
+                        </div>
+                        <div class="break-list">
+                            <b >休憩:</b>
+                            <div id="breakEditList" style="margin-top: 0.4em;"></div>
+                        </div>
+                        <div class="break-delete-btns">
+                                <button class="add-break-btn" type="button">＋休憩を追加</button>
+                                <button class="delete-btn" style="background:#e57373;">削除</button>
+                        </div>
+                        <div class="edit-btns">
+                            <button class="default-btn save-btn">保存</button>
+                            <button class="default-btn cancel-btn">キャンセル</button>
+                        </div>
+                    `;
+                        li.appendChild(panel);
+                        // 休憩編集UIの動的生成
+                        // 編集時も選択月以外は編集不可
+                        const monthVal = document.getElementById('monthSelect').value;
+                        // 選択月以外も編集可能にするため、disabled条件を削除
+                        const breakEditList = panel.querySelector('#breakEditList');
+                        // バリデーション関数
+                        function toDateObj(dateStr, timeStr) {
+                            if (!dateStr || !timeStr) return null;
+                            return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
+                        }
+                        function validateInputs() {
+                            const inVal = panel.querySelector('#editIn').value;
+                            const outVal = panel.querySelector('#editOut').value;
+                            const todayStr = (() => {
+                                const now = new Date();
+                                const pad = n => n.toString().padStart(2, '0');
+                                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                            })();
+                            const isToday = rec.date === todayStr;
+                            const inDate = inVal ? toDateObj(rec.date, inVal) : null;
+                            const outDate = outVal ? toDateObj(rec.date, outVal) : null;
+                            if (!isToday) {
+                                if (!inVal || !outVal) return false;
+                            }
+                            if (inDate && outDate && inDate >= outDate) return false;
+                            const breaks = rec.breaks;
+                            for (let i = 0; i < breaks.length; i++) {
+                                const b = breaks[i];
+                                // b.start, b.endは日時文字列 or 空
+                                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
+                                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
+                                if (!isToday && (!b.start || !b.end)) return false;
+                                if (bStart && bEnd) {
+                                    if (bStart >= bEnd) return false;
+                                    if (inDate && bStart < inDate) return false;
+                                    if (outDate && bEnd > outDate) return false;
+                                }
+                            }
+                            return true;
+                        }
+                        // 入力欄のイベントで保存ボタンの活性/非活性を制御
+                        function updateSaveBtn() {
+                            const saveBtn = panel.querySelector('.save-btn');
+                            saveBtn.disabled = !validateInputs();
+                        }
+                        // 入力欄・休憩欄のイベントにバインド
+                        panel.querySelector('#editIn').addEventListener('input', updateSaveBtn);
+                        panel.querySelector('#editOut').addEventListener('input', updateSaveBtn);
+                        // 休憩欄は動的生成なのでrenderBreaks内でバインド
+                        function renderBreaks() {
+                            breakEditList.innerHTML = '';
+                            rec.breaks.forEach((b, i) => {
+                                const row = document.createElement('div');
+                                row.className = 'break-edit-row';
+                                row.innerHTML = `
+                <span>${i + 1}.</span>
+                <input type="time" value="${b.start && b.start.length >= 5 ? b.start.slice(-8, -3) : ''}" class="break-start">
+                ～
+                <input type="time" value="${b.end && b.end.length >= 5 ? b.end.slice(-8, -3) : ''}" class="break-end">
+                <button type="button" title="削除">×</button>
+              `;
+                                const startInput = row.querySelector('.break-start');
+                                const endInput = row.querySelector('.break-end');
+                                startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+                                endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+                                row.querySelector('button').onclick = e => {
+                                    e.stopPropagation();
+                                    rec.breaks.splice(i, 1);
+                                    renderBreaks();
+                                    updateSaveBtn();
+                                };
+                                breakEditList.appendChild(row);
+                            });
+                        }
+                        renderBreaks();
+                        panel.querySelector('.add-break-btn').onclick = e => {
+                            rec.breaks.push({ start: '', end: '' });
+                            renderBreaks();
+                        };
+                        // 編集ロック: 他の行や背景クリックで閉じない
+                        document.getElementById('overlay').onclick = () => { };
+                        panel.querySelector('.save-btn').onclick = async e => {
+                            e.stopPropagation();
+                            // バリデーション: 当日かどうかで条件分岐
+                            const inVal = panel.querySelector('#editIn').value;
+                            const outVal = panel.querySelector('#editOut').value;
+                            const todayStr = (() => {
+                                const now = new Date();
+                                const pad = n => n.toString().padStart(2, '0');
+                                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                            })();
+                            const isToday = rec.date === todayStr;
+                            const inDate = inVal ? toDateObj(rec.date, inVal) : null;
+                            const outDate = outVal ? toDateObj(rec.date, outVal) : null;
+                            // 当日以外は空欄NG
+                            if (!isToday) {
+                                if (!inVal || !outVal) {
+                                    alert('始業・終業時刻は必須です（当日以外）');
+                                    return;
+                                }
+                            }
+                            // 1. 始業・終業
+                            if (inDate && outDate) {
+                                if (inDate >= outDate) {
+                                    alert('終業時刻は始業時刻より後にしてください');
+                                    return;
+                                }
+                            }
+                            // 2. 休憩
+                            const breaks = rec.breaks;
+                            for (let i = 0; i < breaks.length; i++) {
+                                const b = breaks[i];
+                                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
+                                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
+                                if (!isToday && (!b.start || !b.end)) {
+                                    alert(`休憩${i + 1}の開始・終了時刻は必須です（当日以外）`);
+                                    return;
+                                }
+                                if (bStart && bEnd) {
+                                    if (bStart >= bEnd) {
+                                        alert(`休憩${i + 1}の終了時刻は開始時刻より後にしてください`);
+                                        return;
+                                    }
+                                    if (inDate && bStart < inDate) {
+                                        alert(`休憩${i + 1}の開始時刻は始業時刻以降にしてください`);
+                                        return;
+                                    }
+                                    if (outDate && bEnd > outDate) {
+                                        alert(`休憩${i + 1}の終了時刻は終業時刻以前にしてください`);
+                                        return;
+                                    }
+                                }
+                            }
+                            rec.clockIn = inVal;
+                            rec.clockOut = outVal;
+                            rec.vehicleDistance = Number(panel.querySelector('#editVehicleDistance').value) || 0;
+                            // 編集内容をAPIに送信
+                            const res = await fetch('api/attendance_update.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    date: rec.date,
+                                    clockIn: rec.clockIn,
+                                    clockOut: rec.clockOut,
+                                    breaks: rec.breaks,
+                                    vehicleDistance: rec.vehicleDistance
+                                })
+                            });
+                            if (res.ok) {
+                                expandedIdx = null;
+                                render();
+                                document.getElementById('overlay').style.display = 'none';
+                            } else {
+                                alert('保存に失敗しました');
+                            }
+                        };
+                        panel.querySelector('.cancel-btn').onclick = e => {
+                            e.stopPropagation();
+                            expandedIdx = null;
+                            render();
+                            document.getElementById('overlay').style.display = 'none';
+                        };
+                        panel.querySelector('.delete-btn').onclick = async e => {
+                            e.stopPropagation();
+                            if (!confirm('この勤務記録を削除します。よろしいですか？')) return;
+                            // 削除API呼び出し（APIが未実装の場合はコメントアウト）
+                            const res = await fetch('api/attendance_delete.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ date: rec.date })
+                            });
+                            if (res.ok) {
+                                expandedIdx = null;
+                                await loadRecords();
+                                document.getElementById('overlay').style.display = 'none';
+                            } else {
+                                alert('削除に失敗しました');
+                            }
+                        };
+                    }
+                });
+            }
+            function formatDateMD(dateStr) {
+                // "YYYY-MM-DD" → "MM月DD日"
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return dateStr;
+                return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+            }
+            // 年月をタイトル左に表示
+            function setYearLabel() {
+                if (records.length > 0) {
+                    const ymd = records[0].date ? records[0].date.split('-') : [];
+                    if (ymd.length === 3) {
+                        document.getElementById('yearLabel').textContent = `${ymd[0]}年${parseInt(ymd[1], 10)}月度 `;
+                    } else {
+                        document.getElementById('yearLabel').textContent = '';
+                    }
+                } else {
+                    document.getElementById('yearLabel').textContent = '';
+                }
+            }
+            // 初回ロード
+            (async function () {
+                await loadSettings();
+                // 今月を初期値に
+                const now = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                const ym = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+                const monthInput = document.getElementById('monthSelect');
+                monthInput.value = ym;
+                monthInput.addEventListener('change', function () {
+                    loadRecordsByPeriod(this.value);
+                });
+                await loadRecordsByPeriod(ym);
+            })();
+
+            function adjustScrollAreaHeight() {
+                const body = document.body;
+                const header = document.querySelector('.fixed-header');
+                const footer = document.querySelector('.fixed-footer');
+                const container = document.querySelector('.container');
+                const scrollArea = document.querySelector('.scroll-area');
+                // ヘッダー・フッターの実際の高さを取得
+                const headerH = header ? header.getBoundingClientRect().height : 0;
+                const footerH = footer ? footer.getBoundingClientRect().height : 0;
+                const vh = body.clientHeight;
+                // 実際の高さで計算
+                //const headerPaddingVert = header ? (parseInt(getComputedStyle(header).paddingTop, 10) || 0) + (parseInt(getComputedStyle(header).paddingBottom, 10) || 0) : 0;
+                //const footerPaddingVert = footer ? (parseInt(getComputedStyle(footer).paddingTop, 10) || 0) : 0;
+                // マージン・パディングを考慮した最大高さ
+                const maxH = vh - headerH - footerH;
+                scrollArea.style.maxHeight = maxH + 'px';
+                scrollArea.style.height = maxH + 'px';
+                //document.getElementById("statsBox").textContent = `vh: ${parseInt(vh, 10)}px　hH: ${parseInt(headerH, 10)}px　fH: ${parseInt(footerH, 10)}px → ${parseInt(maxH, 10)}px`;
+                const scrollMainW = document.querySelector('.record-list').getBoundingClientRect().width
+                const scrollPaddingw = parseInt(getComputedStyle(document.querySelector('.record-list')).paddingInline,10) * 2
+                document.getElementById('listLabel').style.maxWidth = (scrollMainW - scrollPaddingw) + 'px';
+
+            }
+            window.addEventListener('resize', adjustScrollAreaHeight);
+            window.addEventListener('DOMContentLoaded', adjustScrollAreaHeight);
+            // 管理者メニューボタン表示
+            fetch('api/check_login.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.is_admin) {
+                        document.body.classList.add('is-admin');
+                        document.getElementById('header-btns').innerHTML += '<span id="adminMenuBtnArea" class="admin-only" style="display:flex;align-items:center;"><button class="footer-btn" style="flex:1;min-width:11em;" onclick="location.href=\'admin.html\'">管理者メニュー</button></span>';
+                    }
+                });
+        </script>
+</body>
+
+</html>

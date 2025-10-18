@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>勤怠データ管理</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f5f6fa;
+        margin: 0;
+      }
+      .container {
+        max-width: 600px;
+        width: calc(100vw - 240px);
+        min-width: 400px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+        padding: 1rem 1.5rem;
+        margin-left: 240px;
+      }
+      h2 {
+        text-align: center;
+        color: #1976d2;
+        margin-block-start: 0.7em;
+        margin-block-end: 0.7em;
+      }
+      .search-box {
+        margin-bottom: 1.5em;
+      }
+      .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2em;
+      }
+      input[type="time" i] {
+        font-size: 1.2em;
+        width: 8em;
+        border: 1px solid #b0bec5;
+        border-radius: 4px;
+      }
+      input[type="month" i] {
+        font-size: 1.5em;
+        border: 1px solid #b0bec5;
+        border-radius: 4px;
+        padding: 2px 0;
+      }
+      th,
+      td {
+        border: 1px solid #e0e0e0;
+        padding: 0.5em 0.7em;
+        text-align: center;
+      }
+
+      th {
+        background: #e3f2fd;
+      }
+      tr:nth-child(even) {
+        background: #f7fafd;
+      }
+      .break-delete-btn {
+        background: #e57373;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 0 0.5em;
+        font-size: 1.5em;
+        cursor: pointer;
+      }
+      .btn {
+        background: #1976d2;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 0.3em 1em;
+        cursor: pointer;
+      }
+      .btn:active {
+        background: #1565c0;
+      }
+      .user-select {
+        font-size: 1.1em;
+        padding: 0.4em 1em;
+        border-radius: 4px;
+        border: 1px solid #b0bec5;
+        margin-right: 1em;
+      }
+      th.manual-cell,
+      td.manual-cell {
+        background: #fffde7 !important;
+      }
+      td.overwork-cell {
+        background: #fff3e0 !important;
+      }
+      .user-list-panel {
+        min-width: 160px;
+        width: 160px;
+        max-height: 600px;
+        overflow-y: auto;
+        background: #f8fafc;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px #0001;
+        padding: 1em 0.5em;
+      }
+      .user-list-item {
+        padding: 0.3em 0.7em;
+      }
+      #userListTable {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      #userListTable td {
+        padding: 0.3em 0.7em;
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;">
+    <div style="display:flex;align-items:flex-start;min-height:100vh;background:#f5f6fa;">
+      <div class="user-sidebar" style="min-width:240px;width:240px;max-width:320px;background:#f8fafc;border-right:1px solid #e0e0e0;box-shadow:0 2px 8px #0001;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;position:fixed;left:0;top:0;bottom:0;z-index:10;">
+        <h3 style="margin:1.5em 0 1em 0;font-size:1.1em;color:#1976d2;text-align:center;">表示月選択</h3>
+        <input type="month" id="monthSelect" value="2025-06" style="font-size:1.2em; text-align:center" />
+
+        <h3 style="margin:1.5em 0 1em 0;font-size:1.1em;color:#1976d2;text-align:center;">ユーザー一覧</h3>
+        <div style="flex:1;overflow-y:auto;padding-bottom:2em;">
+          <table id="userListTable" style="width:100%;border-collapse:collapse;">
+            <tbody></tbody>
+          </table>
+        </div>
+        <button class="btn" id="exportBtn" style="margin:1.5em auto 1em auto;display:block;width:80%;">CSV出力</button>
+      </div>
+      <div class="container">
+        <div style="display:flex;flex-direction:column;align-items:stretch;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <h2>勤怠データ管理</h2>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:0.5em;">
+                    <button class="btn" id="addAttendanceBtn" style="margin-right: 0.5em;">＋新規追加</button>
+                    <button class="btn" id="adminMenuBtn" style="background:#fff;color:#1976d2;border:1.5px solid #1976d2;">メニューへ戻る</button>
+                </div>
+
+          </div>
+        </div>
+        <div id="statsBox" style="margin:1em 0;font-size:1.1em;color:#1976d2;font-weight:bold; text-align:center"></div>
+        <table class="attendance-table" id="attendanceTable">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>出勤</th>
+              <th>退勤</th>
+              <th>休憩</th>
+              <th>労働時間</th>
+              <th>車距離</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 勤怠データがここに挿入されます -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      // fetchWithAuth: 401/403時は自動ログアウト
+      async function fetchWithAuth(url, options) {
+        const res = await fetch(url, options);
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = 'login.html';
+          return null;
+        }
+        return res;
+      }
+      // 管理者権限チェック（URL直打ち対策）
+      fetchWithAuth('api/check_login.php')
+        .then(res => res && res.json())
+        .then(data => {
+          if (!data || !data.loggedIn) {
+            window.location.href = 'login.html';
+          } else if (!data.is_admin) {
+            alert('管理者権限がありません');
+            window.location.href = 'punch.html';
+          }
+        });
+      // ユーザー一覧取得
+      async function loadUsers() {
+        const res = await fetchWithAuth('api/admin_user_list.php');
+        if (!res || !res.ok) return [];
+        return (await res.json()).filter((u) => u.visible == 1);
+      }
+      // 勤怠データ取得（start/end指定対応）
+      async function loadAttendance(userId, start, end) {
+        const res = await fetchWithAuth('api/attendance_list.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, start, end }),
+        });
+        if (!res || !res.ok) return [];
+        return await res.json();
+      }
+      let users = [];
+      let selectedUserId = null;
+      async function renderUserList() {
+        users = await loadUsers();
+        const userListTbody = document.querySelector("#userListTable tbody");
+        userListTbody.innerHTML = users
+          .map(
+            (u) =>
+              `<tr data-id="${u.id}" style="cursor:pointer;${
+                selectedUserId == u.id
+                  ? "background:#e3f2fd;font-weight:bold;"
+                  : ""
+              }"><td class="user-list-item">${u.name}</td></tr>`
+          )
+          .join("");
+        // 行クリックで選択
+        Array.from(userListTbody.querySelectorAll("tr")).forEach((tr) => {
+          tr.onclick = () => {
+            selectedUserId = tr.getAttribute("data-id");
+            window.editingIdx = null;
+            renderUserList();
+            renderTable();
+          };
+        });
+        // 初期選択
+        if (!selectedUserId && users.length > 0) {
+          selectedUserId = users[0].id;
+          renderUserList();
+          renderTable();
+        }
+      }
+      function formatDateHM(dateStr) {
+        // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+        if (!dateStr) return "";
+        const parts = dateStr.split(" ");
+        if (parts.length !== 2) return dateStr;
+        return parts[1].substring(0, 5);
+      }
+
+      function formatDateMD(dateStr) {
+        // "YYYY-MM-DD" → "MM月DD日(A)"
+        if (!dateStr) return "";
+        const days = ["日","月","火","水","木","金","土",];
+        const parts = dateStr.split("-");
+        if (parts.length !== 3) return dateStr;
+        const date = new Date(dateStr);
+        return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日（${days[date.getDay()]}）`;
+      }
+
+      function calcTotalBreak(breaks) {
+        let total = 0;
+        for (const b of breaks) {
+          const s = formatDateHM(b.start);
+          const e = formatDateHM(b.end);
+          if (s && e) {
+            const [sh, sm] = s.split(":").map(Number);
+            const [eh, em] = e.split(":").map(Number);
+            total += eh * 60 + em - (sh * 60 + sm);
+          }
+        }
+        return total;
+      }
+      function calcWorkTime(clockIn, clockOut, breaks) {
+        const s = formatDateHM(clockIn);
+        const e = formatDateHM(clockOut);
+        if (!s || !e) return "";
+        const [sh, sm] = s.split(":").map(Number);
+        const [eh, em] = e.split(":").map(Number);
+        let min = eh * 60 + em - (sh * 60 + sm);
+        min -= calcTotalBreak(breaks);
+        if (min < 0) min = 0;
+        return `${Math.floor(min / 60)}:${(min % 60)
+          .toString()
+          .padStart(2, "0")}`;
+      }
+
+
+      // 勤怠ルール設定値
+      let settings = {
+        period_start: 1,
+        period_end: 31
+      };
+      // 設定取得
+      async function loadSettings() {
+        const res = await fetchWithAuth('api/settings_get.php');
+        if (!res) return;
+        if (res.ok) settings = await res.json();
+      }
+
+      // 指定年月から「前月period_start日」～「選択月period_end日」までの範囲を計算
+      function calcPeriodRange(monthVal) {
+        // monthVal: "YYYY-MM"
+        const [y, m] = monthVal.split("-").map(Number);
+        // 前月
+        let startYear = y;
+        let startMonth = m - 1;
+        if (startMonth <= 0) {
+          startYear -= 1;
+          startMonth += 12;
+        }
+        const pad = n => n.toString().padStart(2, '0');
+        const start = `${startYear}-${pad(startMonth)}-${pad(settings.period_start)}`;
+        const end = `${y}-${pad(m)}-${pad(settings.period_end)}`;
+        return { start, end };
+      }
+
+      async function renderTable() {
+        const userId = selectedUserId;
+        const monthVal = document.getElementById("monthSelect").value;
+        const { start, end } = calcPeriodRange(monthVal);
+        const attendance = await loadAttendance(userId, start, end);
+        // 統計情報の計算
+        let workDays = 0;
+        let totalWorkMin = 0;
+        let totalOverMin = 0;
+        attendance.forEach((rec) => {
+          if (rec.clockIn && rec.clockOut) {
+            workDays++;
+            // 労働時間（分）
+            const s = formatDateHM(rec.clockIn);
+            const e = formatDateHM(rec.clockOut);
+            if (s && e) {
+              const [sh, sm] = s.split(":").map(Number);
+              const [eh, em] = e.split(":").map(Number);
+              let min = eh * 60 + em - (sh * 60 + sm);
+              min -= calcTotalBreak(rec.breaks || []);
+              if (min > 0) totalWorkMin += min;
+              if (min > 480) totalOverMin += min - 480;
+            }
+          }
+        });
+        const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(
+          totalWorkMin % 60
+        )
+          .toString()
+          .padStart(2, "0")}`;
+        const totalOverStr =
+          totalOverMin > 0
+            ? `　超過勤務: ${Math.floor(totalOverMin / 60)}:${(
+                totalOverMin % 60
+              )
+                .toString()
+                .padStart(2, "0")}`
+            : "";
+        document.getElementById("statsBox").textContent = `出勤日数: ${workDays}日　合計労働時間: ${totalWorkStr}${totalOverStr}`;
+        const tbody = document.querySelector("#attendanceTable tbody");
+        tbody.innerHTML = "";
+        // 新規追加行の描画（編集UIと同じデザイン）
+        if (window.addingAttendance) {
+          const tr = document.createElement("tr");
+          tr.className = "expand-panel";
+          tr.innerHTML = `<td colspan="7">
+              <div style="display:flex;flex-direction:column;gap:0.5em;align-items:flex-start;">
+                  <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">日付
+                    <input type="date" id="newDate" style="font-size:1.2em;width:9em;">
+                  </label>
+                <div style="display:flex;gap:2em;flex-wrap:wrap;">
+                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">出勤
+                  <input type="time" id="newIn" style="font-size:1.2em;width:8em;">
+                </label>
+                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">退勤
+                  <input type="time" id="newOut" style="font-size:1.2em;width:8em;">
+                </label>
+                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">車距離
+                  <input type="number" id="newVehicleDistance" min="0" step="1" value="0" style="font-size:1.2em;width:7em;text-align:right;"> km
+                </label>
+              </div>
+              <div style="width:100%; display:contents;">
+                <div style="font-weight:bold;margin-bottom:0.3em; text-align:left">休憩:</div>
+                <div id="newBreakList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
+                <button type="button" class="btn" id="addBreakToNew" style="margin-top:0.5em;">＋休憩追加</button>
+              </div>
+              <div style="display:flex;gap:1em;margin-top:0.7em;width:100%;justify-content:flex-end;">
+                <button class="btn" id="saveNewBtn" style=" font-size: 1.3em;">保存</button>
+                <button class="btn" id="cancelNewBtn" style=" font-size: 1.3em;">キャンセル</button>
+              </div>
+            </div>
+          </td>`;
+          tbody.appendChild(tr);
+          // 休憩リスト管理
+          let newBreaks = [];
+          function renderNewBreaks() {
+            const list = tr.querySelector('#newBreakList');
+            list.innerHTML = '';
+            newBreaks.forEach((b, i) => {
+              const row = document.createElement('div');
+              row.style.display = 'flex';
+              row.style.alignItems = 'center';
+              row.style.gap = '0.5em';
+              // 休憩時間の計算
+              let breakTime = '';
+              if (b.start && b.end) {
+                const [sh, sm] = b.start.split(":").map(Number);
+                const [eh, em] = b.end.split(":").map(Number);
+                let min = eh * 60 + em - (sh * 60 + sm);
+                if (min > 0) {
+                  breakTime = `${Math.floor(min / 60)}:${(min % 60).toString().padStart(2, "0")}`;
+                }
+              }
+              row.innerHTML = `<span style='min-width:1.5em;'>${i + 1}</span><input type="time" value="${b.start || ''}" class="break-start" data-idx="${i}" style="width:7em;">～<input type="time" value="${b.end || ''}" class="break-end" data-idx="${i}" style="width:7em;"><span style='min-width:3.5em;color:#1976d2;font-weight:bold;'>${breakTime}</span><button type="button" class="break-delete-btn" data-idx="${i}">×</button>`;
+              row.querySelector('.break-delete-btn').onclick = () => {
+                newBreaks.splice(i, 1);
+                renderNewBreaks();
+              };
+              row.querySelector('.break-start').onchange = (e) => {
+                newBreaks[i].start = e.target.value;
+                renderNewBreaks();
+              };
+              row.querySelector('.break-end').onchange = (e) => {
+                newBreaks[i].end = e.target.value;
+                renderNewBreaks();
+              };
+              list.appendChild(row);
+            });
+          }
+          tr.querySelector('#addBreakToNew').onclick = () => {
+            newBreaks.push({start:'', end:''});
+            renderNewBreaks();
+          };
+          renderNewBreaks();
+          // 保存
+          tr.querySelector('#saveNewBtn').onclick = async () => {
+            const date = tr.querySelector('#newDate').value;
+            const clockIn = tr.querySelector('#newIn').value;
+            const clockOut = tr.querySelector('#newOut').value;
+            const vehicleDistance = Number(tr.querySelector('#newVehicleDistance').value) || 0;
+            // バリデーション
+            if (!date || !clockIn || !clockOut) {
+              alert('日付・出勤・退勤は必須です');
+              return;
+            }
+            if (clockIn >= clockOut) {
+              alert('退勤は出勤より後にしてください');
+              return;
+            }
+            for (let i = 0; i < newBreaks.length; i++) {
+              const b = newBreaks[i];
+              if (!b.start || !b.end) {
+                alert(`休憩${i + 1}の時刻を入力してください`);
+                return;
+              }
+              if (b.start >= b.end) {
+                alert(`休憩${i + 1}の終了は開始より後にしてください`);
+                return;
+              }
+              if (b.start < clockIn) {
+                alert(`休憩${i + 1}の開始は出勤以降にしてください`);
+                return;
+              }
+              if (b.end > clockOut) {
+                alert(`休憩${i + 1}の終了は退勤以前にしてください`);
+                return;
+              }
+            }
+            // API送信
+            const res = await fetch('api/attendance_update.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: userId,
+                date,
+                clockIn,
+                clockOut,
+                breaks: newBreaks,
+                vehicleDistance
+              })
+            });
+            if (res.ok) {
+              window.addingAttendance = false;
+              await renderTable();
+            } else {
+              alert('保存に失敗しました');
+            }
+          };
+          // キャンセル
+          tr.querySelector('#cancelNewBtn').onclick = () => {
+            window.addingAttendance = false;
+            renderTable();
+          };
+        }
+        attendance.forEach((rec, idx) => {
+      // 新規追加ボタンイベント
+      document.getElementById('addAttendanceBtn').onclick = function() {
+        if (window.addingAttendance) return;
+        window.addingAttendance = true;
+        window.editingIdx = null;
+        renderTable();
+      };
+          const breakMin = calcTotalBreak(rec.breaks || []);
+          const breakStr = breakMin
+            ? `${Math.floor(breakMin / 60)}:${(breakMin % 60)
+                .toString()
+                .padStart(2, "0")}`
+            : "";
+          // 労働時間・超過分計算
+          let workMin = 0;
+          let workStr = "";
+          let overStr = "";
+          let workClass = "";
+          if (rec.clockIn && rec.clockOut) {
+            const s = formatDateHM(rec.clockIn);
+            const e = formatDateHM(rec.clockOut);
+            if (s && e) {
+              const [sh, sm] = s.split(":").map(Number);
+              const [eh, em] = e.split(":").map(Number);
+              workMin = eh * 60 + em - (sh * 60 + sm) - breakMin;
+              if (workMin < 0) workMin = 0;
+              workStr = `${Math.floor(workMin / 60)}:${(workMin % 60)
+                .toString()
+                .padStart(2, "0")}`;
+              if (workMin > 480) {
+                const overMin = workMin - 480;
+                overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(
+                  overMin / 60
+                )}:${(overMin % 60).toString().padStart(2, "0")}）</span>`;
+                workClass = "overwork-cell";
+              }
+            }
+          }
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
+      tr.innerHTML = `<td>${formatDateMD(rec.date)}</td><td class='${
+        rec.clockInManual ? "manual-cell" : ""
+      }'>${formatDateHM(rec.clockIn) || ""}</td><td class='${
+        rec.clockOutManual ? "manual-cell" : ""
+      }'>${
+        formatDateHM(rec.clockOut) || ""
+      }</td><td>${breakStr}</td><td class='${workClass}'>${workStr}${overStr}</td><td>${rec.vehicleDistance ?? 0}km</td>`;
+      tr.onclick = () => {
+        // 新規追加中ならキャンセルし、クリック行を編集状態に
+        if (window.addingAttendance) {
+          window.addingAttendance = false;
+          window.editingIdx = idx;
+          renderTable();
+          return;
+        }
+        if (window.editingIdx === idx) {
+          window.editingIdx = null;
+        } else {
+          window.editingIdx = idx;
+        }
+        renderTable();
+      };
+      tbody.appendChild(tr);
+          // 編集パネル展開
+          if (window.editingIdx === idx) {
+            const editTr = document.createElement("tr");
+            editTr.className = "expand-panel";
+            editTr.innerHTML = `<td colspan="7">
+              <div style="display:flex;flex-direction:column;gap:0.5em;align-items:flex-start;">
+                <div style="display:flex;gap:2em;flex-wrap:wrap;">
+                  <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">出勤
+                    <input type="time" id="editIn" value="${formatDateHM(rec.clockIn)}" style="font-size:1.2em;width:8em;">
+                  </label>
+                  <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">退勤
+                    <input type="time" id="editOut" value="${formatDateHM(rec.clockOut)}" style="font-size:1.2em;width:8em;">
+                  </label>
+                  <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">車距離
+                    <input type="number" id="editVehicleDistance" min="0" step="1" value="${rec.vehicleDistance ?? 0}" style="font-size:1.2em;width:7em;text-align:right;"> km
+                  </label>
+                </div>
+                <div style="width:100%; display:contents;">
+                  <div style="font-weight:bold;margin-bottom:0.3em; text-align:left">休憩:</div>
+                  <div id="breakEditList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
+                  <button type="button" class="btn" id="addBreakBtn" style="margin-top:0.5em;">＋休憩追加</button>
+                </div>
+                <div style="display:flex;gap:1em;margin-top:0.7em;width:100%;justify-content:flex-end;">
+                  <button class="btn" id="saveBtn" style=" font-size: 1.3em;">保存</button>
+                  <button class="btn" id="cancelBtn" style=" font-size: 1.3em;">キャンセル</button>
+                  <button class="btn" id="deleteBtn" style="background:#e57373; font-size: 1.3em;">削除</button>
+                </div>
+              </div>
+            </td>`;
+            tbody.appendChild(editTr);
+            // 休憩編集UI
+            const breakEditList = editTr.querySelector("#breakEditList");
+            function renderBreaks() {
+              breakEditList.innerHTML = "";
+              (rec.breaks || []).forEach((b, i) => {
+                const row = document.createElement("div");
+                row.style.display = "flex";
+                row.style.alignItems = "center";
+                row.style.gap = "0.5em";
+                // 休憩時間の計算
+                let breakTime = "";
+                if (b.start && b.end) {
+                  const [sh, sm] = formatDateHM(b.start).split(":").map(Number);
+                  const [eh, em] = formatDateHM(b.end).split(":").map(Number);
+                  let min = eh * 60 + em - (sh * 60 + sm);
+                  if (min > 0) {
+                    breakTime = `${Math.floor(min / 60)}:${(min % 60)
+                      .toString()
+                      .padStart(2, "0")}`;
+                  }
+                }
+                row.innerHTML = `<span style='min-width:1.5em;'>${
+                  i + 1
+                }.</span><input type="time" value="${
+                  b.start ? formatDateHM(b.start) : ""
+                }" class="break-start" data-idx="${i}" style="width:7em;">～<input type="time" value="${
+                  b.end ? formatDateHM(b.end) : ""
+                }" class="break-end" data-idx="${i}" style="width:7em;"><span style='min-width:3.5em;color:#1976d2;font-weight:bold;'>${breakTime}</span><button type="button" class="break-delete-btn" data-idx="${i}">×</button>`;
+                row.querySelector("button").onclick = () => {
+                  rec.breaks.splice(i, 1);
+                  renderBreaks();
+                };
+                row.querySelector(".break-start").onchange = (e) => {
+                  rec.breaks[i].start = e.target.value;
+                  renderBreaks();
+                };
+                row.querySelector(".break-end").onchange = (e) => {
+                  rec.breaks[i].end = e.target.value;
+                  renderBreaks();
+                };
+                breakEditList.appendChild(row);
+              });
+            }
+            renderBreaks();
+            editTr.querySelector("#addBreakBtn").onclick = () => {
+              rec.breaks = rec.breaks || [];
+              rec.breaks.push({ start: "", end: "" });
+              renderBreaks();
+            };
+            // 保存
+            editTr.querySelector("#saveBtn").onclick = async () => {
+              const inVal = editTr.querySelector("#editIn").value;
+              const outVal = editTr.querySelector("#editOut").value;
+              // バリデーション
+              if (!inVal || !outVal) {
+                alert("出勤・退勤は必須です");
+                return;
+              }
+              if (inVal >= outVal) {
+                alert("退勤は出勤より後にしてください");
+                return;
+              }
+              for (let i = 0; i < (rec.breaks || []).length; i++) {
+                const b = rec.breaks[i];
+                const bstart = formatDateHM(b.start);
+                const bend = formatDateHM(b.end);
+                if (!b.start || !b.end) {
+                  alert(`休憩${i + 1}の時刻を入力してください`);
+                  return;
+                }
+                if (b.start >= b.end) {
+                  alert(`休憩${i + 1}の終了は開始より後にしてください`);
+                  return;
+                }
+                if (bstart < inVal) {
+                  alert(`休憩${i + 1}の開始は出勤以降にしてください`);
+                  return;
+                }
+                if (bend > outVal) {
+                  alert(`休憩${i + 1}の終了は退勤以前にしてください`);
+                  return;
+                }
+              }
+              // API送信
+              const res = await fetch("api/attendance_update.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: userId,
+                  date: rec.date,
+                  clockIn: inVal,
+                  clockOut: outVal,
+                  breaks: rec.breaks,
+                  vehicleDistance: Number(editTr.querySelector('#editVehicleDistance').value) || 0
+                }),
+              });
+              if (res.ok) {
+                window.editingIdx = null;
+                await renderTable();
+              } else {
+                alert("保存に失敗しました");
+              }
+            };
+            // キャンセル
+            editTr.querySelector("#cancelBtn").onclick = () => {
+              window.editingIdx = null;
+              renderTable();
+            };
+            // 削除
+            editTr.querySelector("#deleteBtn").onclick = async () => {
+              if (!confirm("この勤怠データを削除します。よろしいですか？")) return;
+              const res = await fetch("api/attendance_delete.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId, date: rec.date }),
+              });
+              if (res.ok) {
+                window.editingIdx = null;
+                await renderTable();
+              } else {
+                alert("削除に失敗しました");
+              }
+            };
+          }
+        });
+      }
+      window.editingIdx = null;
+      window.editRec = function (idx) {
+        window.editingIdx = idx;
+        renderTable();
+      };
+      window.deleteRec = function (idx) {
+        if (confirm("削除しますか？")) {
+          attendance.splice(idx, 1);
+          renderTable();
+        }
+      };
+      // 初期化
+      (async function () {
+        await loadSettings();
+        await renderUserList();
+        await renderTable();
+      })();
+      // イベントで即時更新
+      document.getElementById("monthSelect").addEventListener("change", function () {
+        window.editingIdx = null;
+        renderTable();
+      });
+      document.getElementById("adminMenuBtn").onclick = function() {
+        window.location.href = "admin.html";
+      };
+    </script>
+  </body>
+</html>

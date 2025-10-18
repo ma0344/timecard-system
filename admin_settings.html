@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>給与計算・勤怠ルール設定</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; margin: 0; }
+    .container { max-width: 480px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); padding: 2.5rem 1.5rem; }
+    h2 { text-align: center; color: #1976d2; margin-bottom: 2rem; }
+    .form-group { margin-bottom: 1.5em; }
+    label { display: block; margin-bottom: 0.5em; color: #1976d2; font-weight: bold; }
+    input, select { font-size: 1.1em; padding: 0.4em 0.7em; border-radius: 4px; border: 1px solid #b0bec5; width: 100%; max-width: 220px; }
+    .form-row { display: flex; gap: 1em; align-items: center; margin-bottom: 0.7em; }
+    .btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.7em 2em; font-size: 1.1em; cursor: pointer; margin-top: 1.5em; }
+    .btn:active { background: #1565c0; }
+    .msg { text-align: center; margin-top: 1em; }
+    @media (max-width: 600px) {
+      .container { padding: 1rem 0.2rem; }
+      .form-row { flex-direction: column; align-items: flex-start; gap: 0.2em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>給与計算・勤怠ルール設定</h2>
+    <form id="settingsForm">
+      <div class="form-group">
+        <label>給与計算期間</label>
+        <div class="form-row">
+          <span>開始日：</span>
+          <input type="number" min="1" max="31" id="periodStart" required style="width:80px;"> 日
+          <span>締日：</span>
+          <input type="number" min="1" max="31" id="periodEnd" required style="width:80px;"> 日
+        </div>
+      </div>
+      <div class="form-group">
+        <label>勤務時間の丸め単位</label>
+        <div class="form-row">
+          <span>丸め方法：</span>
+          <select id="roundingType">
+            <option value="floor">切り捨て</option>
+            <option value="ceil">切り上げ</option>
+            <option value="round">四捨五入</option>
+          </select>
+          <span>単位：</span>
+          <select id="roundingUnit">
+            <option value="1">1分</option>
+            <option value="5">5分</option>
+            <option value="10">10分</option>
+            <option value="15">15分</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>所定労働時間（1日あたり）</label>
+        <div class="form-row">
+          <input type="number" min="0" max="24" id="workHours" required style="width:80px;"> 時間
+          <input type="number" min="0" max="59" id="workMinutes" required style="width:80px;"> 分
+        </div>
+      </div>
+      <div class="form-group">
+        <label>法定労働時間（常勤・月ごと）</label>
+        <div class="form-row">
+          <span>28日:</span> <input type="number" min="0" max="300" id="legalHours28" style="width:80px;"> 時間
+          <span>29日:</span> <input type="number" min="0" max="300" id="legalHours29" style="width:80px;"> 時間
+        </div>
+        <div class="form-row">
+          <span>30日:</span> <input type="number" min="0" max="300" id="legalHours30" style="width:80px;"> 時間
+          <span>31日:</span> <input type="number" min="0" max="300" id="legalHours31" style="width:80px;"> 時間
+        </div>
+        <div style="color:#888; font-size:0.95em; margin-top:0.3em;">※常勤者の1カ月法定労働時間（例: 28日=160, 29日=165, 30日=171, 31日=177）</div>
+      </div>
+      <button type="submit" class="btn">保存</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+  <script>
+    // fetchWithAuth: 401/403時は自動ログアウト
+    async function fetchWithAuth(url, options) {
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return res;
+    }
+    // 管理者権限チェック（URL直打ち対策）
+    fetchWithAuth('api/check_login.php')
+      .then(res => res && res.json())
+      .then(data => {
+        if (!data || !data.loggedIn) {
+          window.location.href = 'login.html';
+        } else if (!data.is_admin) {
+          alert('管理者権限がありません');
+          window.location.href = 'punch.html';
+        }
+      });
+
+    // 設定値の取得・反映
+    async function loadSettings() {
+      const res = await fetchWithAuth('api/settings_get.php');
+      if (!res || !res.ok) return;
+      const s = await res.json();
+      document.getElementById('periodStart').value = s.period_start;
+      document.getElementById('periodEnd').value = s.period_end;
+      document.getElementById('roundingType').value = s.rounding_type;
+      document.getElementById('roundingUnit').value = s.rounding_unit;
+      document.getElementById('workHours').value = s.work_hours;
+      document.getElementById('workMinutes').value = s.work_minutes;
+      document.getElementById('legalHours28').value = s.legal_hours_28 ?? 160;
+      document.getElementById('legalHours29').value = s.legal_hours_29 ?? 165;
+      document.getElementById('legalHours30').value = s.legal_hours_30 ?? 171;
+      document.getElementById('legalHours31').value = s.legal_hours_31 ?? 177;
+    }
+    loadSettings();
+
+    // 保存処理
+    document.getElementById('settingsForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const data = {
+        period_start: document.getElementById('periodStart').value,
+        period_end: document.getElementById('periodEnd').value,
+        rounding_type: document.getElementById('roundingType').value,
+        rounding_unit: document.getElementById('roundingUnit').value,
+        work_hours: document.getElementById('workHours').value,
+        work_minutes: document.getElementById('workMinutes').value,
+        legal_hours_28: document.getElementById('legalHours28').value,
+        legal_hours_29: document.getElementById('legalHours29').value,
+        legal_hours_30: document.getElementById('legalHours30').value,
+        legal_hours_31: document.getElementById('legalHours31').value
+      };
+      const res = await fetchWithAuth('api/settings_save.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res && res.ok) {
+        document.getElementById('msg').textContent = '設定を保存しました';
+      } else if (res) {
+        const err = await res.json();
+        document.getElementById('msg').textContent = '保存に失敗しました: ' + (err.error || 'エラー');
+      }
+    };
+  </script>
+</body>
+</html>

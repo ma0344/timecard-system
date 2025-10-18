@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ユーザーアカウント管理</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            min-width: 700px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            padding: 2.5rem 1.5rem;
+        }
+
+        h2 {
+            text-align: center;
+            color: #1976d2;
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            margin-bottom: 1.5em;
+        }
+
+        .user-table {
+            width: 100%;
+            max-width: 1000px;
+            min-width: 700px;
+            border-collapse: collapse;
+            margin-bottom: 2em;
+        }
+
+        th,
+        td {
+            border: 1px solid #e0e0e0;
+            padding: 0.5em 0.7em 0.5em 0.7em;
+            text-align: left;
+        }
+
+        .editing {
+            padding: 0.5em 0;
+        }
+
+        th {
+            background: #e3f2fd;
+        }
+
+        td input,
+        td select {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1.1em;
+        }
+
+        input {
+            width: 90%;
+        }
+
+        tr:nth-child(even) {
+            background: #f7fafd;
+        }
+
+        .btn {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3em 1em;
+            cursor: pointer;
+        }
+
+        .btn:active {
+            background: #1565c0;
+        }
+
+        .add-user-row {
+            background: #f1f8e9;
+        }
+
+        .add-user-row input {
+            width: 90%;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 66px;
+            height: 36px;
+            vertical-align: middle;
+        }
+
+        .toggle__input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle__slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .toggle__slider:before {
+            border-radius: 50%;
+            position: absolute;
+            content: "";
+            height: 30px;
+            width: 30px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            transition: 0.3s;
+            box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
+        .toggle__input:checked+.toggle__slider {
+            background: #86f096;
+        }
+
+        .toggle__input:checked+.toggle__slider:before {
+            transform: translateX(30px);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem 0.2rem;
+            }
+
+            .user-table,
+            th,
+            td {
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div style="text-align: right; margin-bottom: 0.7em">
+            <button
+                class="btn"
+                onclick="location.href='admin.html'"
+                style="background: #fff; color: #1976d2; border: 1.5px solid #1976d2"> メニューへ戻る </button>
+        </div>
+        <h2>ユーザーアカウント管理</h2>
+        <div
+            class="search-box"
+            style="display: flex; align-items: center; gap: 1em">
+            <select
+                id="userSearch"
+                style="
+            padding: 0.4em 1em;
+            width: 220px;
+            font-size: 1.1em;
+            border-radius: 4px;
+            border: 1px solid #b0bec5;
+          ">
+                <option value="">全ユーザー</option>
+            </select>
+            <button class="btn" id="addUserBtn">＋新規ユーザー</button>
+            <div style="flex: 1; text-align: right">
+                <label class="toggle" for="showDeletedToggle">
+                    <input
+                        type="checkbox"
+                        class="toggle__input"
+                        id="showDeletedToggle" />
+                    <span class="toggle__slider"></span>
+                </label>
+                <label
+                    for="showDeletedToggle"
+                    style="cursor: pointer; user-select: none"> 削除したユーザーの表示</label>
+            </div>
+        </div>
+        <table class="user-table" id="userTable">
+            <colgroup>
+                <col style="width: 1.5em" />
+                <col style="width: 6em" />
+                <col style="width: 4em" />
+                <col style="width: 3.5em" />
+                <col style="width: 4.5em" />
+                <col style="width: 17em" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ユーザー名</th>
+                    <th>権限</th>
+                    <th style="text-align: center;">自家用車</th>
+                    <th style="text-align: right;">契約労働時間</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- ユーザー一覧がここに挿入されます -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // fetchWithAuth: 401/403時は自動ログアウト
+        async function fetchWithAuth(url, options) {
+            const res = await fetch(url, options);
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = "login.html";
+                return null;
+            }
+            return res;
+        }
+        // 管理者権限チェック（URL直打ち対策）
+        fetchWithAuth("api/check_login.php")
+            .then((res) => res && res.json())
+            .then((data) => {
+                if (!data || !data.loggedIn) {
+                    window.location.href = "login.html";
+                } else if (!data.is_admin) {
+                    alert("管理者権限がありません");
+                    window.location.href = "punch.html";
+                }
+            });
+        // ユーザー一覧取得
+        async function loadUsers() {
+            const res = await fetchWithAuth("api/admin_user_list.php");
+            if (!res || !res.ok) return [];
+            return await res.json();
+        }
+        let users = [];
+        let allUsers = [];
+        let editingIdx = null;
+        async function renderTable() {
+            allUsers = await loadUsers();
+            const showDeleted =
+                document.getElementById("showDeletedToggle").checked;
+            users = showDeleted
+                ? allUsers
+                : allUsers.filter((u) => u.visible === undefined || u.visible == 1);
+            const userSearch = document.getElementById("userSearch");
+            const prevSelectedId = userSearch.value;
+            // 選択肢を再生成
+            userSearch.innerHTML =
+                '<option value="">全ユーザー</option>' +
+                users
+                    .map((u) => `<option value="${u.id}">${u.name}</option>`)
+                    .join("");
+            // 直前の選択値を復元（新規追加時やトグル切替時も）
+            if (
+                prevSelectedId &&
+                userSearch.querySelector(`option[value="${prevSelectedId}"]`)
+            ) {
+                userSearch.value = prevSelectedId;
+            } else {
+                userSearch.value = "";
+            }
+            const selectedId = userSearch.value;
+            const tbody = document.querySelector("#userTable tbody");
+            tbody.innerHTML = "";
+            users.forEach((u, idx) => {
+                const roleLabel = u.role === "admin" ? "管理者" : "一般";
+                const useVehicleLabel = u.use_vehicle == 1 ? "○" : "×";
+                if (!selectedId || selectedId == u.id) {
+                    const deletedStyle =
+                        u.visible == 0 ? "color:#aaa;background:#fbe9e7;" : "";
+                    const disabled = u.visible == 0 ? "disabled" : "";
+                    if (editingIdx === idx) {
+                        if (u.visible == 0) {
+                            tbody.innerHTML += `
+                            <tr style='${deletedStyle}'>
+                                <td>
+                                    ${u.id}
+                                </td>
+                                <td>
+                                    <input value="${u.name}" id="editName" disabled>
+                                </td>
+                                <td>
+                                    <select id="editRole" disabled>
+                                        <option value="user" ${u.role === "user" ? "selected" : ""}>一般</option>
+                                        <option value="admin" ${u.role === "admin" ? "selected" : ""}>管理者</option>
+                                    </select>
+                                </td>
+                                <td style="width: -webkit-fill-available;">
+                                    <input type="checkbox" id="editUseVehicle" ${u.use_vehicle == 1 ? "checked" : ""} disabled> 自家用車
+                                </td>
+                                <td>
+                                    <input type="number" id="editContractHours" value="${u.contract_hours_per_day ?? 8}" min="0" step="0.25" disabled> h/日
+                                </td>
+                                <td>
+                                    <button class='btn' onclick='restoreUser(${idx})'>復元</button>
+                                    <button class='btn' onclick='cancelEditUser()'>キャンセル</button>
+                                </td>
+                            </tr>`;
+                        } else {
+                            tbody.innerHTML += `
+                            <tr style='${deletedStyle}'>
+                                <td>
+                                    ${u.id}
+                                </td>
+                                <td class="editing">
+                                    <input value="${u.name}" id="editName">
+                                </td>
+                                <td class="editing">
+                                    <select id="editRole">
+                                        <option value="user" ${u.role === "user" ? "selected" : ""}>一般</option>
+                                        <option value="admin" ${u.role === "admin" ? "selected" : ""}>管理者</option>
+                                    </select>
+                                </td>
+                                <td class="editing" style="padding: 0; width: -webkit-fill-available;">
+                                    <input type="checkbox" id="editUseVehicle" style="margin: 0;" ${u.use_vehicle == 1 ? "checked" : ""}>
+                                </td>
+                                <td class="editing">
+                                    <input type="number" style="ime-mode: disabled; width: 60px; text-align: end;" id="editContractHours" value="${u.contract_hours_per_day ?? 8}" min="0" step="0.25"> h/日
+                                </td>
+                                <td>
+                                    <button class='btn' onclick='saveEditUser(${idx})'>保存</button>
+                                    <button class='btn' onclick='cancelEditUser()'>キャンセル</button>
+                                    <button class='btn' onclick='deleteUser(${idx})'>削除</button>
+                                    <button class='btn' onclick='showSetPassword(${idx})'>パスワード再設定</button>
+                                </td>
+                            </tr>`;
+                        }
+                    } else {
+                        tbody.innerHTML += `
+                        <tr style='${deletedStyle}'>
+                            <td>
+                                ${u.id}
+                            </td>
+                            <td>
+                                ${u.name}
+                            </td>
+                            <td>
+                                ${roleLabel}
+                            </td>
+                            <td style="padding: 0; width: auto; text-align: center;">
+                                ${useVehicleLabel}
+                            </td>
+                            <td style="text-align:center;">
+                                ${u.contract_hours_per_day ?? 8} h/日
+                            </td>
+                            <td>
+                                <button class='btn' onclick='editUser(${idx})' ${disabled}>
+                                    編集
+                                </button></td></tr>`;
+                    }
+                }
+            });
+        }
+        // 検索（コンボボックス選択時）
+        document
+            .getElementById("userSearch")
+            .addEventListener("change", renderTable);
+        // 新規ユーザー追加（ダミーUI）
+        document.getElementById("addUserBtn").onclick = function () {
+            const tbody = document.querySelector("#userTable tbody");
+            const tr = document.createElement("tr");
+            tr.className = "add-user-row";
+            tr.innerHTML = `
+            <td>新規</td>
+            <td>
+                <input id='newUserName'>
+            </td>
+            <td>
+                <select id='newUserRole'>
+                    <option>一般</option>
+                    <option>管理者</option>
+                </select>
+            </td>
+            <td>
+                <input type='number' id='newContractHours' value='8' min='0' step='0.25'>h/日
+            </td>
+            <td>
+                <button class='btn' onclick='saveNewUser(this)'>保存</button>
+                <button class='btn' onclick='this.parentNode.parentNode.remove()'>キャンセル</button>
+            </td>`;
+            tbody.prepend(tr);
+        };
+        // ユーザー追加
+        window.saveNewUser = async function (btn) {
+            const tr = btn.parentNode.parentNode;
+            const name = tr.querySelector("#newUserName").value.trim();
+            const roleLabel = tr.querySelector("#newUserRole").value;
+            const role = roleLabel === "管理者" ? "admin" : "user";
+            const use_vehicle = 1; // 新規はデフォルト1
+            const contract_hours_per_day = parseFloat(tr.querySelector("#newContractHours").value) || 8;
+            if (!name) {
+                alert("ユーザー名を入力してください");
+                return;
+            }
+            // APIで新規ユーザー作成
+            const res = await fetchWithAuth("api/admin_user_create.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, role, use_vehicle, contract_hours_per_day }),
+            });
+            if (res && res.ok) {
+                alert(
+                    "ユーザーを登録しました。仮パスワードは「netone」です。初回ログイン時に再設定が必要です。"
+                );
+                await renderTable();
+            } else if (res) {
+                const data = await res.json();
+                alert(data.error || "登録に失敗しました");
+            }
+        };
+        // 編集・削除・保存
+        window.editUser = function (idx) {
+            editingIdx = idx;
+            renderTable();
+        };
+        window.cancelEditUser = function () {
+            editingIdx = null;
+            renderTable();
+        };
+        window.saveEditUser = async function (idx) {
+            const user = users[idx];
+            const name = document.getElementById("editName").value.trim();
+            const role = document.getElementById("editRole").value;
+            const use_vehicle = document.getElementById("editUseVehicle").checked ? 1 : 0;
+            const contract_hours_per_day = parseFloat(document.getElementById("editContractHours").value) || 8;
+            if (!name) {
+                alert("ユーザー名を入力してください");
+                return;
+            }
+            const res = await fetchWithAuth("api/admin_user_update.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: user.id, name, role, use_vehicle, contract_hours_per_day }),
+            });
+            if (res && res.ok) {
+                editingIdx = null;
+                await renderTable();
+            } else if (res) {
+                alert("更新に失敗しました");
+            }
+        };
+        window.deleteUser = async function (idx) {
+            if (!confirm("削除しますか？")) return;
+            const user = users[idx];
+            const res = await fetchWithAuth("api/admin_user_delete.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: user.id }),
+            });
+            if (res && res.ok) {
+                await renderTable();
+            } else if (res) {
+                alert("削除に失敗しました");
+            }
+        };
+        window.restoreUser = async function (idx) {
+            const user = users[idx];
+            const res = await fetchWithAuth("api/admin_user_restore.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: user.id }),
+            });
+            if (res && res.ok) {
+                editingIdx = null;
+                await renderTable();
+            } else if (res) {
+                alert("復元に失敗しました");
+            }
+        };
+        window.showSetPassword = function (idx) {
+            const user = users[idx];
+            const newPass = prompt(
+                "新しい仮パスワードを入力してください（8文字以上推奨）"
+            );
+            if (!newPass) return;
+            if (newPass.length < 4) {
+                alert("パスワードは4文字以上にしてください");
+                return;
+            }
+            fetchWithAuth("api/admin_user_set_password.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: user.id, password: newPass }),
+            }).then((res) => {
+                if (res && res.ok) {
+                    alert(
+                        "パスワードを再設定しました。ユーザーに新パスワードを伝えてください。"
+                    );
+                } else if (res) {
+                    alert("パスワード再設定に失敗しました");
+                }
+            });
+        };
+        document
+            .getElementById("showDeletedToggle")
+            .addEventListener("change", renderTable);
+        renderTable();
+    </script>
+</body>
+
+</html>

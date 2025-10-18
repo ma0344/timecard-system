@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規ユーザー登録</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .register-container { background: #fff; padding: 2rem 2.5rem; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); min-width: 320px; }
+        h2 { text-align: center; color: #1976d2; }
+        label { display: block; margin-top: 1rem; color: #555; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 0.7rem; margin-top: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; margin-top: 1.5rem; padding: 0.8rem; background: #1976d2; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+        button:hover { background: #1565c0; }
+        .error { color: #d32f2f; margin-top: 1rem; text-align: center; }
+        .success { color: #388e3c; margin-top: 1rem; text-align: center; }
+        .back-link { text-align: center; margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>新規ユーザー登録</h2>
+        <form id="registerForm">
+            <label for="username">ユーザー名</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password">パスワード</label>
+            <input type="password" id="password" name="password" required>
+            <button type="submit">登録</button>
+            <div class="error" id="errorMsg"></div>
+            <div class="success" id="successMsg"></div>
+        </form>
+        <div class="back-link">
+            <a href="login.html">ログイン画面に戻る</a>
+        </div>
+    </div>
+    <script>
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const res = await fetch('api/register.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('successMsg').textContent = data.message || '登録が完了しました。ログインしてください。';
+            document.getElementById('errorMsg').textContent = '';
+        } else {
+            document.getElementById('errorMsg').textContent = data.message || '登録に失敗しました';
+            document.getElementById('successMsg').textContent = '';
+        }
+    });
+    </script>
+</body>
+</html>
