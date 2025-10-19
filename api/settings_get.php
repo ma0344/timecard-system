@@ -34,4 +34,5 @@ if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         'work_hours' => 8,
         'work_minutes' => 0
     ]);
+    // settingsテーブルにレコードがない場合の初期値
 }
