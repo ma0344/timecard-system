@@ -20,7 +20,13 @@ if (!$user || $user['role'] !== 'admin') {
     exit;
 }
 
-// ユーザー一覧取得
-$stmt = $pdo->query('SELECT id, name, role, visible, use_vehicle, contract_hours_per_day FROM users ORDER BY id');
+// ユーザー一覧取得（user_detail を左結合）
+$sql = 'SELECT u.id, u.name, u.role, u.visible,
+           COALESCE(d.use_vehicle, 1) AS use_vehicle,
+           COALESCE(d.contract_hours_per_day, 8) AS contract_hours_per_day
+    FROM users u
+    LEFT JOIN user_detail d ON d.user_id = u.id
+    ORDER BY u.id';
+$stmt = $pdo->query($sql);
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo json_encode($users);

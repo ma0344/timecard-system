@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- ホスト: mysql8008.in.shared-server.net:13654
--- 生成日時: 2025 年 10 月 15 日 10:51
+-- 生成日時: 2025 年 10 月 22 日 10:51
 -- サーバのバージョン： 8.0.29
 -- PHP のバージョン: 7.1.8
 
@@ -21,6 +21,34 @@ SET time_zone = "+00:00";
 --
 -- データベース: `49u8_full_time_time_card`
 --
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `attendance_statuses`
+--
+
+CREATE TABLE `attendance_statuses` (
+  `id` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `is_paid` tinyint(1) NOT NULL DEFAULT '1',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `attendance_statuses`
+--
+
+INSERT INTO `attendance_statuses` (`id`, `code`, `name`, `description`, `is_paid`, `is_active`, `created_at`) VALUES
+(1, 'WORK', '勤務', '通常勤務', 1, 1, '2025-10-15 04:42:08'),
+(2, 'PAID_LEAVE', '有給休暇', '有給として処理する勤務区分', 1, 1, '2025-10-15 04:42:08'),
+(3, 'UNPAID_LEAVE', '欠勤（無給）', '給与対象外の欠勤', 0, 1, '2025-10-15 04:42:08'),
+(4, 'HOLIDAY', '公休日', '所定休日扱いの区分', 1, 1, '2025-10-15 04:42:08'),
+(5, 'SICK_LEAVE', '病気休暇', '病気による欠勤', 0, 1, '2025-10-15 04:42:08');
 
 -- --------------------------------------------------------
 
@@ -62,6 +90,85 @@ INSERT INTO `breaks` (`id`, `timecard_id`, `break_start`, `break_start_manual`, 
 -- --------------------------------------------------------
 
 --
+-- テーブルの構造 `leave_statuses`
+--
+
+CREATE TABLE `leave_statuses` (
+  `id` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `leave_statuses`
+--
+
+INSERT INTO `leave_statuses` (`id`, `code`, `name`, `description`, `is_active`, `created_at`) VALUES
+(1, 'ACTIVE', '有効', '付与済みで利用可能な状態', 1, '2025-10-15 04:42:08'),
+(2, 'SCHEDULED', '付与予定', '付与が確定していない状態', 1, '2025-10-15 04:42:08'),
+(3, 'EXPIRED', '失効', '有効期限を過ぎた状態', 1, '2025-10-15 04:42:08');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `leave_units`
+--
+
+CREATE TABLE `leave_units` (
+  `id` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `minutes_per_unit` int NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `leave_units`
+--
+
+INSERT INTO `leave_units` (`id`, `code`, `name`, `description`, `minutes_per_unit`, `is_active`, `created_at`) VALUES
+(1, 'DAY', '日単位', '契約上の所定労働時間を1日として扱う単位', 480, 1, '2025-10-15 04:42:08'),
+(2, 'HALF_DAY', '半日単位', '半日休暇で利用する単位', 240, 1, '2025-10-15 04:42:08'),
+(3, 'HOUR', '時間単位', '時間単位で利用する休暇', 60, 1, '2025-10-15 04:42:08'),
+(4, 'MINUTE', '分単位', '最小単位としての1分', 1, 1, '2025-10-15 04:42:08');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `log_types`
+--
+
+CREATE TABLE `log_types` (
+  `id` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `effect` enum('add','subtract','informational') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'subtract',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `log_types`
+--
+
+INSERT INTO `log_types` (`id`, `code`, `name`, `description`, `effect`, `is_active`, `created_at`) VALUES
+(1, 'GRANT', '付与', '有給を付与したログ', 'add', 1, '2025-10-15 04:42:08'),
+(2, 'USE', '利用', '有給を消化したログ', 'subtract', 1, '2025-10-15 04:42:08'),
+(3, 'EXPIRE', '失効', '期限により自動失効したログ', 'subtract', 1, '2025-10-15 04:42:08'),
+(4, 'ADJUST', '調整', '手動調整や情報提供のログ', 'informational', 1, '2025-10-15 04:42:08');
+
+-- --------------------------------------------------------
+
+--
 -- テーブルの構造 `paid_leaves`
 --
 
@@ -85,7 +192,7 @@ CREATE TABLE `paid_leave_logs` (
   `paid_leave_id` int DEFAULT NULL,
   `used_date` date NOT NULL,
   `used_hours` float NOT NULL,
-  `reason` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -96,10 +203,10 @@ CREATE TABLE `paid_leave_logs` (
 
 CREATE TABLE `paid_leave_types` (
   `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `default_unit_id` int NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -109,145 +216,10 @@ CREATE TABLE `paid_leave_types` (
 -- テーブルのデータのダンプ `paid_leave_types`
 --
 
-INSERT INTO `paid_leave_types` (`id`, `code`, `name`, `default_unit_id`, `description`, `is_active`) VALUES
-(1, 'ANNUAL', '年次有給休暇', 1, '労働基準法に基づく通常の年次有給休暇', 1),
-(2, 'COMPENSATORY', '代休', 3, '時間単位で付与される代替休暇', 1),
-(3, 'SPECIAL', '特別休暇', 1, '慶弔・産前産後など各種特別休暇', 1);
-
--- --------------------------------------------------------
-
---
--- テーブルの構造 `source_types`
---
-
-CREATE TABLE `source_types` (
-  `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `paid_leave_type_id` int DEFAULT NULL,
-  `is_user_selectable` tinyint(1) NOT NULL DEFAULT '1',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- テーブルのデータのダンプ `source_types`
---
-
-INSERT INTO `source_types` (`id`, `code`, `name`, `description`, `paid_leave_type_id`, `is_user_selectable`, `is_active`) VALUES
-(1, 'ANNUAL_GENERAL', '年次有給（通常）', '1日単位の年次有給休暇', 1, 1, 1),
-(2, 'ANNUAL_HALF', '年次有給（半日）', '半日単位で取得する年次有給休暇', 1, 1, 1),
-(3, 'COMP_TIME', '代休', '時間外労働や休日出勤の代替休暇', 2, 1, 1),
-(4, 'BEREAVEMENT', '慶弔休暇', '結婚・忌引などの特別休暇', 3, 0, 1);
-
--- --------------------------------------------------------
-
---
--- テーブルの構造 `log_types`
---
-
-CREATE TABLE `log_types` (
-  `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `effect` enum('add','subtract','informational') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'subtract',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- テーブルのデータのダンプ `log_types`
---
-
-INSERT INTO `log_types` (`id`, `code`, `name`, `description`, `effect`, `is_active`) VALUES
-(1, 'GRANT', '付与', '有給を付与したログ', 'add', 1),
-(2, 'USE', '利用', '有給を消化したログ', 'subtract', 1),
-(3, 'EXPIRE', '失効', '期限により自動失効したログ', 'subtract', 1),
-(4, 'ADJUST', '調整', '手動調整や情報提供のログ', 'informational', 1);
-
--- --------------------------------------------------------
-
---
--- テーブルの構造 `leave_units`
---
-
-CREATE TABLE `leave_units` (
-  `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `minutes_per_unit` int NOT NULL,
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- テーブルのデータのダンプ `leave_units`
---
-
-INSERT INTO `leave_units` (`id`, `code`, `name`, `description`, `minutes_per_unit`, `is_active`) VALUES
-(1, 'DAY', '日単位', '契約上の所定労働時間を1日として扱う単位', 480, 1),
-(2, 'HALF_DAY', '半日単位', '半日休暇で利用する単位', 240, 1),
-(3, 'HOUR', '時間単位', '時間単位で利用する休暇', 60, 1),
-(4, 'MINUTE', '分単位', '最小単位としての1分', 1, 1);
-
--- --------------------------------------------------------
-
---
--- テーブルの構造 `leave_statuses`
---
-
-CREATE TABLE `leave_statuses` (
-  `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- テーブルのデータのダンプ `leave_statuses`
---
-
-INSERT INTO `leave_statuses` (`id`, `code`, `name`, `description`, `is_active`) VALUES
-(1, 'ACTIVE', '有効', '付与済みで利用可能な状態', 1),
-(2, 'SCHEDULED', '付与予定', '付与が確定していない状態', 1),
-(3, 'EXPIRED', '失効', '有効期限を過ぎた状態', 1);
-
--- --------------------------------------------------------
-
---
--- テーブルの構造 `attendance_statuses`
---
-
-CREATE TABLE `attendance_statuses` (
-  `id` int NOT NULL,
-  `code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `is_paid` tinyint(1) NOT NULL DEFAULT '1',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- テーブルのデータのダンプ `attendance_statuses`
---
-
-INSERT INTO `attendance_statuses` (`id`, `code`, `name`, `description`, `is_paid`, `is_active`) VALUES
-(1, 'WORK', '勤務', '通常勤務', 1, 1),
-(2, 'PAID_LEAVE', '有給休暇', '有給として処理する勤務区分', 1, 1),
-(3, 'UNPAID_LEAVE', '欠勤（無給）', '給与対象外の欠勤', 0, 1),
-(4, 'HOLIDAY', '公休日', '所定休日扱いの区分', 1, 1),
-(5, 'SICK_LEAVE', '病気休暇', '病気による欠勤', 0, 1);
+INSERT INTO `paid_leave_types` (`id`, `code`, `name`, `default_unit_id`, `description`, `is_active`, `created_at`) VALUES
+(1, 'ANNUAL', '年次有給休暇', 1, '労働基準法に基づく通常の年次有給休暇', 1, '2025-10-15 04:42:08'),
+(2, 'COMPENSATORY', '代休', 3, '時間単位で付与される代替休暇', 1, '2025-10-15 04:42:08'),
+(3, 'SPECIAL', '特別休暇', 1, '慶弔・産前産後など各種特別休暇', 1, '2025-10-15 04:42:08');
 
 -- --------------------------------------------------------
 
@@ -259,7 +231,7 @@ CREATE TABLE `settings` (
   `id` int NOT NULL,
   `period_start` tinyint NOT NULL,
   `period_end` tinyint NOT NULL,
-  `rounding_type` varchar(10) COLLATE utf8mb4_general_ci NOT NULL,
+  `rounding_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `rounding_unit` tinyint NOT NULL,
   `work_hours` tinyint NOT NULL,
   `work_minutes` tinyint NOT NULL,
@@ -276,6 +248,34 @@ CREATE TABLE `settings` (
 
 INSERT INTO `settings` (`id`, `period_start`, `period_end`, `rounding_type`, `rounding_unit`, `work_hours`, `work_minutes`, `legal_hours_28`, `legal_hours_29`, `legal_hours_30`, `legal_hours_31`, `updated_at`) VALUES
 (1, 16, 15, 'ceil', 15, 8, 0, 160, 165, 171, 177, '2025-09-02 10:45:18');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `source_types`
+--
+
+CREATE TABLE `source_types` (
+  `id` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `paid_leave_type_id` int DEFAULT NULL,
+  `is_user_selectable` tinyint(1) NOT NULL DEFAULT '1',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `source_types`
+--
+
+INSERT INTO `source_types` (`id`, `code`, `name`, `description`, `paid_leave_type_id`, `is_user_selectable`, `is_active`, `created_at`) VALUES
+(1, 'ANNUAL_GENERAL', '年次有給（通常）', '1日単位の年次有給休暇', 1, 1, 1, '2025-10-15 04:42:08'),
+(2, 'ANNUAL_HALF', '年次有給（半日）', '半日単位で取得する年次有給休暇', 1, 1, 1, '2025-10-15 04:42:08'),
+(3, 'COMP_TIME', '代休', '時間外労働や休日出勤の代替休暇', 2, 1, 1, '2025-10-15 04:42:08'),
+(4, 'BEREAVEMENT', '慶弔休暇', '結婚・忌引などの特別休暇', 3, 0, 1, '2025-10-15 04:42:08');
 
 -- --------------------------------------------------------
 
@@ -334,11 +334,10 @@ CREATE TABLE `users` (
   `name` varchar(100) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
   `role` varchar(50) NOT NULL,
-  `must_reset_password` tinyint(1) NOT NULL DEFAULT '0',
-  `use_vehicle` tinyint(1) NOT NULL DEFAULT '1',
-  `contract_hours_per_day` float NOT NULL DEFAULT '8',
-  `full_time` tinyint(1) NOT NULL DEFAULT '1',
   `visible` tinyint(1) NOT NULL DEFAULT '1',
+  `must_reset_password` tinyint(1) NOT NULL DEFAULT '0',
+  `reset_token` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8_general_ci DEFAULT NULL,
+  `reset_token_expires_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
@@ -347,15 +346,47 @@ CREATE TABLE `users` (
 -- テーブルのデータのダンプ `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `password_hash`, `role`, `must_reset_password`, `use_vehicle`, `contract_hours_per_day`, `full_time`, `visible`, `created_at`) VALUES
-(2, '山口　政佳', '$2y$10$i.GJQsCSZA59.VxKAfdeieECrDbsRxQvK0OMzpnUf/nVnZ.D6svXK', 'admin', 0, 1, 8, 1, 1, '2025-06-11 17:56:26'),
-(3, 'admin', '$2y$10$s3OtiJxrKHiMKomJkXd5p.8tAcWfOmOhBKyMqd/jZfvWqth6kqnPW', 'admin', 0, 1, 7.5, 1, 1, '2025-06-18 10:55:32'),
-(5, '小橋加英子', '$2y$10$nIHmpcrg4b3K46KJlaCBtO1zRcQWYuTVx2K5KoZF1EeHfJZ7AMspC', 'admin', 0, 0, 8, 1, 1, '2025-06-18 13:06:36'),
-(6, 'ma', '$2y$10$WqUXccMwN7ubKzcNv7z4l.UrMasNb.nt59WxaT/mqWbkFat7gw7Ja', 'user', 0, 1, 8, 1, 1, '2025-10-01 10:16:13');
+INSERT INTO `users` (`id`, `name`, `password_hash`, `role`, `visible`, `must_reset_password`, `reset_token`, `reset_token_expires_at`, `created_at`) VALUES
+(2, '山口　政佳', '$2y$10$i.GJQsCSZA59.VxKAfdeieECrDbsRxQvK0OMzpnUf/nVnZ.D6svXK', 'admin', 1, 0, NULL, NULL, '2025-06-11 17:56:26'),
+(3, 'admin', '$2y$10$s3OtiJxrKHiMKomJkXd5p.8tAcWfOmOhBKyMqd/jZfvWqth6kqnPW', 'admin', 1, 0, NULL, NULL, '2025-06-18 10:55:32'),
+(5, '小橋加英子', '$2y$10$nIHmpcrg4b3K46KJlaCBtO1zRcQWYuTVx2K5KoZF1EeHfJZ7AMspC', 'admin', 1, 0, NULL, NULL, '2025-06-18 13:06:36'),
+(6, 'ma', '$2y$10$WqUXccMwN7ubKzcNv7z4l.UrMasNb.nt59WxaT/mqWbkFat7gw7Ja', 'user', 1, 0, NULL, NULL, '2025-10-01 10:16:13');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `user_detail`
+--
+
+CREATE TABLE `user_detail` (
+  `user_id` int NOT NULL,
+  `use_vehicle` tinyint(1) NOT NULL DEFAULT '1',
+  `contract_hours_per_day` float NOT NULL DEFAULT '8',
+  `full_time` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+--
+-- テーブルのデータのダンプ `user_detail`
+--
+
+INSERT INTO `user_detail` (`user_id`, `use_vehicle`, `contract_hours_per_day`, `full_time`, `created_at`) VALUES
+(2, 1, 8, 1, '2025-06-11 17:56:26'),
+(3, 1, 7.5, 1, '2025-06-18 10:55:32'),
+(5, 0, 8, 1, '2025-06-18 13:06:36'),
+(6, 1, 8, 1, '2025-10-01 10:16:13');
 
 --
 -- ダンプしたテーブルのインデックス
 --
+
+--
+-- テーブルのインデックス `attendance_statuses`
+--
+ALTER TABLE `attendance_statuses`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `attendance_statuses_code_unique` (`code`);
 
 --
 -- テーブルのインデックス `breaks`
@@ -363,6 +394,27 @@ INSERT INTO `users` (`id`, `name`, `password_hash`, `role`, `must_reset_password
 ALTER TABLE `breaks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `timecard_id` (`timecard_id`);
+
+--
+-- テーブルのインデックス `leave_statuses`
+--
+ALTER TABLE `leave_statuses`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `leave_statuses_code_unique` (`code`);
+
+--
+-- テーブルのインデックス `leave_units`
+--
+ALTER TABLE `leave_units`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `leave_units_code_unique` (`code`);
+
+--
+-- テーブルのインデックス `log_types`
+--
+ALTER TABLE `log_types`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `log_types_code_unique` (`code`);
 
 --
 -- テーブルのインデックス `paid_leaves`
@@ -388,46 +440,18 @@ ALTER TABLE `paid_leave_types`
   ADD KEY `paid_leave_types_default_unit_id_index` (`default_unit_id`);
 
 --
+-- テーブルのインデックス `settings`
+--
+ALTER TABLE `settings`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- テーブルのインデックス `source_types`
 --
 ALTER TABLE `source_types`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `source_types_code_unique` (`code`),
   ADD KEY `source_types_paid_leave_type_id_index` (`paid_leave_type_id`);
-
---
--- テーブルのインデックス `log_types`
---
-ALTER TABLE `log_types`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `log_types_code_unique` (`code`);
-
---
--- テーブルのインデックス `leave_units`
---
-ALTER TABLE `leave_units`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `leave_units_code_unique` (`code`);
-
---
--- テーブルのインデックス `leave_statuses`
---
-ALTER TABLE `leave_statuses`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `leave_statuses_code_unique` (`code`);
-
---
--- テーブルのインデックス `attendance_statuses`
---
-ALTER TABLE `attendance_statuses`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `attendance_statuses_code_unique` (`code`);
-
---
--- テーブルのインデックス `settings`
---
-ALTER TABLE `settings`
-  ADD PRIMARY KEY (`id`);
 
 --
 -- テーブルのインデックス `timecards`
@@ -443,14 +467,44 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
 --
+-- テーブルのインデックス `user_detail`
+--
+ALTER TABLE `user_detail`
+  ADD PRIMARY KEY (`user_id`);
+
+--
 -- ダンプしたテーブルの AUTO_INCREMENT
 --
+
+--
+-- テーブルの AUTO_INCREMENT `attendance_statuses`
+--
+ALTER TABLE `attendance_statuses`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- テーブルの AUTO_INCREMENT `breaks`
 --
 ALTER TABLE `breaks`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
+
+--
+-- テーブルの AUTO_INCREMENT `leave_statuses`
+--
+ALTER TABLE `leave_statuses`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- テーブルの AUTO_INCREMENT `leave_units`
+--
+ALTER TABLE `leave_units`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- テーブルの AUTO_INCREMENT `log_types`
+--
+ALTER TABLE `log_types`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- テーブルの AUTO_INCREMENT `paid_leaves`
@@ -471,40 +525,16 @@ ALTER TABLE `paid_leave_types`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- テーブルの AUTO_INCREMENT `leave_units`
+-- テーブルの AUTO_INCREMENT `settings`
 --
-ALTER TABLE `leave_units`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- テーブルの AUTO_INCREMENT `leave_statuses`
---
-ALTER TABLE `leave_statuses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- テーブルの AUTO_INCREMENT `attendance_statuses`
---
-ALTER TABLE `attendance_statuses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+ALTER TABLE `settings`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- テーブルの AUTO_INCREMENT `source_types`
 --
 ALTER TABLE `source_types`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- テーブルの AUTO_INCREMENT `log_types`
---
-ALTER TABLE `log_types`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- テーブルの AUTO_INCREMENT `settings`
---
-ALTER TABLE `settings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- テーブルの AUTO_INCREMENT `timecards`
@@ -558,6 +588,12 @@ ALTER TABLE `source_types`
 --
 ALTER TABLE `timecards`
   ADD CONSTRAINT `timecards_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- テーブルの制約 `user_detail`
+--
+ALTER TABLE `user_detail`
+  ADD CONSTRAINT `fk_user_detail_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

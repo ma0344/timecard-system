@@ -18,11 +18,12 @@ if (!$user || $user['role'] !== 'admin') {
     echo json_encode(['error' => 'forbidden']);
     exit;
 }
-// POSTでユーザー名・権限・use_vehicleを受け取る
+// POSTでユーザー名・権限・use_vehicle・contract_hours_per_dayを受け取る
 $data = json_decode(file_get_contents('php://input'), true);
 $name = $data['name'] ?? null;
 $role = $data['role'] ?? 'user';
 $use_vehicle = array_key_exists('use_vehicle', $data) ? (int)$data['use_vehicle'] : 1;
+$contract_hours_per_day = array_key_exists('contract_hours_per_day', $data) ? (float)$data['contract_hours_per_day'] : 8.0;
 if (!$name) {
     http_response_code(400);
     echo json_encode(['error' => 'name required']);
@@ -37,6 +38,20 @@ if ($stmt->fetchColumn() > 0) {
     exit;
 }
 $hash = password_hash('netone', PASSWORD_DEFAULT);
-$stmt = $pdo->prepare('INSERT INTO users (name, role, password_hash, visible, must_reset_password, use_vehicle) VALUES (?, ?, ?, 1, 1, ?)');
-$stmt->execute([$name, $role, $hash, $use_vehicle]);
-echo json_encode(['success' => true]);
+
+try {
+    $pdo->beginTransaction();
+    // users に作成（use_vehicle等は user_detail に分離）
+    $stmt = $pdo->prepare('INSERT INTO users (name, role, password_hash, visible, must_reset_password) VALUES (?, ?, ?, 1, 1)');
+    $stmt->execute([$name, $role, $hash]);
+    $newUserId = (int)$pdo->lastInsertId();
+    // user_detail に初期値で作成
+    $stmt = $pdo->prepare('INSERT INTO user_detail (user_id, use_vehicle, contract_hours_per_day, full_time) VALUES (?, ?, ?, 1)');
+    $stmt->execute([$newUserId, $use_vehicle, $contract_hours_per_day]);
+    $pdo->commit();
+    echo json_encode(['success' => true, 'id' => $newUserId]);
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode(['error' => 'db error']);
+}
