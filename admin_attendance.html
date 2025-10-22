@@ -562,6 +562,23 @@
                   <div id="breakEditList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
                   <button type="button" class="btn" id="addBreakBtn" style="margin-top:0.5em;">＋休憩追加</button>
                 </div>
+                <div style=\"width:100%; border-top:1px dashed #e0e0e0; margin-top:0.8em; padding-top:0.8em;\">
+                  <div style=\"font-weight:bold;margin-bottom:0.3em; text-align:left; color:#1976d2\">有給使用の登録</div>
+                  <div id=\"pl-balance\" class=\"muted\" style=\"margin-bottom:0.4em;\">残高: 取得中...</div>
+                  <div style=\"display:flex;gap:1em;align-items:center;flex-wrap:wrap;\">
+                    <div>対象日: <b>${rec.date}</b></div>
+                    <label style=\"display:flex;gap:0.4em;align-items:center;\">使用時間
+                      <input type=\"number\" id=\"pl-use-hours\" step=\"0.25\" min=\"0.25\" style=\"width:90px;text-align:right;\">\n                      h
+                    </label>
+                    <div id=\"pl-quick\" style=\"display:flex;gap:0.4em;align-items:center;flex-wrap:wrap;\"></div>
+                    <label style=\"display:flex;gap:0.4em;align-items:center;\">理由
+                      <input type=\"text\" id=\"pl-use-reason\" placeholder=\"年休など\" style=\"min-width:200px;\">\n                    </label>
+                    <button class=\"btn\" id=\"pl-use-btn\">有給使用を追加</button>
+                  </div>
+                  <div id=\"pl-use-msg\" style=\"margin-top:0.4em;color:#666;\"></div>
+                </div>
+                  <div id="pl-use-msg" style="margin-top:0.4em;color:#666;"></div>
+                </div>
                 <div style="display:flex;gap:1em;margin-top:0.7em;width:100%;justify-content:flex-end;">
                   <button class="btn" id="saveBtn" style=" font-size: 1.3em;">保存</button>
                   <button class="btn" id="cancelBtn" style=" font-size: 1.3em;">キャンセル</button>
@@ -619,6 +636,76 @@
               rec.breaks.push({ start: "", end: "" });
               renderBreaks();
             };
+            // 有給使用の追加 + 残高/クイックボタン
+            (async function(){
+              const msg = editTr.querySelector('#pl-use-msg');
+              const btn = editTr.querySelector('#pl-use-btn');
+              const hoursEl = editTr.querySelector('#pl-use-hours');
+              const quick = editTr.querySelector('#pl-quick');
+              const bal = editTr.querySelector('#pl-balance');
+
+              // 残高取得
+              async function refreshBalance() {
+                const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
+                if (res && res.ok) {
+                  const b = await res.json();
+                  const fmt = (n)=> (Math.round(n*100)/100).toFixed(2);
+                  bal.textContent = `残高: ${fmt(b.balance_hours)} h（有効付与: ${fmt(b.granted_active_hours)} h / 利用: ${fmt(b.used_total_hours)} h）`;
+                } else {
+                  bal.textContent = '残高: 取得に失敗しました';
+                }
+              }
+              await refreshBalance();
+
+              // ユーザー設定取得（基準時間/半日・時間単位の許可）
+              let baseHours = 8;
+              let allowHalf = true, allowHour = true;
+              try {
+                const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
+                if (res && res.ok) {
+                  const s = await res.json();
+                  baseHours = s.base_hours_per_day_effective ?? baseHours;
+                  allowHalf = (s.allow_half_day ?? 1) == 1;
+                  allowHour = (s.allow_hourly ?? 1) == 1;
+                }
+              } catch {}
+              // クイックボタン生成
+              function mkBtn(label, val, enabled=true) {
+                const b = document.createElement('button');
+                b.className = 'btn';
+                b.textContent = label;
+                b.style.padding = '0.2em 0.6em';
+                if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
+                b.onclick = ()=>{ hoursEl.value = String(val); };
+                return b;
+              }
+              quick.appendChild(mkBtn('1日', baseHours, true));
+              quick.appendChild(mkBtn('半日', Math.max(0.25, baseHours/2), allowHalf));
+              quick.appendChild(mkBtn('1h', 1, allowHour));
+
+              btn.onclick = async () => {
+                const hoursStr = hoursEl.value.trim();
+                const reason = editTr.querySelector('#pl-use-reason').value.trim();
+                if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
+                const hours = parseFloat(hoursStr);
+                if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
+                btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
+                const res = await fetchWithAuth('api/paid_leave_use.php', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: userId, used_date: rec.date, used_hours: hours, reason })
+                });
+                btn.disabled = false;
+                if (res && res.ok) {
+                  msg.textContent = '有給使用を登録しました'; msg.style.color = '#2e7d32';
+                  hoursEl.value = '';
+                  await refreshBalance();
+                } else if (res) {
+                  try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                  msg.style.color = '#d32f2f';
+                }
+              };
+            })();
             // 保存
             editTr.querySelector("#saveBtn").onclick = async () => {
               const inVal = editTr.querySelector("#editIn").value;

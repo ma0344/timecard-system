@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['error' => 'not logged in']);
     exit;
 }
-$userId = $_SESSION['user_id'];
+$sessionUserId = $_SESSION['user_id'];
 
 $data = json_decode(file_get_contents('php://input'), true);
 $date = $data['date'] ?? '';
@@ -37,9 +37,21 @@ function toDateTime($date, $time) {
 }
 
 try {
+    // 管理者権限の確認とターゲットユーザーの決定
+    $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+    $stmt->execute([$sessionUserId]);
+    $me = $stmt->fetch(PDO::FETCH_ASSOC);
+    $isAdmin = $me && $me['role'] === 'admin';
+
+    // デフォルトはログインユーザー、自分以外を指定できるのは管理者のみ
+    $targetUserId = $sessionUserId;
+    if ($isAdmin && isset($data['user_id']) && $data['user_id']) {
+        $targetUserId = (int)$data['user_id'];
+    }
+
     // timecards更新 or 挿入
     $stmt = $pdo->prepare('SELECT id FROM timecards WHERE user_id = ? AND work_date = ?');
-    $stmt->execute([$userId, $date]);
+    $stmt->execute([$targetUserId, $date]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($row) {
         $stmt = $pdo->prepare('UPDATE timecards SET clock_in = ?, clock_out = ?' . ($vehicleDistance !== null ? ', vehicle_distance = ?' : '') . ' WHERE id = ?');
@@ -50,7 +62,7 @@ try {
         $timecardId = $row['id'];
     } else {
         $stmt = $pdo->prepare('INSERT INTO timecards (user_id, work_date, clock_in, clock_out' . ($vehicleDistance !== null ? ', vehicle_distance' : '') . ') VALUES (?, ?, ?, ?' . ($vehicleDistance !== null ? ', ?' : '') . ')');
-        $params = [$userId, $date, $clockInDateTime, $clockOutDateTime];
+        $params = [$targetUserId, $date, $clockInDateTime, $clockOutDateTime];
         if ($vehicleDistance !== null) $params[] = $vehicleDistance;
         $stmt->execute($params);
         $timecardId = $pdo->lastInsertId();

@@ -26,7 +26,7 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['message' => '未ログインです']);
     exit;
 }
-$user_id = $_SESSION['user_id'];
+$session_user_id = $_SESSION['user_id'];
 
 // DB接続
 try {
@@ -40,9 +40,20 @@ try {
 
 // 勤務記録削除
 try {
+    // 管理者権限の確認とターゲットユーザーの決定
+    $stmtRole = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+    $stmtRole->execute([$session_user_id]);
+    $me = $stmtRole->fetch(PDO::FETCH_ASSOC);
+    $isAdmin = $me && $me['role'] === 'admin';
+
+    $target_user_id = $session_user_id;
+    if ($isAdmin && isset($input['user_id']) && $input['user_id']) {
+        $target_user_id = (int)$input['user_id'];
+    }
+
     // まず該当timecard_idを取得
     $stmt_id = $pdo->prepare('SELECT id FROM timecards WHERE user_id = ? AND work_date = ?');
-    $stmt_id->execute([$user_id, $date]);
+    $stmt_id->execute([$target_user_id, $date]);
     $row = $stmt_id->fetch(PDO::FETCH_ASSOC);
     if ($row && isset($row['id'])) {
         $timecard_id = $row['id'];

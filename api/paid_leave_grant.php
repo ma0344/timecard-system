@@ -43,6 +43,10 @@ if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
 }
 
 try {
+    // 期限デフォルト: 付与日から4年後
+    if ($expireDate === null || $expireDate === '') {
+        $expireDate = date('Y-m-d', strtotime($grantDate . ' +4 years'));
+    }
     $stmt = $pdo->prepare('INSERT INTO paid_leaves (user_id, grant_date, grant_hours, expire_date) VALUES (?, ?, ?, ?)');
     $stmt->execute([$targetId, $grantDate, $grantHours, $expireDate]);
     $id = $pdo->lastInsertId();

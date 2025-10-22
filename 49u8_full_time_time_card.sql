@@ -192,7 +192,8 @@ CREATE TABLE `paid_leave_logs` (
   `paid_leave_id` int DEFAULT NULL,
   `used_date` date NOT NULL,
   `used_hours` float NOT NULL,
-  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
+  `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `log_type_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -449,7 +450,8 @@ ALTER TABLE `paid_leaves`
 ALTER TABLE `paid_leave_logs`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
-  ADD KEY `paid_leave_id` (`paid_leave_id`);
+  ADD KEY `paid_leave_id` (`paid_leave_id`),
+  ADD KEY `paid_leave_logs_log_type_id_index` (`log_type_id`);
 
 --
 -- テーブルのインデックス `paid_leave_types`
@@ -597,7 +599,8 @@ ALTER TABLE `paid_leaves`
 --
 ALTER TABLE `paid_leave_logs`
   ADD CONSTRAINT `paid_leave_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `paid_leave_logs_ibfk_2` FOREIGN KEY (`paid_leave_id`) REFERENCES `paid_leaves` (`id`);
+  ADD CONSTRAINT `paid_leave_logs_ibfk_2` FOREIGN KEY (`paid_leave_id`) REFERENCES `paid_leaves` (`id`),
+  ADD CONSTRAINT `paid_leave_logs_log_type_id_foreign` FOREIGN KEY (`log_type_id`) REFERENCES `log_types` (`id`);
 
 --
 -- テーブルの制約 `paid_leave_types`
