@@ -377,6 +377,26 @@ INSERT INTO `user_detail` (`user_id`, `use_vehicle`, `contract_hours_per_day`, `
 (5, 0, 8, 1, '2025-06-18 13:06:36'),
 (6, 1, 8, 1, '2025-10-01 10:16:13');
 
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `user_leave_settings`
+--
+
+CREATE TABLE `user_leave_settings` (
+  `user_id` int NOT NULL,
+  `default_unit_id` int DEFAULT NULL,
+  `allow_half_day` tinyint(1) DEFAULT NULL,
+  `allow_hourly` tinyint(1) DEFAULT NULL,
+  `base_hours_per_day_override` float DEFAULT NULL,
+  `carryover_months` int DEFAULT NULL,
+  `carryover_max_minutes` int DEFAULT NULL,
+  `negative_balance_allowed` tinyint(1) DEFAULT NULL,
+  `default_paid_leave_type_id` int DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
 --
 -- ダンプしたテーブルのインデックス
 --
@@ -471,6 +491,14 @@ ALTER TABLE `users`
 --
 ALTER TABLE `user_detail`
   ADD PRIMARY KEY (`user_id`);
+
+--
+-- テーブルのインデックス `user_leave_settings`
+--
+ALTER TABLE `user_leave_settings`
+  ADD PRIMARY KEY (`user_id`),
+  ADD KEY `user_leave_settings_default_unit_id_index` (`default_unit_id`),
+  ADD KEY `user_leave_settings_default_paid_leave_type_id_index` (`default_paid_leave_type_id`);
 
 --
 -- ダンプしたテーブルの AUTO_INCREMENT
@@ -594,6 +622,14 @@ ALTER TABLE `timecards`
 --
 ALTER TABLE `user_detail`
   ADD CONSTRAINT `fk_user_detail_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- テーブルの制約 `user_leave_settings`
+--
+ALTER TABLE `user_leave_settings`
+  ADD CONSTRAINT `fk_user_leave_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_user_leave_settings_default_unit` FOREIGN KEY (`default_unit_id`) REFERENCES `leave_units` (`id`),
+  ADD CONSTRAINT `fk_user_leave_settings_default_type` FOREIGN KEY (`default_paid_leave_type_id`) REFERENCES `paid_leave_types` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

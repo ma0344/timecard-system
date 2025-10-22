@@ -83,6 +83,52 @@
             background: #1565c0;
         }
 
+        /* 展開行 */
+        .expand-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 0.2em 0.4em;
+            color: #1976d2;
+        }
+        .expanded-row td {
+            background: #fbfdff;
+            padding: 1rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 0.8rem;
+        }
+        .tab-btn {
+            background: #eef6ff;
+            border: 1px solid #cfe2f3;
+            color: #1976d2;
+            border-radius: 6px 6px 0 0;
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #fff;
+            border-bottom-color: #fff;
+            font-weight: 600;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 10px 12px;
+            align-items: center;
+            max-width: 800px;
+        }
+        .field-note { color: #666; font-size: 0.9em; }
+        .inline { display: inline-flex; align-items: center; gap: 8px; }
+        .muted { color: #666; }
+        .danger { color: #d32f2f; }
+
         .add-user-row {
             background: #f1f8e9;
         }
@@ -191,6 +237,7 @@
         </div>
         <table class="user-table" id="userTable">
             <colgroup>
+                <col style="width: 2em" />
                 <col style="width: 1.5em" />
                 <col style="width: 6em" />
                 <col style="width: 4em" />
@@ -200,6 +247,7 @@
             </colgroup>
             <thead>
                 <tr>
+                    <th></th>
                     <th>ID</th>
                     <th>ユーザー名</th>
                     <th>権限</th>
@@ -240,9 +288,11 @@
             if (!res || !res.ok) return [];
             return await res.json();
         }
-        let users = [];
-        let allUsers = [];
-        let editingIdx = null;
+    let users = [];
+    let allUsers = [];
+    let editingIdx = null;
+    let expandedUserId = null; // 展開中のユーザーID
+    let mastersCache = null;   // マスターキャッシュ
         async function renderTable() {
             allUsers = await loadUsers();
             const showDeleted =
@@ -281,6 +331,7 @@
                         if (u.visible == 0) {
                             tbody.innerHTML += `
                             <tr style='${deletedStyle}'>
+                                <td></td>
                                 <td>
                                     ${u.id}
                                 </td>
@@ -307,6 +358,7 @@
                         } else {
                             tbody.innerHTML += `
                             <tr style='${deletedStyle}'>
+                                <td></td>
                                 <td>
                                     ${u.id}
                                 </td>
@@ -336,6 +388,11 @@
                     } else {
                         tbody.innerHTML += `
                         <tr style='${deletedStyle}'>
+                            <td style="text-align:center;">
+                                <button class="expand-toggle" onclick="toggleExpand(${idx})" ${disabled}>
+                                    ${expandedUserId === u.id ? '▼' : '▶'}
+                                </button>
+                            </td>
                             <td>
                                 ${u.id}
                             </td>
@@ -354,7 +411,12 @@
                             <td>
                                 <button class='btn' onclick='editUser(${idx})' ${disabled}>
                                     編集
-                                </button></td></tr>`;
+                                </button>
+                            </td>
+                        </tr>`;
+                        if (expandedUserId === u.id) {
+                            tbody.innerHTML += renderExpandedRow(u);
+                        }
                     }
                 }
             });
@@ -499,10 +561,272 @@
                 }
             });
         };
-        document
-            .getElementById("showDeletedToggle")
-            .addEventListener("change", renderTable);
-        renderTable();
+                document
+                        .getElementById("showDeletedToggle")
+                        .addEventListener("change", renderTable);
+
+                function renderExpandedRow(user) {
+                        const colSpan = 7; // 展開列を含む総列数
+                        return `
+                        <tr class="expanded-row">
+                            <td colspan="${colSpan}">
+                                                <div class="tabs" id="tabs-${user.id}">
+                                    <button class="tab-btn active" onclick="switchTab(${user.id}, 'summary')">基本情報</button>
+                                    <button class="tab-btn" onclick="switchTab(${user.id}, 'details')">詳細</button>
+                                    <button class="tab-btn" onclick="switchTab(${user.id}, 'leave_settings')">有給設定</button>
+                                    <button class="tab-btn" onclick="switchTab(${user.id}, 'leave_grant')">有給付与</button>
+                                                    <button class="tab-btn" onclick="switchTab(${user.id}, 'leave_balance')">残高・履歴</button>
+                                </div>
+                                <div id="panel-summary-${user.id}" class="tab-panel active">
+                                    <div class="grid">
+                                        <div>ユーザー名</div><div>${user.name}</div>
+                                        <div>権限</div><div>${user.role === 'admin' ? '管理者' : '一般'}</div>
+                                        <div>自家用車</div><div>${user.use_vehicle == 1 ? '利用する' : '利用しない'}</div>
+                                        <div>契約時間</div><div>${user.contract_hours_per_day ?? 8} h/日</div>
+                                    </div>
+                                </div>
+                                <div id="panel-details-${user.id}" class="tab-panel">
+                                    <div class="muted">（今後拡張予定。現状の編集は行の「編集」から行ってください）</div>
+                                </div>
+                                <div id="panel-leave_settings-${user.id}" class="tab-panel">
+                                    <div id="leave-settings-wrap-${user.id}">読み込み中...</div>
+                                </div>
+                                                <div id="panel-leave_grant-${user.id}" class="tab-panel">
+                                    <div id="leave-grant-wrap-${user.id}">読み込み中...</div>
+                                </div>
+                                                <div id="panel-leave_balance-${user.id}" class="tab-panel">
+                                                    <div id="leave-balance-wrap-${user.id}">読み込み中...</div>
+                                                </div>
+                            </td>
+                        </tr>`;
+                }
+
+                window.toggleExpand = async function(idx) {
+                        const user = users[idx];
+                        if (expandedUserId === user.id) {
+                                expandedUserId = null;
+                                await renderTable();
+                                return;
+                        }
+                        expandedUserId = user.id;
+                        await renderTable();
+                        try {
+                                const masters = await loadMasters();
+                                const settings = await loadUserLeaveSettings(user.id);
+                                mountLeaveSettings(user, masters, settings);
+                                mountLeaveGrant(user, masters, settings);
+                            mountLeaveBalance(user);
+                        } catch (e) {
+                                const el1 = document.getElementById(`leave-settings-wrap-${user.id}`);
+                                const el2 = document.getElementById(`leave-grant-wrap-${user.id}`);
+                            const el3 = document.getElementById(`leave-balance-wrap-${user.id}`);
+                                if (el1) el1.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+                                if (el2) el2.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+                            if (el3) el3.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+                        }
+                }
+
+                window.switchTab = function(userId, tab) {
+                        const container = document.getElementById(`tabs-${userId}`);
+                        if (!container) return;
+                        container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                        const map = {
+                                'summary': `panel-summary-${userId}`,
+                                'details': `panel-details-${userId}`,
+                                'leave_settings': `panel-leave_settings-${userId}`,
+                            'leave_grant': `panel-leave_grant-${userId}`,
+                            'leave_balance': `panel-leave_balance-${userId}`,
+                        };
+                        const btns = Array.from(container.querySelectorAll('.tab-btn'));
+                        const idx = ['summary','details','leave_settings','leave_grant','leave_balance'].indexOf(tab);
+                        if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+                        Object.values(map).forEach(id => {
+                                const p = document.getElementById(id);
+                                if (p) p.classList.remove('active');
+                        });
+                        const target = document.getElementById(map[tab]);
+                        if (target) target.classList.add('active');
+                }
+
+                async function loadMasters() {
+                        if (mastersCache) return mastersCache;
+                        const res = await fetchWithAuth('api/masters_get.php');
+                        if (!res || !res.ok) throw new Error('masters');
+                        mastersCache = await res.json();
+                        return mastersCache;
+                }
+
+                async function loadUserLeaveSettings(userId) {
+                        const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
+                        if (!res || !res.ok) throw new Error('settings');
+                        return await res.json();
+                }
+
+                function mountLeaveSettings(user, masters, settings) {
+                        const wrap = document.getElementById(`leave-settings-wrap-${user.id}`);
+                        if (!wrap) return;
+                        const unitOpts = masters.leave_units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+                        const typeOpts = masters.paid_leave_types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                        const eff = settings.base_hours_per_day_effective ?? (user.contract_hours_per_day ?? 8);
+                        wrap.innerHTML = `
+                            <div class="grid">
+                                <div>デフォルト休暇種別</div>
+                                <div><select id="ls-type-${user.id}">${typeOpts}</select></div>
+                                <div>デフォルト単位</div>
+                                <div><select id="ls-unit-${user.id}">${unitOpts}</select></div>
+                                <div>半日取得を許可</div>
+                                <div><input type="checkbox" id="ls-half-${user.id}"></div>
+                                <div>時間単位取得を許可</div>
+                                <div><input type="checkbox" id="ls-hour-${user.id}"></div>
+                                <div>基準時間（上書き）</div>
+                                <div class="inline">
+                                    <input type="number" step="0.25" min="0" id="ls-base-${user.id}" style="width:90px; text-align:right;"> h/日
+                                    <span class="field-note">未入力で ${eff} h/日 が適用</span>
+                                </div>
+                                <div>繰越月数</div>
+                                <div><input type="number" min="0" id="ls-carry-m-${user.id}" style="width:90px; text-align:right;"> ヶ月</div>
+                                <div>繰越上限（分）</div>
+                                <div><input type="number" min="0" id="ls-carry-min-${user.id}" style="width:120px; text-align:right;"></div>
+                                <div>マイナス残高を許可</div>
+                                <div><input type="checkbox" id="ls-negative-${user.id}"></div>
+                                <div></div>
+                                <div>
+                                    <button class="btn" onclick="saveLeaveSettings(${user.id})">設定を保存</button>
+                                </div>
+                            </div>
+                        `;
+                        document.getElementById(`ls-type-${user.id}`).value = settings.default_paid_leave_type_id ?? masters.paid_leave_types[0]?.id ?? 1;
+                        document.getElementById(`ls-unit-${user.id}`).value = settings.default_unit_id ?? masters.paid_leave_types.find(t=>t.id===(settings.default_paid_leave_type_id ?? 0))?.default_unit_id ?? masters.leave_units[0]?.id ?? 1;
+                        document.getElementById(`ls-half-${user.id}`).checked = (settings.allow_half_day ?? 1) == 1;
+                        document.getElementById(`ls-hour-${user.id}`).checked = (settings.allow_hourly ?? 1) == 1;
+                        const baseEl = document.getElementById(`ls-base-${user.id}`);
+                        if (settings.base_hours_per_day_override !== null && settings.base_hours_per_day_override !== undefined) {
+                                baseEl.value = settings.base_hours_per_day_override;
+                        } else {
+                                baseEl.value = '';
+                                baseEl.placeholder = String(eff);
+                        }
+                        document.getElementById(`ls-carry-m-${user.id}`).value = settings.carryover_months ?? 0;
+                        document.getElementById(`ls-carry-min-${user.id}`).value = settings.carryover_max_minutes ?? 0;
+                        document.getElementById(`ls-negative-${user.id}`).checked = (settings.negative_balance_allowed ?? 0) == 1;
+                }
+
+                window.saveLeaveSettings = async function(userId) {
+                        const body = {
+                                user_id: userId,
+                                default_paid_leave_type_id: parseInt(document.getElementById(`ls-type-${userId}`).value),
+                                default_unit_id: parseInt(document.getElementById(`ls-unit-${userId}`).value),
+                                allow_half_day: document.getElementById(`ls-half-${userId}`).checked ? 1 : 0,
+                                allow_hourly: document.getElementById(`ls-hour-${userId}`).checked ? 1 : 0,
+                                base_hours_per_day_override: (function(v){ return v === '' ? null : parseFloat(v); })(document.getElementById(`ls-base-${userId}`).value),
+                                carryover_months: parseInt(document.getElementById(`ls-carry-m-${userId}`).value || '0'),
+                                carryover_max_minutes: parseInt(document.getElementById(`ls-carry-min-${userId}`).value || '0'),
+                                negative_balance_allowed: document.getElementById(`ls-negative-${userId}`).checked ? 1 : 0,
+                        };
+                        const btn = document.querySelector(`#leave-settings-wrap-${userId} .btn`);
+                        if (btn) btn.disabled = true;
+                        const res = await fetchWithAuth('api/admin_user_leave_settings_update.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                        });
+                        if (btn) btn.disabled = false;
+                        if (res && res.ok) {
+                                alert('設定を保存しました');
+                        } else if (res) {
+                                alert('保存に失敗しました');
+                        }
+                }
+
+                function mountLeaveGrant(user, masters, settings) {
+                        const wrap = document.getElementById(`leave-grant-wrap-${user.id}`);
+                        if (!wrap) return;
+                        wrap.innerHTML = `
+                            <div class="grid">
+                                <div>付与日</div>
+                                <div><input type="date" id="lg-date-${user.id}"></div>
+                                <div>付与時間</div>
+                                <div class="inline"><input type="number" step="0.25" min="0" id="lg-hours-${user.id}" style="width:90px; text-align:right;"> h</div>
+                                <div>有効期限（任意）</div>
+                                <div><input type="date" id="lg-expire-${user.id}"></div>
+                                <div></div>
+                                <div><button class="btn" onclick="grantLeave(${user.id})">付与する</button></div>
+                            </div>
+                            <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
+                        `;
+                }
+
+                window.grantLeave = async function(userId) {
+                        const date = (document.getElementById(`lg-date-${userId}`).value || '').trim();
+                        const hoursStr = (document.getElementById(`lg-hours-${userId}`).value || '').trim();
+                        const expire = (document.getElementById(`lg-expire-${userId}`).value || '').trim();
+                        if (!date || hoursStr === '') { alert('付与日と付与時間を入力してください'); return; }
+                        const hours = parseFloat(hoursStr);
+                        const body = { user_id: userId, grant_date: date, grant_hours: hours, expire_date: expire || null };
+                        const btn = document.querySelector(`#leave-grant-wrap-${userId} .btn`);
+                        if (btn) btn.disabled = true;
+                        const res = await fetchWithAuth('api/paid_leave_grant.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                        });
+                        if (btn) btn.disabled = false;
+                        if (res && res.ok) {
+                                alert('有給を付与しました');
+                        } else if (res) {
+                                alert('付与に失敗しました');
+                        }
+                }
+
+                        async function loadBalance(userId) {
+                                const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
+                                if (!res || !res.ok) throw new Error('balance');
+                                return await res.json();
+                        }
+                        async function loadHistory(userId) {
+                                const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${userId}&limit=50`);
+                                if (!res || !res.ok) throw new Error('history');
+                                return await res.json();
+                        }
+                        async function mountLeaveBalance(user) {
+                                const wrap = document.getElementById(`leave-balance-wrap-${user.id}`);
+                                if (!wrap) return;
+                                try {
+                                        const [b, h] = await Promise.all([loadBalance(user.id), loadHistory(user.id)]);
+                                        const fmt = (n)=> (Math.round(n*100)/100).toFixed(2);
+                                        const grantsRows = (h.grants||[]).map(g=>`<tr><td>${g.grant_date}</td><td style='text-align:right;'>${fmt(g.grant_hours)} h</td><td>${g.expire_date ?? ''}</td></tr>`).join('') || `<tr><td colspan='3' class='muted'>付与履歴はありません</td></tr>`;
+                                        const usesRows = (h.uses||[]).map(u=>`<tr><td>${u.used_date}</td><td style='text-align:right;'>${fmt(u.used_hours)} h</td><td>${u.reason ?? ''}</td></tr>`).join('') || `<tr><td colspan='3' class='muted'>利用履歴はありません</td></tr>`;
+                                        wrap.innerHTML = `
+                                            <div class="grid" style="margin-bottom:12px;">
+                                                <div>合計付与（全期間）</div><div style="text-align:right;">${fmt(b.granted_total_hours)} h</div>
+                                                <div>有効付与（本日時点）</div><div style="text-align:right;">${fmt(b.granted_active_hours)} h</div>
+                                                <div>合計利用</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
+                                                <div>残高（有効付与 − 合計利用）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
+                                                <div>基準日</div><div>${b.as_of}</div>
+                                            </div>
+                                            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                                                <div style="flex:1; min-width:280px;">
+                                                    <div class="muted" style="font-weight:600; margin-bottom:6px;">付与履歴（最新50件）</div>
+                                                    <table class="user-table" style="margin:0;">
+                                                        <thead><tr><th>付与日</th><th>時間</th><th>有効期限</th></tr></thead>
+                                                        <tbody>${grantsRows}</tbody>
+                                                    </table>
+                                                </div>
+                                                <div style="flex:1; min-width:280px;">
+                                                    <div class="muted" style="font-weight:600; margin-bottom:6px;">利用履歴（最新50件）</div>
+                                                    <table class="user-table" style="margin:0;">
+                                                        <thead><tr><th>利用日</th><th>時間</th><th>理由</th></tr></thead>
+                                                        <tbody>${usesRows}</tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        `;
+                                } catch (e) {
+                                        wrap.innerHTML = `<span class='danger'>残高・履歴の読み込みに失敗しました</span>`;
+                                }
+                        }
+
+                renderTable();
     </script>
 </body>
 
