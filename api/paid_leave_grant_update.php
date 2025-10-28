@@ -26,7 +26,9 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $grantId = isset($input['id']) ? (int)$input['id'] : 0;
 $grantDate = isset($input['grant_date']) ? trim($input['grant_date']) : null;
 $grantHours = isset($input['grant_hours']) ? (float)$input['grant_hours'] : null;
-$expireDate = array_key_exists('expire_date', $input) ? ($input['expire_date'] ?: null) : null;
+// expire_date の取り扱い: キーが存在しない場合は「変更しない」。空文字は NULL（無期限）。
+$hasExpire = array_key_exists('expire_date', $input);
+$expireDate = $hasExpire ? (trim((string)$input['expire_date']) !== '' ? trim((string)$input['expire_date']) : null) : null;
 
 if ($grantId <= 0 || !$grantDate || $grantHours === null) {
     http_response_code(400);
@@ -50,9 +52,14 @@ try {
         throw new Exception('grant_hours cannot be less than consumed_hours_total');
     }
 
-    // 更新
-    $upd = $pdo->prepare('UPDATE paid_leaves SET grant_date = ?, grant_hours = ?, expire_date = ? WHERE id = ?');
-    $upd->execute([$grantDate, $grantHours, $expireDate, $grantId]);
+    // 更新（expire_date 未指定の場合は現状維持）
+    if ($hasExpire) {
+        $upd = $pdo->prepare('UPDATE paid_leaves SET grant_date = ?, grant_hours = ?, expire_date = ? WHERE id = ?');
+        $upd->execute([$grantDate, $grantHours, $expireDate, $grantId]);
+    } else {
+        $upd = $pdo->prepare('UPDATE paid_leaves SET grant_date = ?, grant_hours = ? WHERE id = ?');
+        $upd->execute([$grantDate, $grantHours, $grantId]);
+    }
 
     // 再計算（サマリ＆割当）
     // 直接includeも可能だが、ここでは同等ロジックを簡便に呼ぶためAPI相当の処理をインラインで行うか、
@@ -79,7 +86,7 @@ try {
         $needed = (float)$log['used_hours'];
         $usedDate = $log['used_date'];
         if ($needed <= 0) continue;
-        $gr = $pdo->prepare('SELECT id, grant_hours, consumed_hours_total FROM paid_leaves WHERE user_id = ? AND expire_date > ? AND grant_date <= ? AND (grant_hours - consumed_hours_total) > 0 ORDER BY grant_date ASC, id ASC');
+        $gr = $pdo->prepare('SELECT id, grant_hours, consumed_hours_total FROM paid_leaves WHERE user_id = ? AND (expire_date IS NULL OR expire_date > ?) AND grant_date <= ? AND (grant_hours - consumed_hours_total) > 0 ORDER BY grant_date ASC, id ASC');
         $gr->execute([$userId, $usedDate, $usedDate]);
         while ($needed > 1e-9 && ($g = $gr->fetch(PDO::FETCH_ASSOC))) {
             $rem = (float)$g['grant_hours'] - (float)$g['consumed_hours_total'];
@@ -93,7 +100,7 @@ try {
     // サマリ更新
     $pdo->prepare('INSERT IGNORE INTO user_leave_summary (user_id, balance_hours, used_total_hours, next_expire_date) VALUES (?, 0, 0, NULL)')
         ->execute([$userId]);
-    $stmt = $pdo->prepare('SELECT ROUND(IFNULL(SUM(GREATEST(grant_hours - consumed_hours_total, 0)),0),2) FROM paid_leaves WHERE user_id = ? AND expire_date > CURDATE()');
+    $stmt = $pdo->prepare('SELECT ROUND(IFNULL(SUM(GREATEST(grant_hours - consumed_hours_total, 0)),0),2) FROM paid_leaves WHERE user_id = ? AND (expire_date IS NULL OR expire_date > CURDATE())');
     $stmt->execute([$userId]);
     $balance = (float)$stmt->fetchColumn();
     $stmt = $pdo->prepare('SELECT MIN(expire_date) FROM paid_leaves WHERE user_id = ? AND expire_date > CURDATE() AND (grant_hours - consumed_hours_total) > 0');

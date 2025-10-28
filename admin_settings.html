@@ -1,147 +1,457 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>給与計算・勤怠ルール設定</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; margin: 0; }
-    .container { max-width: 480px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); padding: 2.5rem 1.5rem; }
-    h2 { text-align: center; color: #1976d2; margin-bottom: 2rem; }
-    .form-group { margin-bottom: 1.5em; }
-    label { display: block; margin-bottom: 0.5em; color: #1976d2; font-weight: bold; }
-    input, select { font-size: 1.1em; padding: 0.4em 0.7em; border-radius: 4px; border: 1px solid #b0bec5; width: 100%; max-width: 220px; }
-    .form-row { display: flex; gap: 1em; align-items: center; margin-bottom: 0.7em; }
-    .btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.7em 2em; font-size: 1.1em; cursor: pointer; margin-top: 1.5em; }
-    .btn:active { background: #1565c0; }
-    .msg { text-align: center; margin-top: 1em; }
-    @media (max-width: 600px) {
-      .container { padding: 1rem 0.2rem; }
-      .form-row { flex-direction: column; align-items: flex-start; gap: 0.2em; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>給与計算・勤怠ルール設定</h2>
-    <form id="settingsForm">
-      <div class="form-group">
-        <label>給与計算期間</label>
-        <div class="form-row">
-          <span>開始日：</span>
-          <input type="number" min="1" max="31" id="periodStart" required style="width:80px;"> 日
-          <span>締日：</span>
-          <input type="number" min="1" max="31" id="periodEnd" required style="width:80px;"> 日
-        </div>
-      </div>
-      <div class="form-group">
-        <label>勤務時間の丸め単位</label>
-        <div class="form-row">
-          <span>丸め方法：</span>
-          <select id="roundingType">
-            <option value="floor">切り捨て</option>
-            <option value="ceil">切り上げ</option>
-            <option value="round">四捨五入</option>
-          </select>
-          <span>単位：</span>
-          <select id="roundingUnit">
-            <option value="1">1分</option>
-            <option value="5">5分</option>
-            <option value="10">10分</option>
-            <option value="15">15分</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>所定労働時間（1日あたり）</label>
-        <div class="form-row">
-          <input type="number" min="0" max="24" id="workHours" required style="width:80px;"> 時間
-          <input type="number" min="0" max="59" id="workMinutes" required style="width:80px;"> 分
-        </div>
-      </div>
-      <div class="form-group">
-        <label>法定労働時間（常勤・月ごと）</label>
-        <div class="form-row">
-          <span>28日:</span> <input type="number" min="0" max="300" id="legalHours28" style="width:80px;"> 時間
-          <span>29日:</span> <input type="number" min="0" max="300" id="legalHours29" style="width:80px;"> 時間
-        </div>
-        <div class="form-row">
-          <span>30日:</span> <input type="number" min="0" max="300" id="legalHours30" style="width:80px;"> 時間
-          <span>31日:</span> <input type="number" min="0" max="300" id="legalHours31" style="width:80px;"> 時間
-        </div>
-        <div style="color:#888; font-size:0.95em; margin-top:0.3em;">※常勤者の1カ月法定労働時間（例: 28日=160, 29日=165, 30日=171, 31日=177）</div>
-      </div>
-      <button type="submit" class="btn">保存</button>
-      <div class="msg" id="msg"></div>
-    </form>
-  </div>
-  <script>
-    // fetchWithAuth: 401/403時は自動ログアウト
-    async function fetchWithAuth(url, options) {
-      const res = await fetch(url, options);
-      if (res.status === 401 || res.status === 403) {
-        window.location.href = 'login.html';
-        return null;
-      }
-      return res;
-    }
-    // 管理者権限チェック（URL直打ち対策）
-    fetchWithAuth('api/check_login.php')
-      .then(res => res && res.json())
-      .then(data => {
-        if (!data || !data.loggedIn) {
-          window.location.href = 'login.html';
-        } else if (!data.is_admin) {
-          alert('管理者権限がありません');
-          window.location.href = 'punch.html';
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>給与計算・勤怠ルール設定</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
         }
-      });
 
-    // 設定値の取得・反映
-    async function loadSettings() {
-      const res = await fetchWithAuth('api/settings_get.php');
-      if (!res || !res.ok) return;
-      const s = await res.json();
-      document.getElementById('periodStart').value = s.period_start;
-      document.getElementById('periodEnd').value = s.period_end;
-      document.getElementById('roundingType').value = s.rounding_type;
-      document.getElementById('roundingUnit').value = s.rounding_unit;
-      document.getElementById('workHours').value = s.work_hours;
-      document.getElementById('workMinutes').value = s.work_minutes;
-      document.getElementById('legalHours28').value = s.legal_hours_28 ?? 160;
-      document.getElementById('legalHours29').value = s.legal_hours_29 ?? 165;
-      document.getElementById('legalHours30').value = s.legal_hours_30 ?? 171;
-      document.getElementById('legalHours31').value = s.legal_hours_31 ?? 177;
-    }
-    loadSettings();
+        .container {
+            max-width: 700px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            padding: 2.5rem 1.5rem;
+        }
 
-    // 保存処理
-    document.getElementById('settingsForm').onsubmit = async function(e) {
-      e.preventDefault();
-      const data = {
-        period_start: document.getElementById('periodStart').value,
-        period_end: document.getElementById('periodEnd').value,
-        rounding_type: document.getElementById('roundingType').value,
-        rounding_unit: document.getElementById('roundingUnit').value,
-        work_hours: document.getElementById('workHours').value,
-        work_minutes: document.getElementById('workMinutes').value,
-        legal_hours_28: document.getElementById('legalHours28').value,
-        legal_hours_29: document.getElementById('legalHours29').value,
-        legal_hours_30: document.getElementById('legalHours30').value,
-        legal_hours_31: document.getElementById('legalHours31').value
-      };
-      const res = await fetchWithAuth('api/settings_save.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res && res.ok) {
-        document.getElementById('msg').textContent = '設定を保存しました';
-      } else if (res) {
-        const err = await res.json();
-        document.getElementById('msg').textContent = '保存に失敗しました: ' + (err.error || 'エラー');
-      }
-    };
-  </script>
+        h2 {
+            text-align: center;
+            color: #1976d2;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5em;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5em;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            font-size: 1.1em;
+            padding: 0.4em 0.7em;
+            border-radius: 4px;
+            border: 1px solid #b0bec5;
+            width: 100%;
+            max-width: 220px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1em;
+            align-items: center;
+            margin-bottom: 0.7em;
+        }
+
+        .btn {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.7em 2em;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 1.5em;
+        }
+
+        .btn:active {
+            background: #1565c0;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+            padding: 0.5em 1.2em;
+        }
+
+        .msg {
+            text-align: center;
+            margin-top: 1em;
+            min-height: 1.2em;
+            transition: opacity .6s ease;
+            opacity: 0;
+        }
+
+        .msg.show {
+            opacity: 1;
+        }
+
+        .msg.success {
+            color: #2e7d32;
+        }
+
+        .msg.error {
+            color: #c62828;
+        }
+
+        .error {
+            border-color: #c62828 !important;
+            background: #ffebee;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .month-label {
+            font-size: 0.9em;
+            text-wrap-mode: nowrap;
+        }
+
+        .paid-leave-roule-input {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 64px);
+            row-gap: 6px;
+            column-gap: 9px;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem 0.2rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.2em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="topbar">
+            <button type="button" class="btn btn-secondary" id="backBtn">← 管理メニューへ</button>
+        </div>
+        <h2>給与計算・勤怠ルール設定</h2>
+        <form id="settingsForm">
+            <div class="form-group">
+                <label>給与計算期間</label>
+                <div class="form-row">
+                    <span>開始日：</span>
+                    <input type="number" min="1" max="31" id="periodStart" required style="width:80px;"> 日 <span>締日：</span>
+                    <input type="number" min="1" max="31" id="periodEnd" required style="width:80px;"> 日
+                </div>
+            </div>
+            <div class="form-group">
+                <label>勤務時間の丸め単位</label>
+                <div class="form-row">
+                    <span>丸め方法：</span>
+                    <select id="roundingType">
+                        <option value="floor">切り捨て</option>
+                        <option value="ceil">切り上げ</option>
+                        <option value="round">四捨五入</option>
+                    </select>
+                    <span>単位：</span>
+                    <select id="roundingUnit">
+                        <option value="1">1分</option>
+                        <option value="5">5分</option>
+                        <option value="10">10分</option>
+                        <option value="15">15分</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>所定労働時間（1日あたり）</label>
+                <div class="form-row">
+                    <input type="number" min="0" max="24" id="workHours" required style="width:80px;"> 時間 <input type="number" min="0" max="59" id="workMinutes" required style="width:80px;"> 分
+                </div>
+            </div>
+            <div class="form-group">
+                <label>法定労働時間（常勤・月ごと）</label>
+                <div class="form-row">
+                    <span>28日:</span> <input type="number" min="0" max="300" id="legalHours28" style="width:80px;"> 時間 <span>29日:</span> <input type="number" min="0" max="300" id="legalHours29" style="width:80px;"> 時間
+                </div>
+                <div class="form-row">
+                    <span>30日:</span> <input type="number" min="0" max="300" id="legalHours30" style="width:80px;"> 時間 <span>31日:</span> <input type="number" min="0" max="300" id="legalHours31" style="width:80px;"> 時間
+                </div>
+                <div style="color:#888; font-size:0.95em; margin-top:0.3em;">※常勤者の1カ月法定労働時間（例: 28日=160, 29日=165, 30日=171, 31日=177）</div>
+            </div>
+            <div class="form-group">
+                <label>年次有給休暇（共通）</label>
+                <div class="form-row">
+                    <span>有効期間（繰り越し）：</span>
+                    <input type="number" min="0" max="120" id="paidLeaveValidMonths" required style="width:100px;"> ヶ月 <span style="color:#888; font-size:0.95em;">（法定は原則2年=24ヶ月）</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>年次有給休暇の自動付与ルール</label>
+                <div style="color:#666; font-size:0.95em; margin-bottom:0.5em;">勤続に応じた付与日数（画像の表と同じ並び）</div>
+                <div class="form-row" style="flex-direction:column; align-items:stretch; gap:0.6em;">
+                    <div>
+                        <div style="font-weight:bold; color:#1976d2; margin-bottom:0.3em;">常勤（週30時間以上 または 週5日以上）</div>
+                        <div class="paid-leave-roule-input">
+                            <div style="color:#666;">勤続</div>
+                            <div class="month-label">6ヶ月</div>
+                            <div class="month-label">1年6ヶ月</div>
+                            <div class="month-label">2年6ヶ月</div>
+                            <div class="month-label">3年6ヶ月</div>
+                            <div class="month-label">4年6ヶ月</div>
+                            <div class="month-label">5年6ヶ月</div>
+                            <div class="month-label">6年6ヶ月以上</div>
+                            <div style="color:#666;">付与日数</div>
+                            <input type="number" min="0" max="30" id="ft0" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft1" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft2" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft3" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft4" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft5" style="width:60px;">
+                            <input type="number" min="0" max="30" id="ft6" style="width:60px;">
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-weight:bold; color:#1976d2; margin:0.8em 0 0.3em;">短時間・週4日以下（又は年間所定労働日数216日以下）</div>
+                        <div class="paid-leave-roule-input">
+                            <div style="color:#666;">週4日</div>
+                            <input type="number" min="0" max="30" id="pt4_0" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_1" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_2" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_3" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_4" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_5" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt4_6" style="width:60px;">
+                            <div style="color:#666;">週3日</div>
+                            <input type="number" min="0" max="30" id="pt3_0" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_1" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_2" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_3" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_4" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_5" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt3_6" style="width:60px;">
+                            <div style="color:#666;">週2日</div>
+                            <input type="number" min="0" max="30" id="pt2_0" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_1" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_2" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_3" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_4" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_5" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt2_6" style="width:60px;">
+                            <div style="color:#666;">週1日</div>
+                            <input type="number" min="0" max="30" id="pt1_0" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_1" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_2" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_3" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_4" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_5" style="width:60px;">
+                            <input type="number" min="0" max="30" id="pt1_6" style="width:60px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn">保存</button>
+            <div class="msg" id="msg"></div>
+        </form>
+    </div>
+    <script>
+        // fetchWithAuth: 401/403時は自動ログアウト
+        async function fetchWithAuth(url, options) {
+            const res = await fetch(url, options);
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return res;
+        }
+        // 管理者権限チェック（URL直打ち対策）
+        fetchWithAuth('api/check_login.php')
+            .then(res => res && res.json())
+            .then(data => {
+                if (!data || !data.loggedIn) {
+                    window.location.href = 'login.html';
+                } else if (!data.is_admin) {
+                    alert('管理者権限がありません');
+                    window.location.href = 'punch.html';
+                }
+            });
+
+        // 戻るボタン
+        document.getElementById('backBtn').onclick = () => {
+            window.location.href = 'admin.html';
+        };
+
+        function showMessage(text, type = 'success', autoHide = true) {
+            const msg = document.getElementById('msg');
+            msg.textContent = text || '';
+            msg.classList.remove('success', 'error', 'show');
+            msg.classList.add(type);
+            // force reflow before adding show for transition
+            void msg.offsetWidth;
+            msg.classList.add('show');
+            if (autoHide && type === 'success') {
+                setTimeout(() => {
+                    msg.classList.remove('show');
+                    setTimeout(() => { msg.textContent = ''; }, 700);
+                }, 2400);
+            }
+        }
+
+        function clearErrors(ids) {
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('error');
+            }
+        }
+
+        function markError(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('error');
+        }
+
+        function numInRange(v, min, max) {
+            if (v === '' || v === null || v === undefined) return false;
+            const n = Number(v);
+            return Number.isFinite(n) && n >= min && n <= max;
+        }
+
+        // 設定値の取得・反映
+        async function loadSettings() {
+            const res = await fetchWithAuth('api/settings_get.php');
+            if (!res || !res.ok) return;
+            const s = await res.json();
+            document.getElementById('periodStart').value = s.period_start;
+            document.getElementById('periodEnd').value = s.period_end;
+            document.getElementById('roundingType').value = s.rounding_type;
+            document.getElementById('roundingUnit').value = s.rounding_unit;
+            document.getElementById('workHours').value = s.work_hours;
+            document.getElementById('workMinutes').value = s.work_minutes;
+            document.getElementById('legalHours28').value = s.legal_hours_28 ?? 160;
+            document.getElementById('legalHours29').value = s.legal_hours_29 ?? 165;
+            document.getElementById('legalHours30').value = s.legal_hours_30 ?? 171;
+            document.getElementById('legalHours31').value = s.legal_hours_31 ?? 177;
+            document.getElementById('paidLeaveValidMonths').value = s.paid_leave_valid_months ?? 24;
+
+            // 付与ルール
+            const defaultRules = {
+                milestones: ['6m', '1y6m', '2y6m', '3y6m', '4y6m', '5y6m', '6y6m+'],
+                fulltime: [10, 11, 12, 14, 16, 18, 20],
+                parttime: {
+                    '4d': [7, 8, 9, 10, 12, 13, 15],
+                    '3d': [5, 6, 6, 8, 9, 10, 11],
+                    '2d': [3, 4, 4, 5, 6, 6, 7],
+                    '1d': [1, 2, 2, 2, 3, 3, 3]
+                }
+            };
+            let rules = defaultRules;
+            if (s.paid_leave_rules) {
+                try { rules = JSON.parse(s.paid_leave_rules); } catch { }
+            }
+            // 常勤
+            const ft = rules.fulltime || defaultRules.fulltime;
+            for (let i = 0; i < 7; i++) document.getElementById('ft' + i).value = ft[i] ?? '';
+            // 短時間
+            const pt = rules.parttime || defaultRules.parttime;
+            const keys = ['4d', '3d', '2d', '1d'];
+            for (const k of keys) {
+                for (let i = 0; i < 7; i++) {
+                    const el = document.getElementById(`pt${k[0]}_${i}`);
+                    if (el) el.value = (pt[k] ? pt[k][i] : '') ?? '';
+                }
+            }
+        }
+        loadSettings();
+
+        // 保存処理
+        document.getElementById('settingsForm').onsubmit = async function (e) {
+            e.preventDefault();
+            // 既存のエラースタイルをクリア
+            clearErrors([
+                'periodStart', 'periodEnd', 'workHours', 'workMinutes',
+                'legalHours28', 'legalHours29', 'legalHours30', 'legalHours31',
+                'paidLeaveValidMonths',
+                'ft0', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', 'ft6',
+                'pt4_0', 'pt4_1', 'pt4_2', 'pt4_3', 'pt4_4', 'pt4_5', 'pt4_6',
+                'pt3_0', 'pt3_1', 'pt3_2', 'pt3_3', 'pt3_4', 'pt3_5', 'pt3_6',
+                'pt2_0', 'pt2_1', 'pt2_2', 'pt2_3', 'pt2_4', 'pt2_5', 'pt2_6',
+                'pt1_0', 'pt1_1', 'pt1_2', 'pt1_3', 'pt1_4', 'pt1_5', 'pt1_6'
+            ]);
+
+            let hasErr = false;
+            const mark = id => { markError(id); hasErr = true; };
+
+            // 基本の数字チェック
+            if (!numInRange(document.getElementById('periodStart').value, 1, 31)) mark('periodStart');
+            if (!numInRange(document.getElementById('periodEnd').value, 1, 31)) mark('periodEnd');
+            if (!numInRange(document.getElementById('workHours').value, 0, 24)) mark('workHours');
+            if (!numInRange(document.getElementById('workMinutes').value, 0, 59)) mark('workMinutes');
+
+            // 法定1ヶ月時間
+            if (!numInRange(document.getElementById('legalHours28').value, 0, 300)) mark('legalHours28');
+            if (!numInRange(document.getElementById('legalHours29').value, 0, 300)) mark('legalHours29');
+            if (!numInRange(document.getElementById('legalHours30').value, 0, 300)) mark('legalHours30');
+            if (!numInRange(document.getElementById('legalHours31').value, 0, 300)) mark('legalHours31');
+
+            // 有効期間（繰り越し）
+            if (!numInRange(document.getElementById('paidLeaveValidMonths').value, 0, 120)) mark('paidLeaveValidMonths');
+
+            // 付与ルール（0〜30）
+            const ids = ['ft0', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', 'ft6',
+                'pt4_0', 'pt4_1', 'pt4_2', 'pt4_3', 'pt4_4', 'pt4_5', 'pt4_6',
+                'pt3_0', 'pt3_1', 'pt3_2', 'pt3_3', 'pt3_4', 'pt3_5', 'pt3_6',
+                'pt2_0', 'pt2_1', 'pt2_2', 'pt2_3', 'pt2_4', 'pt2_5', 'pt2_6',
+                'pt1_0', 'pt1_1', 'pt1_2', 'pt1_3', 'pt1_4', 'pt1_5', 'pt1_6'];
+            for (const id of ids) {
+                if (!numInRange(document.getElementById(id).value, 0, 30)) mark(id);
+            }
+
+            if (hasErr) {
+                showMessage('入力エラーがあります。赤枠の項目を確認してください。', 'error', false);
+                return;
+            }
+
+            const data = {
+                period_start: document.getElementById('periodStart').value,
+                period_end: document.getElementById('periodEnd').value,
+                rounding_type: document.getElementById('roundingType').value,
+                rounding_unit: document.getElementById('roundingUnit').value,
+                work_hours: Number(document.getElementById('workHours').value),
+                work_minutes: Number(document.getElementById('workMinutes').value),
+                legal_hours_28: Number(document.getElementById('legalHours28').value),
+                legal_hours_29: Number(document.getElementById('legalHours29').value),
+                legal_hours_30: Number(document.getElementById('legalHours30').value),
+                legal_hours_31: Number(document.getElementById('legalHours31').value),
+                paid_leave_valid_months: Number(document.getElementById('paidLeaveValidMonths').value),
+                paid_leave_rules: JSON.stringify({
+                    milestones: ['6m', '1y6m', '2y6m', '3y6m', '4y6m', '5y6m', '6y6m+'],
+                    fulltime: [0, 1, 2, 3, 4, 5, 6].map(i => Number(document.getElementById('ft' + i).value || 0)),
+                    parttime: {
+                        '4d': [0, 1, 2, 3, 4, 5, 6].map(i => Number(document.getElementById('pt4_' + i).value || 0)),
+                        '3d': [0, 1, 2, 3, 4, 5, 6].map(i => Number(document.getElementById('pt3_' + i).value || 0)),
+                        '2d': [0, 1, 2, 3, 4, 5, 6].map(i => Number(document.getElementById('pt2_' + i).value || 0)),
+                        '1d': [0, 1, 2, 3, 4, 5, 6].map(i => Number(document.getElementById('pt1_' + i).value || 0))
+                    }
+                })
+            };
+            const res = await fetchWithAuth('api/settings_save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res && res.ok) {
+                showMessage('設定を保存しました', 'success', true);
+            } else if (res) {
+                const err = await res.json();
+                showMessage('保存に失敗しました: ' + (err.error || 'エラー'), 'error', false);
+            }
+        };
+    </script>
 </body>
+
 </html>

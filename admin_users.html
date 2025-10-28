@@ -69,7 +69,7 @@
 
         td input,
         td select {
-            width: 100%;
+            width: 70%;
             box-sizing: border-box;
             font-size: 1.1em;
         }
@@ -120,6 +120,7 @@
         .tab-btn {
             background: #eef6ff;
             border: 1px solid #cfe2f3;
+            font-size: 1.1em;
             color: #1976d2;
             border-radius: 6px 6px 0 0;
             padding: 6px 10px;
@@ -160,7 +161,7 @@
         }
 
         .muted {
-            color: #666;
+            color: #b3b3b3;
         }
 
         .danger {
@@ -211,6 +212,14 @@
             vertical-align: middle;
         }
 
+        .toggle-s {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 27px;
+            vertical-align: middle;
+        }
+
         .toggle__input {
             opacity: 0;
             width: 0;
@@ -229,6 +238,18 @@
             border-radius: 30px;
         }
 
+        .toggle__slider-s {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 23px;
+        }
+
         .toggle__slider:before {
             border-radius: 50%;
             position: absolute;
@@ -242,12 +263,33 @@
             box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
         }
 
+        .toggle__slider-s:before {
+            border-radius: 50%;
+            position: absolute;
+            content: "";
+            height: 23px;
+            width: 23px;
+            left: 2px;
+            bottom: 2px;
+            background: #fff;
+            transition: 0.3s;
+            box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
         .toggle__input:checked+.toggle__slider {
-            background: #86f096;
+            background: #8dcfff;
         }
 
         .toggle__input:checked+.toggle__slider:before {
             transform: translateX(30px);
+        }
+
+        .toggle__input-s:checked+.toggle__slider-s {
+            background: #8dcfff;
+        }
+
+        .toggle__input-s:checked+.toggle__slider-s:before {
+            transform: translateX(23px);
         }
 
         @media (max-width: 600px) {
@@ -309,7 +351,6 @@
                 <col style="width: 3em;" />
                 <col style="width: 3.5em;" />
                 <col style="width: 4.5em;" />
-                <col style="width: 15em;" />
             </colgroup>
             <thead>
                 <tr>
@@ -319,7 +360,6 @@
                     <th style="text-align: start; min-width: 3em;">権限</th>
                     <th style="text-align: center; text-wrap-mode: nowrap;">自家用車</th>
                     <th style="text-align: center; text-wrap-mode: nowrap;">契約労働時間</th>
-                    <th style="text-align: start;">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -348,6 +388,16 @@
                     window.location.href = "punch.html";
                 }
             });
+        // 全社設定の取得（所定労働時間・繰越月数 など）
+        let orgSettings = null;
+        async function loadOrgSettings() {
+            try {
+                const res = await fetchWithAuth('api/settings_get.php');
+                if (!res || !res.ok) return null;
+                orgSettings = await res.json();
+                return orgSettings;
+            } catch { return null; }
+        }
         // ユーザー一覧取得
         async function loadUsers() {
             const res = await fetchWithAuth("api/admin_user_list.php");
@@ -356,9 +406,9 @@
         }
         let users = [];
         let allUsers = [];
-        let editingIdx = null;
         let expandedUserId = null; // 展開中のユーザーID
         let mastersCache = null;   // マスターキャッシュ
+        let newUserOpen = false;   // 新規ユーザー入力パネルの開閉状態
         async function renderTable() {
             allUsers = await loadUsers();
             const showDeleted =
@@ -386,78 +436,17 @@
             const selectedId = userSearch.value;
             const tbody = document.querySelector("#userTable tbody");
             tbody.innerHTML = "";
+            const baseHoursDefault = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
             users.forEach((u, idx) => {
                 const roleLabel = u.role === "admin" ? "管理者" : "一般";
                 const useVehicleLabel = u.use_vehicle == 1 ? "○" : "×";
                 if (!selectedId || selectedId == u.id) {
                     const deletedStyle =
                         u.visible == 0 ? "color:#aaa;background:#fbe9e7;" : "";
-                    const disabled = u.visible == 0 ? "disabled" : "";
-                    if (editingIdx === idx) {
-                        if (u.visible == 0) {
-                            tbody.innerHTML += `
-                            <tr style='${deletedStyle}'>
-                                <td></td>
-                                <td>
-                                    ${u.id}
-                                </td>
-                                <td style="text-wrap-mode: nowrap;">
-                                    <input style="text-wrap-mode: nowrap;" value="${u.name}" id="editName" disabled>
-                                </td>
-                                <td>
-                                    <select id="editRole" disabled>
-                                        <option value="user" ${u.role === "user" ? "selected" : ""}>一般</option>
-                                        <option value="admin" ${u.role === "admin" ? "selected" : ""}>管理者</option>
-                                    </select>
-                                </td>
-                                <td style="width: -webkit-fill-available;">
-                                    <input type="checkbox" id="editUseVehicle" ${u.use_vehicle == 1 ? "checked" : ""} disabled> 自家用車
-                                </td>
-                                <td>
-                                    <input type="number" id="editContractHours" value="${u.contract_hours_per_day ?? 8}" min="0" step="0.25" disabled> h/日
-                                </td>
-                                <td>
-                                    <button class='btn' onclick='restoreUser(${idx})'>復元</button>
-                                    <button class='btn' onclick='cancelEditUser()'>キャンセル</button>
-                                </td>
-                            </tr>`;
-                        } else {
-                            tbody.innerHTML += `
-                            <tr style='${deletedStyle}'>
-                                <td></td>
-                                <td>
-                                    ${u.id}
-                                </td>
-                                <td class="editing" style="text-wrap-mode: nowrap;">
-                                    <input value="${u.name}" id="editName">
-                                </td>
-                                <td class="editing">
-                                    <select id="editRole">
-                                        <option value="user" ${u.role === "user" ? "selected" : ""}>一般</option>
-                                        <option value="admin" ${u.role === "admin" ? "selected" : ""}>管理者</option>
-                                    </select>
-                                </td>
-                                <td class="editing" style="padding: 0; width: -webkit-fill-available;">
-                                    <input type="checkbox" id="editUseVehicle" style="margin: 0;" ${u.use_vehicle == 1 ? "checked" : ""}>
-                                </td>
-                                <td class="editing">
-                                    <input type="number" style="ime-mode: disabled; width: 60px; text-align: end;" id="editContractHours" value="${u.contract_hours_per_day ?? 8}" min="0" step="0.25"> h/日
-                                </td>
-                                <td>
-                                    <button class='btn' onclick='saveEditUser(${idx})'>保存</button>
-                                    <button class='btn' onclick='cancelEditUser()'>キャンセル</button>
-                                    <button class='btn' onclick='deleteUser(${idx})'>削除</button>
-                                    <button class='btn' onclick='showSetPassword(${idx})'>パスワード再設定</button>
-                                </td>
-                            </tr>`;
-                        }
-                    } else {
-                        tbody.innerHTML += `
-                        <tr style='${deletedStyle}'>
+                    tbody.innerHTML += `
+                        <tr id="row-user-${u.id}" class="click-row" style='${deletedStyle}' onclick="toggleExpand(${idx})">
                             <td style="text-align:center;">
-                                <button class="expand-toggle" onclick="toggleExpand(${idx})" ${disabled}>
-                                    ${expandedUserId === u.id ? '∨' : '＞'}
-                                </button>
+                                ${expandedUserId === u.id ? '∨' : '＞'}
                             </td>
                             <td>
                                 ${u.id}
@@ -472,17 +461,11 @@
                                 ${useVehicleLabel}
                             </td>
                             <td style="text-align:center;">
-                                ${u.contract_hours_per_day ?? 8} h/日
-                            </td>
-                            <td>
-                                <button class='btn' onclick='editUser(${idx})' ${disabled}>
-                                    編集
-                                </button>
+                                ${u.contract_hours_per_day ?? baseHoursDefault} h/日
                             </td>
                         </tr>`;
-                        if (expandedUserId === u.id) {
-                            tbody.innerHTML += renderExpandedRow(u);
-                        }
+                    if (expandedUserId === u.id) {
+                        tbody.innerHTML += renderExpandedRow(u);
                     }
                 }
             });
@@ -491,148 +474,137 @@
         document
             .getElementById("userSearch")
             .addEventListener("change", renderTable);
-        // 新規ユーザー追加（ダミーUI）
-        document.getElementById("addUserBtn").onclick = function () {
-            const tbody = document.querySelector("#userTable tbody");
-            const tr = document.createElement("tr");
-            tr.className = "add-user-row";
-            tr.innerHTML = `
-            <td>新規</td>
-            <td>
-                <input id='newUserName'>
-            </td>
-            <td>
-                <select id='newUserRole'>
-                    <option>一般</option>
-                    <option>管理者</option>
-                </select>
-            </td>
-            <td>
-                <input type='number' id='newContractHours' value='8' min='0' step='0.25'>h/日
-            </td>
-            <td>
-                <button class='btn' onclick='saveNewUser(this)'>保存</button>
-                <button class='btn' onclick='this.parentNode.parentNode.remove()'>キャンセル</button>
-            </td>`;
-            tbody.prepend(tr);
+        // 新規ユーザーの入力欄を展開方式で表示
+        document.getElementById("addUserBtn").onclick = async function () {
+            if (newUserOpen) {
+                const panel = document.getElementById('new-user-panel');
+                if (panel) { panel.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+                // パネルが消えている（再描画など）場合はフラグをリセットして作り直す
+                newUserOpen = false;
+            }
+            if (expandedUserId !== null) {
+                expandedUserId = null;
+                await renderTable();
+            }
+            const tbody = document.querySelector('#userTable tbody');
+            const colSpan = 6; // ヘッダー列数に合わせる
+            const baseHoursDefault = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
+            const panel = document.createElement('tr');
+            panel.className = 'expanded-row';
+            panel.id = 'new-user-panel';
+            panel.innerHTML = `
+                <td colspan="${colSpan}">
+                    <div class="tabs" style="border:none;margin-bottom:12px;"><button class="tab-btn active">新規ユーザーの作成</button></div>
+                    <div class="grid" style="max-width:780px;">
+                        <div>ユーザー名<span class="danger">*</span></div>
+                        <div><input id="newUserName" placeholder="氏名"></div>
+                        <div>権限</div>
+                        <div>
+                            <select id="newUserRole">
+                                <option value="user">一般</option>
+                                <option value="admin">管理者</option>
+                            </select>
+                        </div>
+                        <div>自家用車</div>
+                        <div class="inline">
+                            <label class="toggle-s" for="newUseVehicle">
+                                <input type="checkbox" class="toggle__input-s" id="newUseVehicle" checked>
+                                <span class="toggle__slider-s"></span>
+                            </label>
+                            <span id="new-vehicle-label" class="muted">使用する</span>
+                        </div>
+                        <div>契約労働時間（1日あたり）</div>
+                        <div><input type="number" id="newContractHours" min="0" step="0.25" value="${baseHoursDefault}" style="width:90px;text-align:right;"> h/日</div>
+                    </div>
+                    <div style="margin-top:14px; display:flex; gap:8px;">
+                        <button class="btn" id="newUserSaveBtn">登録</button>
+                        <button class="btn" id="newUserCancelBtn" style="background:#fff;color:#1976d2;border:1.5px solid #1976d2;">キャンセル</button>
+                    </div>
+                </td>`;
+            tbody.prepend(panel);
+            newUserOpen = true;
+            (function () {
+                const cb = document.getElementById('newUseVehicle');
+                const lbl = document.getElementById('new-vehicle-label');
+                if (!cb || !lbl) return;
+                const sync = () => { if (cb.checked) { lbl.textContent = '使用する'; lbl.classList.remove('muted'); } else { lbl.textContent = '使用しない'; lbl.classList.add('muted'); } };
+                sync();
+                cb.addEventListener('change', sync);
+            })();
+            document.getElementById('newUserCancelBtn').onclick = function () {
+                const p = document.getElementById('new-user-panel');
+                if (p) p.remove();
+                newUserOpen = false;
+            };
+            document.getElementById('newUserSaveBtn').onclick = function (e) { saveNewUser(e.currentTarget); };
         };
         // ユーザー追加
         window.saveNewUser = async function (btn) {
-            const tr = btn.parentNode.parentNode;
-            const name = tr.querySelector("#newUserName").value.trim();
-            const roleLabel = tr.querySelector("#newUserRole").value;
-            const role = roleLabel === "管理者" ? "admin" : "user";
-            const use_vehicle = 1; // 新規はデフォルト1
-            const contract_hours_per_day = parseFloat(tr.querySelector("#newContractHours").value) || 8;
-            if (!name) {
-                alert("ユーザー名を入力してください");
-                return;
-            }
-            // APIで新規ユーザー作成
-            const res = await fetchWithAuth("api/admin_user_create.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, role, use_vehicle, contract_hours_per_day }),
+            const root = document.getElementById('new-user-panel') || btn.closest('tr');
+            const name = (root.querySelector('#newUserName')?.value || '').trim();
+            const roleVal = (root.querySelector('#newUserRole')?.value || 'user');
+            const role = roleVal === 'admin' ? 'admin' : 'user';
+            const use_vehicle = (root.querySelector('#newUseVehicle')?.checked ? 1 : 0);
+            const contract_hours_per_day = parseFloat(root.querySelector('#newContractHours')?.value || '0') || 0;
+            if (!name) { alert('ユーザー名を入力してください'); return; }
+            if (contract_hours_per_day < 0) { alert('契約労働時間は0以上で入力してください'); return; }
+            const res = await fetchWithAuth('api/admin_user_create.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, role, use_vehicle, contract_hours_per_day })
             });
             if (res && res.ok) {
-                alert(
-                    "ユーザーを登録しました。仮パスワードは「netone」です。初回ログイン時に再設定が必要です。"
-                );
+                const data = await res.json();
+                const newId = data && data.id ? String(data.id) : null;
+                alert('ユーザーを登録しました \n仮パスワードは"netone"です。\n初回ログイン時にパスワード変更が要求されます。');
+                const p = document.getElementById('new-user-panel');
+                if (p) p.remove();
+                newUserOpen = false;
+                // 全ユーザー表示に戻す（フィルタ解除）
+                const sel = document.getElementById('userSearch');
+                if (sel) sel.value = '';
+                if (newId) expandedUserId = parseInt(newId);
                 await renderTable();
+                // 新規ユーザーの詳細/有給タブ等をマウント
+                if (newId) {
+                    const user = users.find(u => String(u.id) === newId);
+                    const row = document.getElementById(`row-user-${newId}`);
+                    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (user) {
+                        try {
+                            const masters = await loadMasters();
+                            const settings = await loadUserLeaveSettings(user.id);
+                            mountUserDetails(user);
+                            mountLeaveSettings(user, masters, settings);
+                            mountLeaveGrant(user, masters, settings);
+                            mountLeaveBalance(user.id);
+                        } catch (e) {
+                            // 失敗時は無視（表示側でエラーメッセージが出る）
+                        }
+                    }
+                }
             } else if (res) {
                 const data = await res.json();
-                alert(data.error || "登録に失敗しました");
+                alert(data.error || '登録に失敗しました');
             }
         };
-        // 編集・削除・保存
-        window.editUser = function (idx) {
-            editingIdx = idx;
-            renderTable();
-        };
-        window.cancelEditUser = function () {
-            editingIdx = null;
-            renderTable();
-        };
-        window.saveEditUser = async function (idx) {
-            const user = users[idx];
-            const name = document.getElementById("editName").value.trim();
-            const role = document.getElementById("editRole").value;
-            const use_vehicle = document.getElementById("editUseVehicle").checked ? 1 : 0;
-            const contract_hours_per_day = parseFloat(document.getElementById("editContractHours").value) || 8;
-            if (!name) {
-                alert("ユーザー名を入力してください");
-                return;
-            }
-            const res = await fetchWithAuth("api/admin_user_update.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: user.id, name, role, use_vehicle, contract_hours_per_day }),
-            });
-            if (res && res.ok) {
-                editingIdx = null;
-                await renderTable();
-            } else if (res) {
-                alert("更新に失敗しました");
-            }
-        };
-        window.deleteUser = async function (idx) {
-            if (!confirm("削除しますか？")) return;
-            const user = users[idx];
-            const res = await fetchWithAuth("api/admin_user_delete.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: user.id }),
-            });
-            if (res && res.ok) {
-                await renderTable();
-            } else if (res) {
-                alert("削除に失敗しました");
-            }
-        };
-        window.restoreUser = async function (idx) {
-            const user = users[idx];
-            const res = await fetchWithAuth("api/admin_user_restore.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: user.id }),
-            });
-            if (res && res.ok) {
-                editingIdx = null;
-                await renderTable();
-            } else if (res) {
-                alert("復元に失敗しました");
-            }
-        };
-        window.showSetPassword = function (idx) {
-            const user = users[idx];
-            const newPass = prompt(
-                "新しい仮パスワードを入力してください（8文字以上推奨）"
-            );
-            if (!newPass) return;
-            if (newPass.length < 4) {
-                alert("パスワードは4文字以上にしてください");
-                return;
-            }
-            fetchWithAuth("api/admin_user_set_password.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: user.id, password: newPass }),
-            }).then((res) => {
-                if (res && res.ok) {
-                    alert(
-                        "パスワードを再設定しました。ユーザーに新パスワードを伝えてください。"
-                    );
-                } else if (res) {
-                    alert("パスワード再設定に失敗しました");
-                }
-            });
-        };
+        // 行編集機能は詳細タブへ移行済みのため削除
         document
             .getElementById("showDeletedToggle")
             .addEventListener("change", renderTable);
 
+        // 行クリックで展開する行の見た目
+        (function ensureClickRowStyle() {
+            const styleId = 'click-row-style';
+            if (!document.getElementById(styleId)) {
+                const s = document.createElement('style');
+                s.id = styleId;
+                s.textContent = `.click-row{cursor:pointer;} .click-row:hover{background:#f2f8ff;}`;
+                document.head.appendChild(s);
+            }
+        })();
+
         function renderExpandedRow(user) {
-            const colSpan = 7; // 展開列を含む総列数
+            const colSpan = 6; // 操作列を削除したため総列数を6に調整
             return `
                         <tr class="expanded-row">
                             <td colspan="${colSpan}">
@@ -667,6 +639,161 @@
                         </tr>`;
         }
 
+        // 詳細タブ（ユーザー編集フォーム）
+        function mountUserDetails(user) {
+            const panel = document.getElementById(`panel-details-${user.id}`);
+            if (!panel) return;
+            const disabled = (user.visible == 0) ? 'disabled' : '';
+            const roleUserSel = user.role === 'user' ? 'selected' : '';
+            const roleAdminSel = user.role === 'admin' ? 'selected' : '';
+            const checked = user.use_vehicle == 1 ? 'checked' : '';
+            const noteDeleted = (user.visible == 0)
+                ? `<div class="danger" style="margin-bottom:8px;">このユーザーは削除状態です。復元すると編集できます。</div>`
+                : '';
+            panel.innerHTML = `
+                ${noteDeleted}
+                <div class="grid">
+                    <div>ユーザー名</div>
+                    <div><input type="text" id="det-name-${user.id}" value="${user.name}" ${disabled} style="max-width:260px;"></div>
+                    <div>権限</div>
+                    <div>
+                        <select id="det-role-${user.id}" ${disabled} style="max-width:160px;">
+                            <option value="user" ${roleUserSel}>一般</option>
+                            <option value="admin" ${roleAdminSel}>管理者</option>
+                        </select>
+                    </div>
+                    <div>自家用車</div>
+                    <div class="inline">
+                        <label class="toggle-s" for="det-vehicle-${user.id}">
+                            <input type="checkbox" class="toggle__input-s" id="det-vehicle-${user.id}" ${checked} ${disabled}>
+                            <span class="toggle__slider-s"></span>
+                        </label>
+                        <label for="det-vehicle-${user.id}" id="det-vehicle-label-${user.id}" style="cursor:pointer; user-select:none" class="${checked ? '' : 'muted'}">${checked ? '利用する' : '利用しない'}</label>
+                    </div>
+                    <div>契約労働時間</div>
+                    <div class="inline"><input type="number" step="0.25" min="0" id="det-contract-${user.id}" value="${user.contract_hours_per_day ?? 8}" ${disabled} style="width:90px; text-align:right;"> h/日</div>
+                    <div>入社日</div>
+                    <div><input type="date" id="det-hire-${user.id}" value="${user.hire_date ?? ''}" ${disabled} style="max-width:160px;"></div>
+                    <div>退職日</div>
+                    <div><input type="date" id="det-retire-${user.id}" value="${user.retire_date ?? ''}" ${user.visible == 0 ? 'disabled' : ''} style="max-width:160px;"></div>
+                    <div></div>
+                    <div class="inline" style="gap:8px; flex-wrap:wrap;">
+                        ${user.visible == 1 ? `<button class="btn" id="det-save-${user.id}">保存</button>` : ''}
+                        ${user.visible == 1 ? `<button class="btn" id="det-delete-${user.id}" style="background:#e57373;">削除</button>` : `<button class=\"btn\" id=\"det-restore-${user.id}\">復元</button>`}
+                        <button class="btn" id="det-setpass-${user.id}" ${user.visible == 0 ? 'disabled' : ''}>パスワード再設定</button>
+                    </div>
+                </div>
+            `;
+
+            // 自家用車ラベルの色をチェック状態に応じて変更（オフ時のみ薄く）
+            (function () {
+                const cb = document.getElementById(`det-vehicle-${user.id}`);
+                const lbl = document.getElementById(`det-vehicle-label-${user.id}`);
+                if (!cb || !lbl) return;
+                const sync = () => {
+                    if (cb.checked) { lbl.textContent = '利用する'; lbl.classList.remove('muted'); }
+                    else { lbl.textContent = '利用しない'; lbl.classList.add('muted'); }
+                };
+                sync();
+                cb.addEventListener('change', sync);
+            })();
+
+            // ハンドラ
+            const saveBtn = document.getElementById(`det-save-${user.id}`);
+            if (saveBtn) {
+                saveBtn.onclick = async () => {
+                    const name = (document.getElementById(`det-name-${user.id}`)?.value || '').trim();
+                    const role = (document.getElementById(`det-role-${user.id}`)?.value || 'user');
+                    const use_vehicle = (document.getElementById(`det-vehicle-${user.id}`)?.checked ? 1 : 0);
+                    const ch = parseFloat(document.getElementById(`det-contract-${user.id}`)?.value || '8') || 8;
+                    const hireDateRaw = (document.getElementById(`det-hire-${user.id}`)?.value || '');
+                    const hire_date = hireDateRaw === '' ? null : hireDateRaw;
+                    const retireDateRaw = (document.getElementById(`det-retire-${user.id}`)?.value || '');
+                    const retire_date = retireDateRaw === '' ? null : retireDateRaw;
+                    if (!name) { alert('ユーザー名を入力してください'); return; }
+                    const res = await fetchWithAuth('api/admin_user_update.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: user.id, name, role, use_vehicle, contract_hours_per_day: ch, hire_date, retire_date })
+                    });
+                    if (res && res.ok) {
+                        await renderTable();
+                        await refreshExpandedPanels(user.id);
+                    } else if (res) {
+                        alert('更新に失敗しました');
+                    }
+                };
+            }
+
+            const delBtn = document.getElementById(`det-delete-${user.id}`);
+            if (delBtn) {
+                delBtn.onclick = async () => {
+                    const retire = (document.getElementById(`det-retire-${user.id}`)?.value || '').trim();
+                    if (!retire) { alert('削除（退職）には退職日が必須です。退職日を入力してください。'); return; }
+                    if (!confirm('このユーザーを削除（非表示）にします。実行しますか？')) return;
+                    const res = await fetchWithAuth('api/admin_user_delete.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: user.id, retire_date: retire })
+                    });
+                    if (res && res.ok) {
+                        await renderTable();
+                        await refreshExpandedPanels(user.id);
+                    } else if (res) {
+                        alert('削除に失敗しました');
+                    }
+                };
+            }
+
+            const restoreBtn = document.getElementById(`det-restore-${user.id}`);
+            if (restoreBtn) {
+                restoreBtn.onclick = async () => {
+                    const res = await fetchWithAuth('api/admin_user_restore.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: user.id, clear_retire_date: 1 })
+                    });
+                    if (res && res.ok) {
+                        await renderTable();
+                        await refreshExpandedPanels(user.id);
+                    } else if (res) {
+                        alert('復元に失敗しました');
+                    }
+                };
+            }
+
+            const setpassBtn = document.getElementById(`det-setpass-${user.id}`);
+            if (setpassBtn) {
+                setpassBtn.onclick = async () => {
+                    const newPass = prompt('新しい仮パスワードを入力してください（8文字以上推奨）');
+                    if (!newPass) return;
+                    if (newPass.length < 4) { alert('パスワードは4文字以上にしてください'); return; }
+                    const res = await fetchWithAuth('api/admin_user_set_password.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: user.id, password: newPass })
+                    });
+                    if (res && res.ok) {
+                        alert('パスワードを再設定しました。ユーザーに新パスワードを伝えてください。');
+                    } else if (res) {
+                        alert('パスワード再設定に失敗しました');
+                    }
+                };
+            }
+        }
+
+        // 展開中パネルの再構築（展開維持）
+        async function refreshExpandedPanels(userId) {
+            const user = users.find(u => u.id == userId);
+            if (!user) return; // フィルタで消えた場合など
+            try {
+                const masters = await loadMasters();
+                const settings = await loadUserLeaveSettings(user.id);
+                mountUserDetails(user);
+                mountLeaveSettings(user, masters, settings);
+                mountLeaveGrant(user, masters, settings);
+                mountLeaveBalance(user.id);
+            } catch (e) {
+                // 何もしない（個別エリアでエラーメッセージ表示済み）
+            }
+        }
+
         window.toggleExpand = async function (idx) {
             const user = users[idx];
             if (expandedUserId === user.id) {
@@ -679,6 +806,7 @@
             try {
                 const masters = await loadMasters();
                 const settings = await loadUserLeaveSettings(user.id);
+                mountUserDetails(user);
                 mountLeaveSettings(user, masters, settings);
                 mountLeaveGrant(user, masters, settings);
                 mountLeaveBalance(user.id);
@@ -735,30 +863,52 @@
         function mountLeaveSettings(user, masters, settings) {
             const wrap = document.getElementById(`leave-settings-wrap-${user.id}`);
             if (!wrap) return;
+            const DEFAULT_BASE_HOURS = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
+            const DEFAULT_CARRY_MONTHS = (orgSettings ? Number(orgSettings.paid_leave_valid_months || 24) : 24);
             const unitOpts = masters.leave_units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
             const typeOpts = masters.paid_leave_types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            const eff = settings.base_hours_per_day_effective ?? (user.contract_hours_per_day ?? 8);
+            const eff = (settings.base_hours_per_day_override ?? null) !== null
+                ? settings.base_hours_per_day_override
+                : (user.contract_hours_per_day ?? DEFAULT_BASE_HOURS);
             wrap.innerHTML = `
                             <div class="grid">
                                 <div>デフォルト休暇種別</div>
-                                <div><select id="ls-type-${user.id}">${typeOpts}</select></div>
+                                <div><select id="ls-type-${user.id}" style="height: 35px;">${typeOpts}</select></div>
                                 <div>デフォルト単位</div>
-                                <div><select id="ls-unit-${user.id}">${unitOpts}</select></div>
-                                <div>半日取得を許可</div>
-                                <div><input type="checkbox" id="ls-half-${user.id}"></div>
-                                <div>時間単位取得を許可</div>
-                                <div><input type="checkbox" id="ls-hour-${user.id}"></div>
+                                <div><select id="ls-unit-${user.id}" style="height: 35px;">${unitOpts}</select></div>
+                                <div>半日取得</div>
+                                <div class="inline">
+                                    <label class="toggle-s" for="ls-half-${user.id}">
+                                        <input type="checkbox" class="toggle__input-s" id="ls-half-${user.id}">
+                                        <span class="toggle__slider-s"></span>
+                                    </label>
+                                    <label for="ls-half-${user.id}" id="ls-half-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
+                                </div>
+                                <div>時間単位取得</div>
+                                <div class="inline">
+                                    <label class="toggle-s" for="ls-hour-${user.id}">
+                                        <input type="checkbox" class="toggle__input-s" id="ls-hour-${user.id}">
+                                        <span class="toggle__slider-s"></span>
+                                    </label>
+                                    <label for="ls-hour-${user.id}" id="ls-hour-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
+                                </div>
                                 <div>基準時間（上書き）</div>
                                 <div class="inline">
-                                    <input type="number" step="0.25" min="0" id="ls-base-${user.id}" style="width:90px; text-align:right;"> h/日
+                                    <input type="number" step="0.25" min="0" id="ls-base-${user.id}" style="width:90px; text-align:right; height: 35px;"> h/日
                                     <span class="field-note">未入力で ${eff} h/日 が適用</span>
                                 </div>
                                 <div>繰越月数</div>
-                                <div><input type="number" min="0" id="ls-carry-m-${user.id}" style="width:90px; text-align:right;"> ヶ月</div>
+                                <div><input type="number" min="0" id="ls-carry-m-${user.id}" style="width:90px; text-align:right; height: 35px;"> ヶ月</div>
                                 <div>繰越上限（分）</div>
-                                <div><input type="number" min="0" id="ls-carry-min-${user.id}" style="width:120px; text-align:right;"></div>
-                                <div>マイナス残高を許可</div>
-                                <div><input type="checkbox" id="ls-negative-${user.id}"></div>
+                                <div><input type="number" min="0" id="ls-carry-min-${user.id}" style="width:120px; text-align:right; height: 35px;"></div>
+                                <div>マイナス残高</div>
+                                <div class="inline">
+                                    <label class="toggle-s" for="ls-negative-${user.id}">
+                                        <input type="checkbox" class="toggle__input-s" id="ls-negative-${user.id}">
+                                        <span class="toggle__slider-s"></span>
+                                    </label>
+                                    <label for="ls-negative-${user.id}" id="ls-negative-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
+                                </div>
                                 <div></div>
                                 <div>
                                     <button class="btn" onclick="saveLeaveSettings(${user.id})">設定を保存</button>
@@ -776,9 +926,27 @@
                 baseEl.value = '';
                 baseEl.placeholder = String(eff);
             }
-            document.getElementById(`ls-carry-m-${user.id}`).value = settings.carryover_months ?? 0;
+            document.getElementById(`ls-carry-m-${user.id}`).value = (settings.carryover_months ?? DEFAULT_CARRY_MONTHS);
             document.getElementById(`ls-carry-min-${user.id}`).value = settings.carryover_max_minutes ?? 0;
             document.getElementById(`ls-negative-${user.id}`).checked = (settings.negative_balance_allowed ?? 0) == 1;
+
+            // トグルの文言と色を同期（ON: 許可する / OFF: 許可しない〈灰色〉）
+            (function () {
+                function bindToggle(idBase) {
+                    const cb = document.getElementById(`${idBase}-${user.id}`);
+                    const lbl = document.getElementById(`${idBase}-label-${user.id}`);
+                    if (!cb || !lbl) return;
+                    const sync = () => {
+                        if (cb.checked) { lbl.textContent = '許可する'; lbl.classList.remove('muted'); }
+                        else { lbl.textContent = '許可しない'; lbl.classList.add('muted'); }
+                    };
+                    sync();
+                    cb.addEventListener('change', sync);
+                }
+                bindToggle('ls-half');
+                bindToggle('ls-hour');
+                bindToggle('ls-negative');
+            })();
         }
 
         window.saveLeaveSettings = async function (userId) {
@@ -824,28 +992,41 @@
                             </div>
                             <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
                         `;
-            // デフォルト値設定: 今日と4年後
+            // デフォルト値設定: 今日と（設定に基づく）有効期限
             const today = new Date();
             const pad = (n) => String(n).padStart(2, '0');
             const dstr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-            const exp = new Date(today.getFullYear() + 4, today.getMonth(), today.getDate());
-            const estr = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+            const months = orgSettings ? Number(orgSettings.paid_leave_valid_months || 24) : 24;
+            const addMonths = (date, m) => {
+                const dt = new Date(date.getTime());
+                const d = dt.getDate();
+                dt.setMonth(dt.getMonth() + m);
+                // 月末補正
+                if (dt.getDate() < d) dt.setDate(0);
+                return dt;
+            };
+            const exp = months > 0 ? addMonths(today, months) : null;
+            const estr = exp ? `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}` : '';
             const dEl = document.getElementById(`lg-date-${user.id}`);
             const eEl = document.getElementById(`lg-expire-${user.id}`);
             dEl.value = dstr;
-            eEl.value = estr;
+            if (estr) eEl.value = estr; else eEl.value = '';
             dEl.addEventListener('change', () => {
-                // 付与日変更時、期限未編集なら4年後に自動更新
+                // 付与日変更時、期限未編集なら設定値（月）に応じて自動更新
                 const val = dEl.value;
                 if (!val) return;
                 const dt = new Date(val);
                 if (isNaN(dt)) return;
-                const ex2 = new Date(dt.getFullYear() + 4, dt.getMonth(), dt.getDate());
+                const ex2 = months > 0 ? addMonths(dt, months) : null;
                 const ecur = eEl.value;
-                // ユーザーが手動で上書きした可能性を考慮し、空または同じなら更新
+                // ユーザーが手動で上書きした可能性を考慮し、空または初期値と同じなら更新
                 if (!ecur || ecur === estr) {
-                    const nstr = `${ex2.getFullYear()}-${pad(ex2.getMonth() + 1)}-${pad(ex2.getDate())}`;
-                    eEl.value = nstr;
+                    if (ex2) {
+                        const nstr = `${ex2.getFullYear()}-${pad(ex2.getMonth() + 1)}-${pad(ex2.getDate())}`;
+                        eEl.value = nstr;
+                    } else {
+                        eEl.value = '';
+                    }
                 }
             });
         }
@@ -890,136 +1071,261 @@
             try {
                 const [b, h] = await Promise.all([loadBalance(userId), loadHistory(userId)]);
                 const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
-                const grantsRows = (h.grants || []).map(g => `<tr>
-                                            <td class="date-cell">${g.grant_date}</td>
-                                            <td class="hour-cell">${fmt(g.grant_hours)} h</td>
-                                            <td class="date-cell">${(!g.expire_date || String(g.expire_date).startsWith('9999-')) ? '無期限' : g.expire_date}</td>
-                                            <td class="button-cell">
-                                                <button class='btn' data-act='grant-edit' data-id='${g.id}' data-date='${g.grant_date}' data-hours='${g.grant_hours}' data-expire='${g.expire_date ?? ''}'>編集</button>
-                                                <button class='btn' data-act='grant-del' data-id='${g.id}' style='background:#e57373;'>削除</button>
-                                            </td>
-                                        </tr>`).join('') || `<tr><td colspan='4' class='muted'>付与履歴はありません</td></tr>`;
-                // 利用履歴はイベント単位を優先表示（なければログ単位にフォールバック）
-                const useList = Array.isArray(h.use_events) ? h.use_events : (h.uses || []);
-                const usesRows = (useList || []).map(u => `<tr>
-                                            <td>${u.used_date}</td>
-                                            <td style='text-align:right;'>${fmt(u.used_hours)} h</td>
-                                            <td>${u.reason ?? ''}</td>
-                                            <td style='text-align:right;'>
-                                                ${u.event_id ? `<button class='btn' data-act='use-edit' data-eid='${u.event_id}' data-date='${u.used_date}' data-hours='${u.used_hours}' data-reason='${u.reason ?? ''}'>編集</button>` : ''}
-                                                ${u.event_id ? `<button class='btn' data-act='use-del-event' data-eid='${u.event_id}' style='background:#e57373;'>削除</button>` : `<button class='btn' data-act='use-del' data-id='${u.id}' style='background:#e57373;'>削除</button>`}
-                                            </td>
-                                        </tr>`).join('') || `<tr><td colspan='4' class='muted'>利用履歴はありません</td></tr>`;
-                wrap.innerHTML = `
-                                            <div class="grid" style="margin-bottom:12px;">
-                                                <div>合計付与（全期間）</div><div style="text-align:right;">${fmt(b.granted_total_hours)} h</div>
-                                                <div>有効付与（本日時点）</div><div style="text-align:right;">${fmt(b.granted_active_hours)} h</div>
-                                                <div>合計利用（USEのみ、失効除外）</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
-                                                <div>残高（現在のサマリ）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
-                                                <div>基準日</div><div>${b.as_of}</div>
-                                            </div>
-                                                    <div class="two-col">
-                                                        <div>
-                                                    <div class="muted" style="font-weight:600; margin-bottom:6px;">付与履歴（最新50件）</div>
-                                                    <table class="user-table" style="margin:0;">
-                                                        <thead><tr><th class="date-cell">付与日</th><th class="hour-cell">時間</th><th class="date-cell">有効期限</th><th class="button-cell">操作</th></tr></thead>
-                                                        <tbody>${grantsRows}</tbody>
-                                                    </table>
-                                                </div>
-                                                        <div>
-                                                    <div class="muted" style="font-weight:600; margin-bottom:6px;">利用履歴（最新50件）</div>
-                                                    <table class="user-table" style="margin:0;">
-                                                        <thead><tr><th>利用日</th><th>時間</th><th>理由</th><th style='width:8em;text-align:right;'>操作</th></tr></thead>
-                                                        <tbody>${usesRows}</tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        `;
+                // 表示モード（分割/統合）: LocalStorageに記憶
+                const MODE_KEY = 'leave_view_mode';
+                let mode = localStorage.getItem(MODE_KEY) || 'split'; // 'split' | 'unified'
 
-                // ボタンのイベント委譲
-                wrap.querySelectorAll('button[data-act]')?.forEach(btn => {
-                    btn.addEventListener('click', async (ev) => {
-                        const act = btn.getAttribute('data-act');
-                        try {
-                            if (act === 'grant-edit') {
-                                const id = btn.getAttribute('data-id');
-                                const curDate = btn.getAttribute('data-date') || '';
-                                const curHours = btn.getAttribute('data-hours') || '';
-                                const curExpire = btn.getAttribute('data-expire') || '';
-                                const nd = prompt('付与日 (YYYY-MM-DD)', curDate);
-                                if (nd === null) return;
-                                const nhStr = prompt('付与時間 (h)', String(curHours));
-                                if (nhStr === null) return; const nh = parseFloat(nhStr);
-                                if (!(nh >= 0)) { alert('付与時間は0以上を入力してください'); return; }
-                                const ne = prompt('有効期限 (YYYY-MM-DD, 空で変更しない/空にする)', curExpire);
-                                const body = { id: parseInt(id), grant_date: nd, grant_hours: nh, expire_date: (ne === '' ? null : ne) };
-                                const res = await fetchWithAuth('api/paid_leave_grant_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                                if (res && res.ok) {
-                                    alert('付与を更新しました');
-                                    await mountLeaveBalance(userId);
-                                } else if (res) {
-                                    const j = await res.json(); alert(j.error || '更新に失敗しました');
-                                }
-                            } else if (act === 'grant-del') {
-                                const id = btn.getAttribute('data-id');
-                                if (!confirm('この付与を削除します。消化済みの付与は削除できません。実行しますか？')) return;
-                                const res = await fetchWithAuth('api/paid_leave_grant_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
-                                if (res && res.ok) {
-                                    alert('付与を削除しました');
-                                    await mountLeaveBalance(userId);
-                                } else if (res) {
-                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
-                                }
-                            } else if (act === 'use-del') {
-                                const id = btn.getAttribute('data-id');
-                                if (!confirm('この利用ログを削除します。実行しますか？')) return;
-                                const res = await fetchWithAuth('api/paid_leave_use_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
-                                if (res && res.ok) {
-                                    alert('利用ログを削除しました');
-                                    await mountLeaveBalance(userId);
-                                } else if (res) {
-                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
-                                }
-                            } else if (act === 'use-del-event') {
-                                const eid = parseInt(btn.getAttribute('data-eid'));
-                                if (!confirm('この利用イベント（複数明細）を削除します。実行しますか？')) return;
-                                const res = await fetchWithAuth('api/paid_leave_use_event_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eid, user_id: userId }) });
-                                if (res && res.ok) {
-                                    alert('利用イベントを削除しました');
-                                    await mountLeaveBalance(userId);
-                                } else if (res) {
-                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
-                                }
-                            } else if (act === 'use-edit') {
-                                const eid = parseInt(btn.getAttribute('data-eid'));
-                                const curDate = btn.getAttribute('data-date') || '';
-                                const curHours = btn.getAttribute('data-hours') || '';
-                                const curReason = btn.getAttribute('data-reason') || '';
-                                const nd = prompt('利用日 (YYYY-MM-DD)', curDate);
-                                if (nd === null) return;
-                                const nhStr = prompt('利用時間 (h)', String(curHours));
-                                if (nhStr === null) return; const nh = parseFloat(nhStr);
-                                if (!(nh > 0)) { alert('利用時間は0より大きい値にしてください'); return; }
-                                const nr = prompt('理由', curReason);
-                                const res = await fetchWithAuth('api/paid_leave_use_event_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eid, user_id: userId, used_date: nd, used_hours: nh, reason: nr ?? '' }) });
-                                if (res && res.ok) {
-                                    alert('利用イベントを更新しました');
-                                    await mountLeaveBalance(userId);
-                                } else if (res) {
-                                    const j = await res.json(); alert(j.error || '更新に失敗しました');
-                                }
+                // データ整形
+                const grants = h.grants || [];
+                const useEvents = Array.isArray(h.use_events) ? h.use_events : (h.uses || []);
+                const expires = h.expires || [];
+
+                // ヘッダー（サマリ＋モード切替）
+                function renderHeader() {
+                    return `
+                        <div class="grid" style="margin-bottom:8px;">
+                            <div>合計付与（全期間）</div><div style="text-align:right;">${fmt(b.granted_total_hours)} h</div>
+                            <div>有効付与（本日時点）</div><div style="text-align:right;">${fmt(b.granted_active_hours)} h</div>
+                            <div>合計利用（USEのみ、失効除外）</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
+                            <div>残高（現在のサマリ）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
+                            <div>基準日</div><div>${b.as_of}</div>
+                        </div>
+                                                <div style="display:flex;align-items:center;gap:0.8em;margin:6px 0 10px 0;">
+                                                    <span class="muted">表示モード</span>
+                                                    <label class="toggle-s" for="lv-mode-toggle-${userId}">
+                                                        <input type="checkbox" class="toggle__input-s" id="lv-mode-toggle-${userId}" ${mode === 'unified' ? 'checked' : ''} />
+                                                        <span class="toggle__slider-s"></span>
+                                                    </label>
+                                                    <label for="lv-mode-toggle-${userId}" style="cursor:pointer; user-select:none"> 統合表示</label>
+                                                </div>
+                    `;
+                }
+
+                // 分割表示
+                function renderSplit() {
+                    const grantRows = grants.length ? grants.map(g => `
+                        <tr class="clickable" data-kind="grant" data-id="${g.id}" data-date="${g.grant_date}" data-hours="${g.grant_hours}" data-expire="${g.expire_date ?? ''}">
+                            <td class="date-cell">${g.grant_date}</td>
+                            <td class="hour-cell">${fmt(g.grant_hours)} h</td>
+                            <td class="date-cell">${(!g.expire_date || String(g.expire_date).startsWith('9999-')) ? '無期限' : g.expire_date}</td>
+                        </tr>
+                    `).join('') : `<tr><td colspan='3' class='muted'>付与履歴はありません</td></tr>`;
+
+                    const useRows = (useEvents && useEvents.length) ? useEvents.map(u => `
+                        <tr class="clickable" data-kind="use" ${u.event_id ? `data-eid="${u.event_id}"` : `data-legacy="1" data-id="${u.id || ''}"`} data-date="${u.used_date}" data-hours="${u.used_hours}" data-reason="${u.reason ?? ''}">
+                            <td class="date-cell">${u.used_date}</td>
+                            <td class="hour-cell">${fmt(u.used_hours)} h</td>
+                            <td>${u.reason ?? ''}</td>
+                        </tr>
+                    `).join('') : `<tr><td colspan='3' class='muted'>利用履歴はありません</td></tr>`;
+
+                    return `
+                        <div class="two-col">
+                          <div>
+                            <div class="muted" style="font-weight:600; margin-bottom:6px;">付与履歴（最新50件）</div>
+                            <table class="user-table" style="margin:0;">
+                                <thead><tr><th class="date-cell">付与日</th><th class="hour-cell">時間</th><th class="date-cell">有効期限</th></tr></thead>
+                                <tbody id="lv-grants-${userId}">${grantRows}</tbody>
+                            </table>
+                          </div>
+                          <div>
+                            <div class="muted" style="font-weight:600; margin-bottom:6px;">利用履歴（最新50件）</div>
+                            <table class="user-table" style="margin:0;">
+                                <thead><tr><th class="date-cell">利用日</th><th class="hour-cell">時間</th><th>理由</th></tr></thead>
+                                <tbody id="lv-uses-${userId}">${useRows}</tbody>
+                            </table>
+                          </div>
+                        </div>
+                    `;
+                }
+
+                // 統合表示
+                function buildUnifiedRows() {
+                    const rows = [];
+                    (grants || []).forEach(g => rows.push({ kind: 'grant', date: g.grant_date, hours: parseFloat(g.grant_hours) || 0, reason: '付与', expire: g.expire_date || '', grant_id: g.id }));
+                    (useEvents || []).forEach(u => rows.push({ kind: 'use', date: u.used_date, hours: parseFloat(u.used_hours) || 0, reason: u.reason || '', event_id: u.event_id || null, log_id: u.id || null }));
+                    (expires || []).forEach(x => rows.push({ kind: 'expire', date: x.used_date, hours: parseFloat(x.used_hours) || 0, reason: '失効' }));
+                    const kindOrder = (k) => (k === 'expire' ? 0 : (k === 'use' ? 1 : 2));
+                    rows.sort((a, b) => a.date === b.date ? (kindOrder(a.kind) - kindOrder(b.kind)) : (a.date < b.date ? -1 : 1));
+                    // 表示は新しい→古い
+                    rows.reverse();
+                    return rows;
+                }
+                function renderUnified() {
+                    const rows = buildUnifiedRows();
+                    const trHtml = rows.length ? rows.map(r => {
+                        const hstr = (Math.round(r.hours * 100) / 100).toFixed(2);
+                        const sign = r.kind === 'grant' ? '+' : '-';
+                        const kindLabel = r.kind === 'grant' ? '付与' : (r.kind === 'expire' ? '失効' : '取得');
+                        const exp = r.kind === 'grant' ? ((!r.expire || String(r.expire).startsWith('9999-')) ? '無期限' : r.expire) : '';
+                        const dataAttr = r.kind === 'grant' ? `data-kind="grant" data-id="${r.grant_id}" data-date="${r.date}" data-hours="${r.hours}" data-expire="${r.expire || ''}"`
+                            : (r.kind === 'use' ? `data-kind="use" ${(r.event_id ? `data-eid="${r.event_id}"` : `data-legacy="1" data-id="${r.log_id || ''}"`)} data-date="${r.date}" data-hours="${r.hours}" data-reason="${r.reason || ''}"` : `data-kind="expire"`);
+                        const clickable = r.kind !== 'expire' ? 'clickable' : '';
+                        return `<tr class="${clickable}" ${dataAttr}>
+                            <td class="date-cell">${r.date}</td>
+                            <td>${kindLabel}</td>
+                            <td class="hour-cell">${sign}${hstr} h</td>
+                            <td>${r.reason || ''}</td>
+                            <td class="date-cell">${exp}</td>
+                        </tr>`;
+                    }).join('') : `<tr><td colspan='5' class='muted'>履歴はありません</td></tr>`;
+                    return `
+                        <table class="user-table" style="margin:0;">
+                            <thead><tr><th class="date-cell">発生日</th><th>種別</th><th class="hour-cell">時間</th><th>理由</th><th class="date-cell">有効期限</th></tr></thead>
+                            <tbody id="lv-unified-${userId}">${trHtml}</tbody>
+                        </table>
+                    `;
+                }
+
+                function renderAll() {
+                    wrap.innerHTML = renderHeader() + (mode === 'split' ? renderSplit() : renderUnified());
+
+                    // モード切替（トグル）
+                    const modeToggle = wrap.querySelector(`#lv-mode-toggle-${userId}`);
+                    if (modeToggle) {
+                        modeToggle.addEventListener('change', () => {
+                            mode = modeToggle.checked ? 'unified' : 'split';
+                            localStorage.setItem(MODE_KEY, mode);
+                            renderAll();
+                        });
+                    }
+
+                    // 展開編集ハンドラ（委譲）
+                    function attachRowHandler(tbodySel, colCount) {
+                        const tbody = wrap.querySelector(tbodySel);
+                        if (!tbody) return;
+                        tbody.addEventListener('click', async (e) => {
+                            const tr = e.target.closest('tr.clickable');
+                            if (!tr) return;
+                            // 既存の展開が直後にあれば閉じる
+                            if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expand-row')) {
+                                tr.nextElementSibling.remove();
+                                return;
                             }
-                        } catch (e) {
-                            alert('操作に失敗しました');
-                        }
-                    });
-                });
+                            // 一旦、同テーブル内の他の展開を閉じる
+                            Array.from(tbody.querySelectorAll('tr.expand-row')).forEach(x => x.remove());
+                            const kind = tr.getAttribute('data-kind');
+                            const date = tr.getAttribute('data-date') || '';
+                            const hours = parseFloat(tr.getAttribute('data-hours') || '0') || 0;
+                            const reason = tr.getAttribute('data-reason') || '';
+                            const expire = tr.getAttribute('data-expire') || '';
+                            const grantId = tr.getAttribute('data-id');
+                            const eid = tr.getAttribute('data-eid');
+                            const legacy = tr.getAttribute('data-legacy') === '1';
+                            const expTr = document.createElement('tr');
+                            expTr.className = 'expand-row';
+                            expTr.innerHTML = `<td colspan="${colCount}">
+                                <div style="display:flex;flex-direction:column;gap:0.6em;">
+                                  ${kind === 'grant' ? `
+                                    <div style="font-weight:600;color:#1976d2;">付与の編集</div>
+                                    <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;">
+                                      <label>付与日 <input type="date" id="gr-ed-date" value="${date}"></label>
+                                      <label>時間 <input type="number" step="0.25" min="0" id="gr-ed-hours" value="${hours}" style="width:90px;text-align:right;"> h</label>
+                                      <label>有効期限 <input type="date" id="gr-ed-exp" value="${expire}"></label>
+                                    </div>
+                                    <div style="display:flex;gap:0.6em;justify-content:flex-end;">
+                                      <button class="btn" id="gr-save">保存</button>
+                                      <button class="btn" id="gr-del" style="background:#e57373;">削除</button>
+                                      <button class="btn" id="gr-cancel">閉じる</button>
+                                    </div>
+                                  ` : (kind === 'use' ? `
+                                    <div style="font-weight:600;color:#1976d2;">利用の編集</div>
+                                    <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;">
+                                      <label>利用日 <input type="date" id="us-ed-date" value="${date}"></label>
+                                      <label>時間 <input type="number" step="0.25" min="0.25" id="us-ed-hours" value="${hours}" style="width:90px;text-align:right;"> h</label>
+                                      <label>理由 <input type="text" id="us-ed-reason" value="${reason}" style="min-width:200px;"></label>
+                                    </div>
+                                    <div style="display:flex;gap:0.6em;justify-content:flex-end;">
+                                      ${eid ? `<button class="btn" id="us-save">保存</button><button class="btn" id="us-del" style="background:#e57373;">削除</button>` : `<button class="btn" id="us-del-legacy" style="background:#e57373;">このログを削除</button>`}
+                                      <button class="btn" id="us-cancel">閉じる</button>
+                                    </div>
+                                  ` : `
+                                    <div class="muted">失効履歴は編集できません。</div>
+                                    <div style="text-align:right;"><button class="btn" id="ex-cancel">閉じる</button></div>
+                                  `)}
+                                </div>
+                              </td>`;
+                            tr.insertAdjacentElement('afterend', expTr);
+
+                            // ボタン動作
+                            if (kind === 'grant') {
+                                expTr.querySelector('#gr-cancel').onclick = () => expTr.remove();
+                                expTr.querySelector('#gr-save').onclick = async () => {
+                                    const body = {
+                                        id: parseInt(grantId),
+                                        grant_date: expTr.querySelector('#gr-ed-date').value,
+                                        grant_hours: parseFloat(expTr.querySelector('#gr-ed-hours').value || '0') || 0,
+                                        expire_date: (function (v) { return v === '' ? null : v; })(expTr.querySelector('#gr-ed-exp').value)
+                                    };
+                                    const res = await fetchWithAuth('api/paid_leave_grant_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                                    if (res && res.ok) { await mountLeaveBalance(userId); }
+                                    else if (res) { const j = await res.json(); alert(j.error || '更新に失敗しました'); }
+                                };
+                                expTr.querySelector('#gr-del').onclick = async () => {
+                                    if (!confirm('この付与を削除します。消化済みの付与は削除できません。実行しますか？')) return;
+                                    const res = await fetchWithAuth('api/paid_leave_grant_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(grantId) }) });
+                                    if (res && res.ok) { await mountLeaveBalance(userId); }
+                                    else if (res) { const j = await res.json(); alert(j.error || '削除に失敗しました'); }
+                                };
+                            } else if (kind === 'use') {
+                                const close = () => expTr.remove();
+                                const eidNum = eid ? parseInt(eid) : 0;
+                                const saveBtn = expTr.querySelector('#us-save');
+                                const delBtn = expTr.querySelector('#us-del');
+                                const delLegacyBtn = expTr.querySelector('#us-del-legacy');
+                                const cancelBtn = expTr.querySelector('#us-cancel');
+                                if (cancelBtn) cancelBtn.onclick = close;
+                                if (eidNum && saveBtn) saveBtn.onclick = async () => {
+                                    const body = {
+                                        event_id: eidNum,
+                                        user_id: userId,
+                                        used_date: expTr.querySelector('#us-ed-date').value,
+                                        used_hours: parseFloat(expTr.querySelector('#us-ed-hours').value || '0') || 0,
+                                        reason: expTr.querySelector('#us-ed-reason').value || ''
+                                    };
+                                    const res = await fetchWithAuth('api/paid_leave_use_event_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                                    if (res && res.ok) { await mountLeaveBalance(userId); }
+                                    else if (res) { const j = await res.json(); alert(j.error || '更新に失敗しました'); }
+                                };
+                                if (eidNum && delBtn) delBtn.onclick = async () => {
+                                    if (!confirm('この利用イベント（複数明細）を削除します。実行しますか？')) return;
+                                    const res = await fetchWithAuth('api/paid_leave_use_event_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eidNum, user_id: userId }) });
+                                    if (res && res.ok) { await mountLeaveBalance(userId); }
+                                    else if (res) { const j = await res.json(); alert(j.error || '削除に失敗しました'); }
+                                };
+                                if (legacy && delLegacyBtn) delLegacyBtn.onclick = async () => {
+                                    const logId = parseInt(grantId || '0'); // data-idにlog idを格納
+                                    if (!logId) { alert('削除対象が見つかりません'); return; }
+                                    if (!confirm('この利用ログを削除します。実行しますか？')) return;
+                                    const res = await fetchWithAuth('api/paid_leave_use_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: logId }) });
+                                    if (res && res.ok) { await mountLeaveBalance(userId); }
+                                    else if (res) { const j = await res.json(); alert(j.error || '削除に失敗しました'); }
+                                };
+                            } else {
+                                const btn = expTr.querySelector('#ex-cancel');
+                                if (btn) btn.onclick = () => expTr.remove();
+                            }
+                        });
+                    }
+
+                    if (mode === 'split') {
+                        attachRowHandler(`#lv-grants-${userId}`, 3);
+                        attachRowHandler(`#lv-uses-${userId}`, 3);
+                    } else {
+                        attachRowHandler(`#lv-unified-${userId}`, 5);
+                    }
+                }
+
+                renderAll();
             } catch (e) {
                 wrap.innerHTML = `<span class='danger'>残高・履歴の読み込みに失敗しました</span>`;
             }
         }
 
-        renderTable();
+        (async function init() {
+            await loadOrgSettings();
+            await renderTable();
+        })();
     </script>
 </body>
 

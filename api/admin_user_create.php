@@ -30,7 +30,7 @@ if (!$name) {
     exit;
 }
 // ユーザー名重複チェック
-$stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE name = ?');
+$stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE name = ? AND visible = 1');
 $stmt->execute([$name]);
 if ($stmt->fetchColumn() > 0) {
     http_response_code(409);

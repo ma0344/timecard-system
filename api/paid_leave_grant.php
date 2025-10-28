@@ -25,7 +25,10 @@ $data = json_decode(file_get_contents('php://input'), true);
 $targetId = isset($data['user_id']) ? (int)$data['user_id'] : null;
 $grantDate = $data['grant_date'] ?? null;
 $grantHours = isset($data['grant_hours']) ? (float)$data['grant_hours'] : null;
-$expireDate = $data['expire_date'] ?? null; // null も許容
+$expireDate = $data['expire_date'] ?? null; // null/'' も許容（''はnull扱い）
+if ($expireDate === '') {
+    $expireDate = null;
+}
 
 if (!$targetId || !$grantDate || $grantHours === null) {
     http_response_code(400);
@@ -43,9 +46,23 @@ if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
 }
 
 try {
-    // 期限デフォルト: 付与日から4年後
-    if ($expireDate === null || $expireDate === '') {
-        $expireDate = date('Y-m-d', strtotime($grantDate . ' +4 years'));
+    // 全社設定の既定（月数）を取得
+    $months = 24; // fallback
+    try {
+        $stmt = $pdo->query('SELECT paid_leave_valid_months FROM settings ORDER BY id DESC LIMIT 1');
+        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $months = (int)($row['paid_leave_valid_months'] ?? 24);
+        }
+    } catch (Exception $e) {
+        // ignore and use fallback
+    }
+    // 期限指定なしの場合は、設定に従って決定（<=0 の場合は無期限=NULL）
+    if ($expireDate === null) {
+        if ($months > 0) {
+            $expireDate = date('Y-m-d', strtotime($grantDate . ' +' . $months . ' months'));
+        } else {
+            $expireDate = null; // 無期限
+        }
     }
     $pdo->beginTransaction();
     // paid_leaves: consumed_hours_total はデフォルト0
@@ -56,15 +73,15 @@ try {
     // サマリ行を用意
     $pdo->prepare('INSERT IGNORE INTO user_leave_summary (user_id, balance_hours, used_total_hours, next_expire_date) VALUES (?, 0, 0, NULL)')->execute([$targetId]);
     // 付与が「今日時点で有効」なら残高に反映（usedは関係なし）
-    $stmt = $pdo->prepare('SELECT (CASE WHEN DATE(?) > CURDATE() THEN 1 ELSE 0 END)');
-    $stmt->execute([$expireDate]);
-    $isActiveToday = (int)$stmt->fetchColumn() === 1;
+    $isActiveToday = ($expireDate === null) ? true : (strtotime($expireDate) > strtotime('today'));
     if ($isActiveToday) {
         // balance を増加
         $pdo->prepare('UPDATE user_leave_summary SET balance_hours = ROUND(balance_hours + ?, 2) WHERE user_id = ?')->execute([$grantHours, $targetId]);
-        // next_expire_date を更新
-        $pdo->prepare('UPDATE user_leave_summary SET next_expire_date = (CASE WHEN next_expire_date IS NULL OR next_expire_date > ? THEN ? ELSE next_expire_date END) WHERE user_id = ?')
-            ->execute([$expireDate, $expireDate, $targetId]);
+        // next_expire_date を更新（無期限のときは変更しない）
+        if ($expireDate !== null) {
+            $pdo->prepare('UPDATE user_leave_summary SET next_expire_date = (CASE WHEN next_expire_date IS NULL OR next_expire_date > ? THEN ? ELSE next_expire_date END) WHERE user_id = ?')
+                ->execute([$expireDate, $expireDate, $targetId]);
+        }
     }
     $pdo->commit();
     echo json_encode(['success' => true, 'id' => (int)$id]);

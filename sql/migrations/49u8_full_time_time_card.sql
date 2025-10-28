@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- ホスト: mysql8008.in.shared-server.net:13654
--- 生成日時: 2025 年 10 月 22 日 10:51
+-- 生成日時: 2025 年 10 月 28 日 17:17
 -- サーバのバージョン： 8.0.29
 -- PHP のバージョン: 7.1.8
 
@@ -53,6 +53,49 @@ INSERT INTO `attendance_statuses` (`id`, `code`, `name`, `description`, `is_paid
 -- --------------------------------------------------------
 
 --
+-- テーブルの構造 `audit_logs`
+--
+
+CREATE TABLE `audit_logs` (
+  `id` bigint NOT NULL,
+  `actor_user_id` int NOT NULL,
+  `target_user_id` int DEFAULT NULL,
+  `action` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `details` json DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`id`, `actor_user_id`, `target_user_id`, `action`, `details`, `created_at`) VALUES
+(1, 2, 2, 'paid_leave_use_create', '{\"reason\": \"年休\", \"event_id\": \"1\", \"used_date\": \"2025-09-10\", \"used_hours\": \"7\"}', '2025-10-27 18:35:22'),
+(2, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"2\", \"used_date\": \"2025-09-17\", \"used_hours\": \"7\"}', '2025-10-27 18:37:36'),
+(3, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"3\", \"used_date\": \"2025-09-16\", \"used_hours\": \"3.5\"}', '2025-10-27 18:38:19'),
+(4, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"4\", \"used_date\": \"2025-09-23\", \"used_hours\": \"7\"}', '2025-10-27 18:38:26'),
+(5, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"5\", \"used_date\": \"2025-09-03\", \"used_hours\": \"7\"}', '2025-10-27 18:39:24'),
+(6, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"5\"}', '2025-10-27 18:40:12'),
+(7, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"6\", \"used_date\": \"2025-09-03\", \"used_hours\": \"7\"}', '2025-10-27 18:41:22'),
+(8, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"6\"}', '2025-10-27 18:42:54'),
+(9, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"7\", \"used_date\": \"2025-08-06\", \"used_hours\": \"7\"}', '2025-10-27 18:46:00'),
+(10, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"8\", \"used_date\": \"2025-08-15\", \"used_hours\": \"7\"}', '2025-10-27 18:54:43'),
+(11, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"1\"}', '2025-10-27 18:57:19'),
+(12, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"8\"}', '2025-10-27 18:57:25'),
+(13, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"9\", \"used_date\": \"2025-10-06\", \"used_hours\": \"7\"}', '2025-10-27 19:07:47'),
+(14, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"3\"}', '2025-10-27 19:26:07'),
+(15, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"10\", \"used_date\": \"2025-10-07\", \"used_hours\": \"3.5\"}', '2025-10-27 19:45:37'),
+(16, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"7\"}', '2025-10-27 19:47:41'),
+(17, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"10\"}', '2025-10-27 19:48:30'),
+(18, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"9\"}', '2025-10-27 19:48:32'),
+(19, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"2\"}', '2025-10-27 19:48:38'),
+(20, 2, 2, 'paid_leave_use_event_delete', '{\"event_id\": \"4\"}', '2025-10-27 19:48:39'),
+(21, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"11\", \"used_date\": \"2025-08-01\", \"used_hours\": \"24\"}', '2025-10-27 19:49:34'),
+(22, 2, 2, 'paid_leave_use_create', '{\"reason\": \"\", \"event_id\": \"12\", \"used_date\": \"2025-09-01\", \"used_hours\": \"24\"}', '2025-10-27 19:49:46');
+
+-- --------------------------------------------------------
+
+--
 -- テーブルの構造 `breaks`
 --
 
@@ -86,6 +129,24 @@ INSERT INTO `breaks` (`id`, `timecard_id`, `break_start`, `break_start_manual`, 
 (74, 74, '2025-08-08 12:00:00', 0, '2025-08-08 13:00:00', 0, '2025-08-20 10:15:03'),
 (75, 77, '2025-05-16 12:00:00', 0, '2025-05-16 13:00:00', 0, '2025-09-02 11:34:00'),
 (76, 78, '2025-05-19 12:00:00', 0, '2025-05-19 13:00:00', 0, '2025-09-02 11:34:32');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `leave_expire_runs`
+--
+
+CREATE TABLE `leave_expire_runs` (
+  `run_date` date NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `leave_expire_runs`
+--
+
+INSERT INTO `leave_expire_runs` (`run_date`, `created_at`) VALUES
+('2025-10-25', '2025-10-25 17:36:37');
 
 -- --------------------------------------------------------
 
@@ -177,8 +238,20 @@ CREATE TABLE `paid_leaves` (
   `user_id` int NOT NULL,
   `grant_date` date NOT NULL,
   `grant_hours` float NOT NULL,
+  `consumed_hours_total` decimal(6,2) NOT NULL DEFAULT '0.00',
   `expire_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `paid_leaves`
+--
+
+INSERT INTO `paid_leaves` (`id`, `user_id`, `grant_date`, `grant_hours`, `consumed_hours_total`, `expire_date`) VALUES
+(1, 2, '2022-10-20', 70, '8.00', NULL),
+(2, 2, '2021-10-27', 40, '40.00', '2025-10-27'),
+(4, 5, '2025-10-01', 10, '0.00', '2029-10-01'),
+(5, 2, '2023-10-23', 20, '0.00', '2030-10-23'),
+(6, 2, '2025-10-27', 30, '0.00', '2029-10-27');
 
 -- --------------------------------------------------------
 
@@ -190,11 +263,21 @@ CREATE TABLE `paid_leave_logs` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
   `paid_leave_id` int DEFAULT NULL,
+  `event_id` int DEFAULT NULL,
   `used_date` date NOT NULL,
   `used_hours` float NOT NULL,
   `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `log_type_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `paid_leave_logs`
+--
+
+INSERT INTO `paid_leave_logs` (`id`, `user_id`, `paid_leave_id`, `event_id`, `used_date`, `used_hours`, `reason`, `log_type_id`) VALUES
+(24, 2, 2, 11, '2025-08-01', 24, '', 2),
+(25, 2, 2, 12, '2025-09-01', 16, '', 2),
+(26, 2, 1, 12, '2025-09-01', 8, '', 2);
 
 -- --------------------------------------------------------
 
@@ -225,6 +308,29 @@ INSERT INTO `paid_leave_types` (`id`, `code`, `name`, `default_unit_id`, `descri
 -- --------------------------------------------------------
 
 --
+-- テーブルの構造 `paid_leave_use_events`
+--
+
+CREATE TABLE `paid_leave_use_events` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `used_date` date NOT NULL,
+  `total_hours` float NOT NULL,
+  `reason` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `paid_leave_use_events`
+--
+
+INSERT INTO `paid_leave_use_events` (`id`, `user_id`, `used_date`, `total_hours`, `reason`, `created_at`) VALUES
+(11, 2, '2025-08-01', 24, '', '2025-10-27 19:49:34'),
+(12, 2, '2025-09-01', 24, '', '2025-10-27 19:49:46');
+
+-- --------------------------------------------------------
+
+--
 -- テーブルの構造 `settings`
 --
 
@@ -240,6 +346,8 @@ CREATE TABLE `settings` (
   `legal_hours_29` int DEFAULT '165',
   `legal_hours_30` int DEFAULT '171',
   `legal_hours_31` int DEFAULT '177',
+  `paid_leave_valid_months` int NOT NULL DEFAULT '24',
+  `paid_leave_rules` json DEFAULT NULL,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -247,8 +355,8 @@ CREATE TABLE `settings` (
 -- テーブルのデータのダンプ `settings`
 --
 
-INSERT INTO `settings` (`id`, `period_start`, `period_end`, `rounding_type`, `rounding_unit`, `work_hours`, `work_minutes`, `legal_hours_28`, `legal_hours_29`, `legal_hours_30`, `legal_hours_31`, `updated_at`) VALUES
-(1, 16, 15, 'ceil', 15, 8, 0, 160, 165, 171, 177, '2025-09-02 10:45:18');
+INSERT INTO `settings` (`id`, `period_start`, `period_end`, `rounding_type`, `rounding_unit`, `work_hours`, `work_minutes`, `legal_hours_28`, `legal_hours_29`, `legal_hours_30`, `legal_hours_31`, `paid_leave_valid_months`, `paid_leave_rules`, `updated_at`) VALUES
+(1, 16, 15, 'ceil', 15, 8, 0, 160, 165, 171, 177, 24, '{\"fulltime\": [10, 11, 12, 14, 16, 18, 20], \"parttime\": {\"1d\": [1, 2, 2, 2, 3, 3, 3], \"2d\": [3, 4, 4, 5, 6, 6, 7], \"3d\": [5, 6, 6, 8, 9, 10, 11], \"4d\": [7, 8, 9, 10, 12, 13, 15]}, \"milestones\": [\"6m\", \"1y6m\", \"2y6m\", \"3y6m\", \"4y6m\", \"5y6m\", \"6y6m+\"]}', '2025-10-28 16:50:56');
 
 -- --------------------------------------------------------
 
@@ -322,7 +430,9 @@ INSERT INTO `timecards` (`id`, `user_id`, `work_date`, `clock_in`, `clock_in_man
 (75, 2, '2025-08-27', '2025-08-27 09:00:00', 1, '2025-08-27 13:00:00', 0, 0, '2025-08-27 10:06:53'),
 (76, 2, '2025-09-02', '2025-09-02 09:00:00', 1, NULL, 0, 0, '2025-09-02 11:04:58'),
 (77, 2, '2025-05-16', '2025-05-16 09:00:00', 0, '2025-05-16 18:00:00', 0, 0, '2025-09-02 11:33:42'),
-(78, 2, '2025-05-19', '2025-05-19 09:00:00', 0, '2025-05-19 18:00:00', 0, 0, '2025-09-02 11:34:32');
+(78, 2, '2025-05-19', '2025-05-19 09:00:00', 0, '2025-05-19 18:00:00', 0, 0, '2025-09-02 11:34:32'),
+(80, 5, '2025-10-22', '2025-10-22 09:00:00', 0, '2025-10-22 18:00:00', 0, 0, '2025-10-22 13:00:11'),
+(81, 5, '2025-10-21', '2025-10-21 09:00:00', 0, '2025-10-21 15:00:00', 0, 0, '2025-10-22 13:46:51');
 
 -- --------------------------------------------------------
 
@@ -363,6 +473,8 @@ CREATE TABLE `user_detail` (
   `user_id` int NOT NULL,
   `use_vehicle` tinyint(1) NOT NULL DEFAULT '1',
   `contract_hours_per_day` float NOT NULL DEFAULT '8',
+  `hire_date` date DEFAULT NULL,
+  `retire_date` date DEFAULT NULL,
   `full_time` tinyint(1) NOT NULL DEFAULT '1',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -372,11 +484,11 @@ CREATE TABLE `user_detail` (
 -- テーブルのデータのダンプ `user_detail`
 --
 
-INSERT INTO `user_detail` (`user_id`, `use_vehicle`, `contract_hours_per_day`, `full_time`, `created_at`) VALUES
-(2, 1, 8, 1, '2025-06-11 17:56:26'),
-(3, 1, 7.5, 1, '2025-06-18 10:55:32'),
-(5, 0, 8, 1, '2025-06-18 13:06:36'),
-(6, 1, 8, 1, '2025-10-01 10:16:13');
+INSERT INTO `user_detail` (`user_id`, `use_vehicle`, `contract_hours_per_day`, `hire_date`, `retire_date`, `full_time`, `created_at`) VALUES
+(2, 1, 8, '2015-07-04', NULL, 1, '2025-06-11 17:56:26'),
+(3, 1, 8, NULL, NULL, 1, '2025-06-18 10:55:32'),
+(5, 0, 8, NULL, NULL, 1, '2025-06-18 13:06:36'),
+(6, 1, 8, NULL, NULL, 1, '2025-10-01 10:16:13');
 
 -- --------------------------------------------------------
 
@@ -399,6 +511,37 @@ CREATE TABLE `user_leave_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 --
+-- テーブルのデータのダンプ `user_leave_settings`
+--
+
+INSERT INTO `user_leave_settings` (`user_id`, `default_unit_id`, `allow_half_day`, `allow_hourly`, `base_hours_per_day_override`, `carryover_months`, `carryover_max_minutes`, `negative_balance_allowed`, `default_paid_leave_type_id`, `created_at`) VALUES
+(2, 1, 1, 1, NULL, 48, 0, 0, 1, '2025-10-28 14:18:21');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `user_leave_summary`
+--
+
+CREATE TABLE `user_leave_summary` (
+  `user_id` int NOT NULL,
+  `balance_hours` decimal(8,2) NOT NULL DEFAULT '0.00',
+  `used_total_hours` decimal(8,2) NOT NULL DEFAULT '0.00',
+  `next_expire_date` date DEFAULT NULL,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- テーブルのデータのダンプ `user_leave_summary`
+--
+
+INSERT INTO `user_leave_summary` (`user_id`, `balance_hours`, `used_total_hours`, `next_expire_date`) VALUES
+(2, '112.00', '48.00', '2029-10-27'),
+(3, '0.00', '0.00', NULL),
+(5, '10.00', '0.00', '2029-10-01'),
+(6, '0.00', '0.00', NULL);
+
+--
 -- ダンプしたテーブルのインデックス
 --
 
@@ -410,11 +553,24 @@ ALTER TABLE `attendance_statuses`
   ADD UNIQUE KEY `attendance_statuses_code_unique` (`code`);
 
 --
+-- テーブルのインデックス `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_audit_actor_time` (`actor_user_id`,`created_at`);
+
+--
 -- テーブルのインデックス `breaks`
 --
 ALTER TABLE `breaks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `timecard_id` (`timecard_id`);
+
+--
+-- テーブルのインデックス `leave_expire_runs`
+--
+ALTER TABLE `leave_expire_runs`
+  ADD PRIMARY KEY (`run_date`);
 
 --
 -- テーブルのインデックス `leave_statuses`
@@ -451,7 +607,8 @@ ALTER TABLE `paid_leave_logs`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `paid_leave_id` (`paid_leave_id`),
-  ADD KEY `paid_leave_logs_log_type_id_index` (`log_type_id`);
+  ADD KEY `paid_leave_logs_log_type_id_index` (`log_type_id`),
+  ADD KEY `idx_paid_leave_logs_event_id` (`event_id`);
 
 --
 -- テーブルのインデックス `paid_leave_types`
@@ -460,6 +617,13 @@ ALTER TABLE `paid_leave_types`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `paid_leave_types_code_unique` (`code`),
   ADD KEY `paid_leave_types_default_unit_id_index` (`default_unit_id`);
+
+--
+-- テーブルのインデックス `paid_leave_use_events`
+--
+ALTER TABLE `paid_leave_use_events`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_plue_user_date` (`user_id`,`used_date`);
 
 --
 -- テーブルのインデックス `settings`
@@ -503,6 +667,12 @@ ALTER TABLE `user_leave_settings`
   ADD KEY `user_leave_settings_default_paid_leave_type_id_index` (`default_paid_leave_type_id`);
 
 --
+-- テーブルのインデックス `user_leave_summary`
+--
+ALTER TABLE `user_leave_summary`
+  ADD PRIMARY KEY (`user_id`);
+
+--
 -- ダンプしたテーブルの AUTO_INCREMENT
 --
 
@@ -511,6 +681,12 @@ ALTER TABLE `user_leave_settings`
 --
 ALTER TABLE `attendance_statuses`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- テーブルの AUTO_INCREMENT `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- テーブルの AUTO_INCREMENT `breaks`
@@ -540,19 +716,25 @@ ALTER TABLE `log_types`
 -- テーブルの AUTO_INCREMENT `paid_leaves`
 --
 ALTER TABLE `paid_leaves`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- テーブルの AUTO_INCREMENT `paid_leave_logs`
 --
 ALTER TABLE `paid_leave_logs`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- テーブルの AUTO_INCREMENT `paid_leave_types`
 --
 ALTER TABLE `paid_leave_types`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- テーブルの AUTO_INCREMENT `paid_leave_use_events`
+--
+ALTER TABLE `paid_leave_use_events`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- テーブルの AUTO_INCREMENT `settings`
@@ -570,7 +752,7 @@ ALTER TABLE `source_types`
 -- テーブルの AUTO_INCREMENT `timecards`
 --
 ALTER TABLE `timecards`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- テーブルの AUTO_INCREMENT `users`
@@ -630,9 +812,15 @@ ALTER TABLE `user_detail`
 -- テーブルの制約 `user_leave_settings`
 --
 ALTER TABLE `user_leave_settings`
-  ADD CONSTRAINT `fk_user_leave_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_user_leave_settings_default_type` FOREIGN KEY (`default_paid_leave_type_id`) REFERENCES `paid_leave_types` (`id`),
   ADD CONSTRAINT `fk_user_leave_settings_default_unit` FOREIGN KEY (`default_unit_id`) REFERENCES `leave_units` (`id`),
-  ADD CONSTRAINT `fk_user_leave_settings_default_type` FOREIGN KEY (`default_paid_leave_type_id`) REFERENCES `paid_leave_types` (`id`);
+  ADD CONSTRAINT `fk_user_leave_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- テーブルの制約 `user_leave_summary`
+--
+ALTER TABLE `user_leave_summary`
+  ADD CONSTRAINT `fk_user_leave_summary_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
