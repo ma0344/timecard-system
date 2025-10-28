@@ -13,7 +13,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1150px;
             min-width: 700px;
             margin: 2rem auto;
             background: #fff;
@@ -34,7 +34,7 @@
 
         .user-table {
             width: 100%;
-            max-width: 1000px;
+            max-width: 1150px;
             min-width: 300px;
             border-collapse: collapse;
             margin-bottom: 2em;
@@ -45,6 +45,18 @@
             border: 1px solid #e0e0e0;
             padding: 0.5em 0.7em 0.5em 0.7em;
             text-align: left;
+        }
+
+        .date-cell {
+            text-align: center;
+        }
+
+        .hour-cell {
+            text-align: center;
+        }
+
+        .button-cell {
+            text-align: center;
         }
 
         .editing {
@@ -92,16 +104,19 @@
             padding: 0.2em 0.4em;
             color: #1976d2;
         }
+
         .expanded-row td {
             background: #fbfdff;
             padding: 1rem;
         }
+
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 0px;
             border-bottom: 1px solid #e0e0e0;
             margin-bottom: 0.8rem;
         }
+
         .tab-btn {
             background: #eef6ff;
             border: 1px solid #cfe2f3;
@@ -110,13 +125,21 @@
             padding: 6px 10px;
             cursor: pointer;
         }
+
         .tab-btn.active {
             background: #fff;
             border-bottom-color: #fff;
             font-weight: 600;
         }
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 220px 1fr;
@@ -124,14 +147,53 @@
             align-items: center;
             max-width: 800px;
         }
-        .field-note { color: #666; font-size: 0.9em; }
-        .inline { display: inline-flex; align-items: center; gap: 8px; }
-        .muted { color: #666; }
-        .danger { color: #d32f2f; }
-    .two-col { display: flex; flex-direction: column; gap: 12px; }
-    @media (min-width: 960px) { .two-col { flex-direction: row; } .two-col > div { flex: 1; } }
-    .expanded-row .user-table { width: 100%; table-layout: fixed; }
-    .expanded-row .user-table th, .expanded-row .user-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .field-note {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .muted {
+            color: #666;
+        }
+
+        .danger {
+            color: #d32f2f;
+        }
+
+        .two-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (min-width: 960px) {
+            .two-col {
+                flex-direction: row;
+            }
+
+            .two-col>div {
+                flex: 1;
+            }
+        }
+
+        .expanded-row .user-table {
+            width: 100%;
+            table-layout: auto;
+        }
+
+        .expanded-row .user-table th,
+        .expanded-row .user-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         .add-user-row {
             background: #f1f8e9;
@@ -241,23 +303,23 @@
         </div>
         <table class="user-table" id="userTable">
             <colgroup>
-                <col style="width: 2em" />
-                <col style="width: 1.5em" />
-                <col style="width: 6em" />
-                <col style="width: 4em" />
-                <col style="width: 3.5em" />
-                <col style="width: 4.5em" />
-                <col style="width: 17em" />
+                <col style="width: 2em;" />
+                <col style="width: 1.5em;" />
+                <col style="width: 6em;" />
+                <col style="width: 3em;" />
+                <col style="width: 3.5em;" />
+                <col style="width: 4.5em;" />
+                <col style="width: 15em;" />
             </colgroup>
             <thead>
                 <tr>
                     <th></th>
-                    <th>ID</th>
-                    <th>ユーザー名</th>
-                    <th>権限</th>
-                    <th style="text-align: center;">自家用車</th>
-                    <th style="text-align: right;">契約労働時間</th>
-                    <th>操作</th>
+                    <th style="text-align: start;">ID</th>
+                    <th style="text-align: center; text-wrap-mode: nowrap;">ユーザー名</th>
+                    <th style="text-align: start; min-width: 3em;">権限</th>
+                    <th style="text-align: center; text-wrap-mode: nowrap;">自家用車</th>
+                    <th style="text-align: center; text-wrap-mode: nowrap;">契約労働時間</th>
+                    <th style="text-align: start;">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -292,11 +354,11 @@
             if (!res || !res.ok) return [];
             return await res.json();
         }
-    let users = [];
-    let allUsers = [];
-    let editingIdx = null;
-    let expandedUserId = null; // 展開中のユーザーID
-    let mastersCache = null;   // マスターキャッシュ
+        let users = [];
+        let allUsers = [];
+        let editingIdx = null;
+        let expandedUserId = null; // 展開中のユーザーID
+        let mastersCache = null;   // マスターキャッシュ
         async function renderTable() {
             allUsers = await loadUsers();
             const showDeleted =
@@ -339,8 +401,8 @@
                                 <td>
                                     ${u.id}
                                 </td>
-                                <td>
-                                    <input value="${u.name}" id="editName" disabled>
+                                <td style="text-wrap-mode: nowrap;">
+                                    <input style="text-wrap-mode: nowrap;" value="${u.name}" id="editName" disabled>
                                 </td>
                                 <td>
                                     <select id="editRole" disabled>
@@ -366,7 +428,7 @@
                                 <td>
                                     ${u.id}
                                 </td>
-                                <td class="editing">
+                                <td class="editing" style="text-wrap-mode: nowrap;">
                                     <input value="${u.name}" id="editName">
                                 </td>
                                 <td class="editing">
@@ -394,13 +456,13 @@
                         <tr style='${deletedStyle}'>
                             <td style="text-align:center;">
                                 <button class="expand-toggle" onclick="toggleExpand(${idx})" ${disabled}>
-                                    ${expandedUserId === u.id ? '▼' : '▶'}
+                                    ${expandedUserId === u.id ? '∨' : '＞'}
                                 </button>
                             </td>
                             <td>
                                 ${u.id}
                             </td>
-                            <td>
+                            <td style="text-wrap-mode: nowrap;">
                                 ${u.name}
                             </td>
                             <td>
@@ -565,13 +627,13 @@
                 }
             });
         };
-                document
-                        .getElementById("showDeletedToggle")
-                        .addEventListener("change", renderTable);
+        document
+            .getElementById("showDeletedToggle")
+            .addEventListener("change", renderTable);
 
-                function renderExpandedRow(user) {
-                        const colSpan = 7; // 展開列を含む総列数
-                        return `
+        function renderExpandedRow(user) {
+            const colSpan = 7; // 展開列を含む総列数
+            return `
                         <tr class="expanded-row">
                             <td colspan="${colSpan}">
                                                 <div class="tabs" id="tabs-${user.id}">
@@ -603,80 +665,80 @@
                                                 </div>
                             </td>
                         </tr>`;
-                }
+        }
 
-                window.toggleExpand = async function(idx) {
-                        const user = users[idx];
-                        if (expandedUserId === user.id) {
-                                expandedUserId = null;
-                                await renderTable();
-                                return;
-                        }
-                        expandedUserId = user.id;
-                        await renderTable();
-                        try {
-                                const masters = await loadMasters();
-                                const settings = await loadUserLeaveSettings(user.id);
-                                mountLeaveSettings(user, masters, settings);
-                                mountLeaveGrant(user, masters, settings);
-                            mountLeaveBalance(user.id);
-                        } catch (e) {
-                                const el1 = document.getElementById(`leave-settings-wrap-${user.id}`);
-                                const el2 = document.getElementById(`leave-grant-wrap-${user.id}`);
-                            const el3 = document.getElementById(`leave-balance-wrap-${user.id}`);
-                                if (el1) el1.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
-                                if (el2) el2.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
-                            if (el3) el3.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
-                        }
-                }
+        window.toggleExpand = async function (idx) {
+            const user = users[idx];
+            if (expandedUserId === user.id) {
+                expandedUserId = null;
+                await renderTable();
+                return;
+            }
+            expandedUserId = user.id;
+            await renderTable();
+            try {
+                const masters = await loadMasters();
+                const settings = await loadUserLeaveSettings(user.id);
+                mountLeaveSettings(user, masters, settings);
+                mountLeaveGrant(user, masters, settings);
+                mountLeaveBalance(user.id);
+            } catch (e) {
+                const el1 = document.getElementById(`leave-settings-wrap-${user.id}`);
+                const el2 = document.getElementById(`leave-grant-wrap-${user.id}`);
+                const el3 = document.getElementById(`leave-balance-wrap-${user.id}`);
+                if (el1) el1.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+                if (el2) el2.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+                if (el3) el3.innerHTML = `<span class='danger'>読み込みに失敗しました</span>`;
+            }
+        }
 
-                window.switchTab = function(userId, tab) {
-                        const container = document.getElementById(`tabs-${userId}`);
-                        if (!container) return;
-                        container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                        const map = {
-                                'summary': `panel-summary-${userId}`,
-                                'details': `panel-details-${userId}`,
-                                'leave_settings': `panel-leave_settings-${userId}`,
-                            'leave_grant': `panel-leave_grant-${userId}`,
-                            'leave_balance': `panel-leave_balance-${userId}`,
-                        };
-                        const btns = Array.from(container.querySelectorAll('.tab-btn'));
-                        const idx = ['summary','details','leave_settings','leave_grant','leave_balance'].indexOf(tab);
-                        if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
-                        Object.values(map).forEach(id => {
-                                const p = document.getElementById(id);
-                                if (p) p.classList.remove('active');
-                        });
-                        const target = document.getElementById(map[tab]);
-                        if (target) target.classList.add('active');
-                    if (tab === 'leave_balance') {
-                        // タブ切替毎に最新へ更新
-                        mountLeaveBalance(userId);
-                    }
-                }
+        window.switchTab = function (userId, tab) {
+            const container = document.getElementById(`tabs-${userId}`);
+            if (!container) return;
+            container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const map = {
+                'summary': `panel-summary-${userId}`,
+                'details': `panel-details-${userId}`,
+                'leave_settings': `panel-leave_settings-${userId}`,
+                'leave_grant': `panel-leave_grant-${userId}`,
+                'leave_balance': `panel-leave_balance-${userId}`,
+            };
+            const btns = Array.from(container.querySelectorAll('.tab-btn'));
+            const idx = ['summary', 'details', 'leave_settings', 'leave_grant', 'leave_balance'].indexOf(tab);
+            if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+            Object.values(map).forEach(id => {
+                const p = document.getElementById(id);
+                if (p) p.classList.remove('active');
+            });
+            const target = document.getElementById(map[tab]);
+            if (target) target.classList.add('active');
+            if (tab === 'leave_balance') {
+                // タブ切替毎に最新へ更新
+                mountLeaveBalance(userId);
+            }
+        }
 
-                async function loadMasters() {
-                        if (mastersCache) return mastersCache;
-                        const res = await fetchWithAuth('api/masters_get.php');
-                        if (!res || !res.ok) throw new Error('masters');
-                        mastersCache = await res.json();
-                        return mastersCache;
-                }
+        async function loadMasters() {
+            if (mastersCache) return mastersCache;
+            const res = await fetchWithAuth('api/masters_get.php');
+            if (!res || !res.ok) throw new Error('masters');
+            mastersCache = await res.json();
+            return mastersCache;
+        }
 
-                async function loadUserLeaveSettings(userId) {
-                        const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
-                        if (!res || !res.ok) throw new Error('settings');
-                        return await res.json();
-                }
+        async function loadUserLeaveSettings(userId) {
+            const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
+            if (!res || !res.ok) throw new Error('settings');
+            return await res.json();
+        }
 
-                function mountLeaveSettings(user, masters, settings) {
-                        const wrap = document.getElementById(`leave-settings-wrap-${user.id}`);
-                        if (!wrap) return;
-                        const unitOpts = masters.leave_units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-                        const typeOpts = masters.paid_leave_types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-                        const eff = settings.base_hours_per_day_effective ?? (user.contract_hours_per_day ?? 8);
-                        wrap.innerHTML = `
+        function mountLeaveSettings(user, masters, settings) {
+            const wrap = document.getElementById(`leave-settings-wrap-${user.id}`);
+            if (!wrap) return;
+            const unitOpts = masters.leave_units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            const typeOpts = masters.paid_leave_types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            const eff = settings.base_hours_per_day_effective ?? (user.contract_hours_per_day ?? 8);
+            wrap.innerHTML = `
                             <div class="grid">
                                 <div>デフォルト休暇種別</div>
                                 <div><select id="ls-type-${user.id}">${typeOpts}</select></div>
@@ -703,53 +765,53 @@
                                 </div>
                             </div>
                         `;
-                        document.getElementById(`ls-type-${user.id}`).value = settings.default_paid_leave_type_id ?? masters.paid_leave_types[0]?.id ?? 1;
-                        document.getElementById(`ls-unit-${user.id}`).value = settings.default_unit_id ?? masters.paid_leave_types.find(t=>t.id===(settings.default_paid_leave_type_id ?? 0))?.default_unit_id ?? masters.leave_units[0]?.id ?? 1;
-                        document.getElementById(`ls-half-${user.id}`).checked = (settings.allow_half_day ?? 1) == 1;
-                        document.getElementById(`ls-hour-${user.id}`).checked = (settings.allow_hourly ?? 1) == 1;
-                        const baseEl = document.getElementById(`ls-base-${user.id}`);
-                        if (settings.base_hours_per_day_override !== null && settings.base_hours_per_day_override !== undefined) {
-                                baseEl.value = settings.base_hours_per_day_override;
-                        } else {
-                                baseEl.value = '';
-                                baseEl.placeholder = String(eff);
-                        }
-                        document.getElementById(`ls-carry-m-${user.id}`).value = settings.carryover_months ?? 0;
-                        document.getElementById(`ls-carry-min-${user.id}`).value = settings.carryover_max_minutes ?? 0;
-                        document.getElementById(`ls-negative-${user.id}`).checked = (settings.negative_balance_allowed ?? 0) == 1;
-                }
+            document.getElementById(`ls-type-${user.id}`).value = settings.default_paid_leave_type_id ?? masters.paid_leave_types[0]?.id ?? 1;
+            document.getElementById(`ls-unit-${user.id}`).value = settings.default_unit_id ?? masters.paid_leave_types.find(t => t.id === (settings.default_paid_leave_type_id ?? 0))?.default_unit_id ?? masters.leave_units[0]?.id ?? 1;
+            document.getElementById(`ls-half-${user.id}`).checked = (settings.allow_half_day ?? 1) == 1;
+            document.getElementById(`ls-hour-${user.id}`).checked = (settings.allow_hourly ?? 1) == 1;
+            const baseEl = document.getElementById(`ls-base-${user.id}`);
+            if (settings.base_hours_per_day_override !== null && settings.base_hours_per_day_override !== undefined) {
+                baseEl.value = settings.base_hours_per_day_override;
+            } else {
+                baseEl.value = '';
+                baseEl.placeholder = String(eff);
+            }
+            document.getElementById(`ls-carry-m-${user.id}`).value = settings.carryover_months ?? 0;
+            document.getElementById(`ls-carry-min-${user.id}`).value = settings.carryover_max_minutes ?? 0;
+            document.getElementById(`ls-negative-${user.id}`).checked = (settings.negative_balance_allowed ?? 0) == 1;
+        }
 
-                window.saveLeaveSettings = async function(userId) {
-                        const body = {
-                                user_id: userId,
-                                default_paid_leave_type_id: parseInt(document.getElementById(`ls-type-${userId}`).value),
-                                default_unit_id: parseInt(document.getElementById(`ls-unit-${userId}`).value),
-                                allow_half_day: document.getElementById(`ls-half-${userId}`).checked ? 1 : 0,
-                                allow_hourly: document.getElementById(`ls-hour-${userId}`).checked ? 1 : 0,
-                                base_hours_per_day_override: (function(v){ return v === '' ? null : parseFloat(v); })(document.getElementById(`ls-base-${userId}`).value),
-                                carryover_months: parseInt(document.getElementById(`ls-carry-m-${userId}`).value || '0'),
-                                carryover_max_minutes: parseInt(document.getElementById(`ls-carry-min-${userId}`).value || '0'),
-                                negative_balance_allowed: document.getElementById(`ls-negative-${userId}`).checked ? 1 : 0,
-                        };
-                        const btn = document.querySelector(`#leave-settings-wrap-${userId} .btn`);
-                        if (btn) btn.disabled = true;
-                        const res = await fetchWithAuth('api/admin_user_leave_settings_update.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(body)
-                        });
-                        if (btn) btn.disabled = false;
-                        if (res && res.ok) {
-                                alert('設定を保存しました');
-                        } else if (res) {
-                                alert('保存に失敗しました');
-                        }
-                }
+        window.saveLeaveSettings = async function (userId) {
+            const body = {
+                user_id: userId,
+                default_paid_leave_type_id: parseInt(document.getElementById(`ls-type-${userId}`).value),
+                default_unit_id: parseInt(document.getElementById(`ls-unit-${userId}`).value),
+                allow_half_day: document.getElementById(`ls-half-${userId}`).checked ? 1 : 0,
+                allow_hourly: document.getElementById(`ls-hour-${userId}`).checked ? 1 : 0,
+                base_hours_per_day_override: (function (v) { return v === '' ? null : parseFloat(v); })(document.getElementById(`ls-base-${userId}`).value),
+                carryover_months: parseInt(document.getElementById(`ls-carry-m-${userId}`).value || '0'),
+                carryover_max_minutes: parseInt(document.getElementById(`ls-carry-min-${userId}`).value || '0'),
+                negative_balance_allowed: document.getElementById(`ls-negative-${userId}`).checked ? 1 : 0,
+            };
+            const btn = document.querySelector(`#leave-settings-wrap-${userId} .btn`);
+            if (btn) btn.disabled = true;
+            const res = await fetchWithAuth('api/admin_user_leave_settings_update.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (btn) btn.disabled = false;
+            if (res && res.ok) {
+                alert('設定を保存しました');
+            } else if (res) {
+                alert('保存に失敗しました');
+            }
+        }
 
-                        function mountLeaveGrant(user, masters, settings) {
-                        const wrap = document.getElementById(`leave-grant-wrap-${user.id}`);
-                        if (!wrap) return;
-                        wrap.innerHTML = `
+        function mountLeaveGrant(user, masters, settings) {
+            const wrap = document.getElementById(`leave-grant-wrap-${user.id}`);
+            if (!wrap) return;
+            wrap.innerHTML = `
                             <div class="grid">
                                 <div>付与日</div>
                                                 <div><input type="date" id="lg-date-${user.id}"></div>
@@ -762,105 +824,202 @@
                             </div>
                             <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
                         `;
-                                        // デフォルト値設定: 今日と4年後
-                                        const today = new Date();
-                                        const pad = (n)=> String(n).padStart(2,'0');
-                                        const dstr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-                                        const exp = new Date(today.getFullYear()+4, today.getMonth(), today.getDate());
-                                        const estr = `${exp.getFullYear()}-${pad(exp.getMonth()+1)}-${pad(exp.getDate())}`;
-                                        const dEl = document.getElementById(`lg-date-${user.id}`);
-                                        const eEl = document.getElementById(`lg-expire-${user.id}`);
-                                        dEl.value = dstr;
-                                        eEl.value = estr;
-                                        dEl.addEventListener('change', ()=>{
-                                            // 付与日変更時、期限未編集なら4年後に自動更新
-                                            const val = dEl.value;
-                                            if (!val) return;
-                                            const dt = new Date(val);
-                                            if (isNaN(dt)) return;
-                                            const ex2 = new Date(dt.getFullYear()+4, dt.getMonth(), dt.getDate());
-                                            const ecur = eEl.value;
-                                            // ユーザーが手動で上書きした可能性を考慮し、空または同じなら更新
-                                            if (!ecur || ecur === estr) {
-                                                const nstr = `${ex2.getFullYear()}-${pad(ex2.getMonth()+1)}-${pad(ex2.getDate())}`;
-                                                eEl.value = nstr;
-                                            }
-                                        });
+            // デフォルト値設定: 今日と4年後
+            const today = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const dstr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            const exp = new Date(today.getFullYear() + 4, today.getMonth(), today.getDate());
+            const estr = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+            const dEl = document.getElementById(`lg-date-${user.id}`);
+            const eEl = document.getElementById(`lg-expire-${user.id}`);
+            dEl.value = dstr;
+            eEl.value = estr;
+            dEl.addEventListener('change', () => {
+                // 付与日変更時、期限未編集なら4年後に自動更新
+                const val = dEl.value;
+                if (!val) return;
+                const dt = new Date(val);
+                if (isNaN(dt)) return;
+                const ex2 = new Date(dt.getFullYear() + 4, dt.getMonth(), dt.getDate());
+                const ecur = eEl.value;
+                // ユーザーが手動で上書きした可能性を考慮し、空または同じなら更新
+                if (!ecur || ecur === estr) {
+                    const nstr = `${ex2.getFullYear()}-${pad(ex2.getMonth() + 1)}-${pad(ex2.getDate())}`;
+                    eEl.value = nstr;
                 }
+            });
+        }
 
-                window.grantLeave = async function(userId) {
-                        const date = (document.getElementById(`lg-date-${userId}`).value || '').trim();
-                        const hoursStr = (document.getElementById(`lg-hours-${userId}`).value || '').trim();
-                        const expire = (document.getElementById(`lg-expire-${userId}`).value || '').trim();
-                        if (!date || hoursStr === '') { alert('付与日と付与時間を入力してください'); return; }
-                        const hours = parseFloat(hoursStr);
-                        const body = { user_id: userId, grant_date: date, grant_hours: hours, expire_date: expire || null };
-                        const btn = document.querySelector(`#leave-grant-wrap-${userId} .btn`);
-                        if (btn) btn.disabled = true;
-                        const res = await fetchWithAuth('api/paid_leave_grant.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(body)
-                        });
-                        if (btn) btn.disabled = false;
-                        if (res && res.ok) {
-                                alert('有給を付与しました');
-                        // 残高・履歴を即時更新
-                        mountLeaveBalance(userId);
-                        } else if (res) {
-                                alert('付与に失敗しました');
-                        }
-                }
+        window.grantLeave = async function (userId) {
+            const date = (document.getElementById(`lg-date-${userId}`).value || '').trim();
+            const hoursStr = (document.getElementById(`lg-hours-${userId}`).value || '').trim();
+            const expire = (document.getElementById(`lg-expire-${userId}`).value || '').trim();
+            if (!date || hoursStr === '') { alert('付与日と付与時間を入力してください'); return; }
+            const hours = parseFloat(hoursStr);
+            const body = { user_id: userId, grant_date: date, grant_hours: hours, expire_date: expire || null };
+            const btn = document.querySelector(`#leave-grant-wrap-${userId} .btn`);
+            if (btn) btn.disabled = true;
+            const res = await fetchWithAuth('api/paid_leave_grant.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (btn) btn.disabled = false;
+            if (res && res.ok) {
+                alert('有給を付与しました');
+                // 残高・履歴を即時更新
+                mountLeaveBalance(userId);
+            } else if (res) {
+                alert('付与に失敗しました');
+            }
+        }
 
-                        async function loadBalance(userId) {
-                                const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
-                                if (!res || !res.ok) throw new Error('balance');
-                                return await res.json();
-                        }
-                        async function loadHistory(userId) {
-                                const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${userId}&limit=50`);
-                                if (!res || !res.ok) throw new Error('history');
-                                return await res.json();
-                        }
-                                async function mountLeaveBalance(userId) {
-                                        const wrap = document.getElementById(`leave-balance-wrap-${userId}`);
-                                if (!wrap) return;
-                                try {
-                                                const [b, h] = await Promise.all([loadBalance(userId), loadHistory(userId)]);
-                                        const fmt = (n)=> (Math.round(n*100)/100).toFixed(2);
-                                        const grantsRows = (h.grants||[]).map(g=>`<tr><td>${g.grant_date}</td><td style='text-align:right;'>${fmt(g.grant_hours)} h</td><td>${g.expire_date ?? ''}</td></tr>`).join('') || `<tr><td colspan='3' class='muted'>付与履歴はありません</td></tr>`;
-                                        const usesRows = (h.uses||[]).map(u=>`<tr><td>${u.used_date}</td><td style='text-align:right;'>${fmt(u.used_hours)} h</td><td>${u.reason ?? ''}</td></tr>`).join('') || `<tr><td colspan='3' class='muted'>利用履歴はありません</td></tr>`;
-                                        wrap.innerHTML = `
+        async function loadBalance(userId) {
+            const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
+            if (!res || !res.ok) throw new Error('balance');
+            return await res.json();
+        }
+        async function loadHistory(userId) {
+            const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${userId}&limit=50`);
+            if (!res || !res.ok) throw new Error('history');
+            return await res.json();
+        }
+        async function mountLeaveBalance(userId) {
+            const wrap = document.getElementById(`leave-balance-wrap-${userId}`);
+            if (!wrap) return;
+            try {
+                const [b, h] = await Promise.all([loadBalance(userId), loadHistory(userId)]);
+                const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
+                const grantsRows = (h.grants || []).map(g => `<tr>
+                                            <td class="date-cell">${g.grant_date}</td>
+                                            <td class="hour-cell">${fmt(g.grant_hours)} h</td>
+                                            <td class="date-cell">${(!g.expire_date || String(g.expire_date).startsWith('9999-')) ? '無期限' : g.expire_date}</td>
+                                            <td class="button-cell">
+                                                <button class='btn' data-act='grant-edit' data-id='${g.id}' data-date='${g.grant_date}' data-hours='${g.grant_hours}' data-expire='${g.expire_date ?? ''}'>編集</button>
+                                                <button class='btn' data-act='grant-del' data-id='${g.id}' style='background:#e57373;'>削除</button>
+                                            </td>
+                                        </tr>`).join('') || `<tr><td colspan='4' class='muted'>付与履歴はありません</td></tr>`;
+                // 利用履歴はイベント単位を優先表示（なければログ単位にフォールバック）
+                const useList = Array.isArray(h.use_events) ? h.use_events : (h.uses || []);
+                const usesRows = (useList || []).map(u => `<tr>
+                                            <td>${u.used_date}</td>
+                                            <td style='text-align:right;'>${fmt(u.used_hours)} h</td>
+                                            <td>${u.reason ?? ''}</td>
+                                            <td style='text-align:right;'>
+                                                ${u.event_id ? `<button class='btn' data-act='use-edit' data-eid='${u.event_id}' data-date='${u.used_date}' data-hours='${u.used_hours}' data-reason='${u.reason ?? ''}'>編集</button>` : ''}
+                                                ${u.event_id ? `<button class='btn' data-act='use-del-event' data-eid='${u.event_id}' style='background:#e57373;'>削除</button>` : `<button class='btn' data-act='use-del' data-id='${u.id}' style='background:#e57373;'>削除</button>`}
+                                            </td>
+                                        </tr>`).join('') || `<tr><td colspan='4' class='muted'>利用履歴はありません</td></tr>`;
+                wrap.innerHTML = `
                                             <div class="grid" style="margin-bottom:12px;">
                                                 <div>合計付与（全期間）</div><div style="text-align:right;">${fmt(b.granted_total_hours)} h</div>
                                                 <div>有効付与（本日時点）</div><div style="text-align:right;">${fmt(b.granted_active_hours)} h</div>
-                                                <div>合計利用</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
-                                                <div>残高（有効付与 − 合計利用）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
+                                                <div>合計利用（USEのみ、失効除外）</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
+                                                <div>残高（現在のサマリ）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
                                                 <div>基準日</div><div>${b.as_of}</div>
                                             </div>
                                                     <div class="two-col">
                                                         <div>
                                                     <div class="muted" style="font-weight:600; margin-bottom:6px;">付与履歴（最新50件）</div>
                                                     <table class="user-table" style="margin:0;">
-                                                        <thead><tr><th>付与日</th><th>時間</th><th>有効期限</th></tr></thead>
+                                                        <thead><tr><th class="date-cell">付与日</th><th class="hour-cell">時間</th><th class="date-cell">有効期限</th><th class="button-cell">操作</th></tr></thead>
                                                         <tbody>${grantsRows}</tbody>
                                                     </table>
                                                 </div>
                                                         <div>
                                                     <div class="muted" style="font-weight:600; margin-bottom:6px;">利用履歴（最新50件）</div>
                                                     <table class="user-table" style="margin:0;">
-                                                        <thead><tr><th>利用日</th><th>時間</th><th>理由</th></tr></thead>
+                                                        <thead><tr><th>利用日</th><th>時間</th><th>理由</th><th style='width:8em;text-align:right;'>操作</th></tr></thead>
                                                         <tbody>${usesRows}</tbody>
                                                     </table>
                                                 </div>
                                             </div>
                                         `;
-                                } catch (e) {
-                                        wrap.innerHTML = `<span class='danger'>残高・履歴の読み込みに失敗しました</span>`;
-                                }
-                        }
 
-                renderTable();
+                // ボタンのイベント委譲
+                wrap.querySelectorAll('button[data-act]')?.forEach(btn => {
+                    btn.addEventListener('click', async (ev) => {
+                        const act = btn.getAttribute('data-act');
+                        try {
+                            if (act === 'grant-edit') {
+                                const id = btn.getAttribute('data-id');
+                                const curDate = btn.getAttribute('data-date') || '';
+                                const curHours = btn.getAttribute('data-hours') || '';
+                                const curExpire = btn.getAttribute('data-expire') || '';
+                                const nd = prompt('付与日 (YYYY-MM-DD)', curDate);
+                                if (nd === null) return;
+                                const nhStr = prompt('付与時間 (h)', String(curHours));
+                                if (nhStr === null) return; const nh = parseFloat(nhStr);
+                                if (!(nh >= 0)) { alert('付与時間は0以上を入力してください'); return; }
+                                const ne = prompt('有効期限 (YYYY-MM-DD, 空で変更しない/空にする)', curExpire);
+                                const body = { id: parseInt(id), grant_date: nd, grant_hours: nh, expire_date: (ne === '' ? null : ne) };
+                                const res = await fetchWithAuth('api/paid_leave_grant_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                                if (res && res.ok) {
+                                    alert('付与を更新しました');
+                                    await mountLeaveBalance(userId);
+                                } else if (res) {
+                                    const j = await res.json(); alert(j.error || '更新に失敗しました');
+                                }
+                            } else if (act === 'grant-del') {
+                                const id = btn.getAttribute('data-id');
+                                if (!confirm('この付与を削除します。消化済みの付与は削除できません。実行しますか？')) return;
+                                const res = await fetchWithAuth('api/paid_leave_grant_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
+                                if (res && res.ok) {
+                                    alert('付与を削除しました');
+                                    await mountLeaveBalance(userId);
+                                } else if (res) {
+                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
+                                }
+                            } else if (act === 'use-del') {
+                                const id = btn.getAttribute('data-id');
+                                if (!confirm('この利用ログを削除します。実行しますか？')) return;
+                                const res = await fetchWithAuth('api/paid_leave_use_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
+                                if (res && res.ok) {
+                                    alert('利用ログを削除しました');
+                                    await mountLeaveBalance(userId);
+                                } else if (res) {
+                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
+                                }
+                            } else if (act === 'use-del-event') {
+                                const eid = parseInt(btn.getAttribute('data-eid'));
+                                if (!confirm('この利用イベント（複数明細）を削除します。実行しますか？')) return;
+                                const res = await fetchWithAuth('api/paid_leave_use_event_delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eid, user_id: userId }) });
+                                if (res && res.ok) {
+                                    alert('利用イベントを削除しました');
+                                    await mountLeaveBalance(userId);
+                                } else if (res) {
+                                    const j = await res.json(); alert(j.error || '削除に失敗しました');
+                                }
+                            } else if (act === 'use-edit') {
+                                const eid = parseInt(btn.getAttribute('data-eid'));
+                                const curDate = btn.getAttribute('data-date') || '';
+                                const curHours = btn.getAttribute('data-hours') || '';
+                                const curReason = btn.getAttribute('data-reason') || '';
+                                const nd = prompt('利用日 (YYYY-MM-DD)', curDate);
+                                if (nd === null) return;
+                                const nhStr = prompt('利用時間 (h)', String(curHours));
+                                if (nhStr === null) return; const nh = parseFloat(nhStr);
+                                if (!(nh > 0)) { alert('利用時間は0より大きい値にしてください'); return; }
+                                const nr = prompt('理由', curReason);
+                                const res = await fetchWithAuth('api/paid_leave_use_event_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eid, user_id: userId, used_date: nd, used_hours: nh, reason: nr ?? '' }) });
+                                if (res && res.ok) {
+                                    alert('利用イベントを更新しました');
+                                    await mountLeaveBalance(userId);
+                                } else if (res) {
+                                    const j = await res.json(); alert(j.error || '更新に失敗しました');
+                                }
+                            }
+                        } catch (e) {
+                            alert('操作に失敗しました');
+                        }
+                    });
+                });
+            } catch (e) {
+                wrap.innerHTML = `<span class='danger'>残高・履歴の読み込みに失敗しました</span>`;
+            }
+        }
+
+        renderTable();
     </script>
 </body>
 

@@ -47,11 +47,31 @@ try {
     if ($expireDate === null || $expireDate === '') {
         $expireDate = date('Y-m-d', strtotime($grantDate . ' +4 years'));
     }
+    $pdo->beginTransaction();
+    // paid_leaves: consumed_hours_total はデフォルト0
     $stmt = $pdo->prepare('INSERT INTO paid_leaves (user_id, grant_date, grant_hours, expire_date) VALUES (?, ?, ?, ?)');
     $stmt->execute([$targetId, $grantDate, $grantHours, $expireDate]);
     $id = $pdo->lastInsertId();
+
+    // サマリ行を用意
+    $pdo->prepare('INSERT IGNORE INTO user_leave_summary (user_id, balance_hours, used_total_hours, next_expire_date) VALUES (?, 0, 0, NULL)')->execute([$targetId]);
+    // 付与が「今日時点で有効」なら残高に反映（usedは関係なし）
+    $stmt = $pdo->prepare('SELECT (CASE WHEN DATE(?) > CURDATE() THEN 1 ELSE 0 END)');
+    $stmt->execute([$expireDate]);
+    $isActiveToday = (int)$stmt->fetchColumn() === 1;
+    if ($isActiveToday) {
+        // balance を増加
+        $pdo->prepare('UPDATE user_leave_summary SET balance_hours = ROUND(balance_hours + ?, 2) WHERE user_id = ?')->execute([$grantHours, $targetId]);
+        // next_expire_date を更新
+        $pdo->prepare('UPDATE user_leave_summary SET next_expire_date = (CASE WHEN next_expire_date IS NULL OR next_expire_date > ? THEN ? ELSE next_expire_date END) WHERE user_id = ?')
+            ->execute([$expireDate, $expireDate, $targetId]);
+    }
+    $pdo->commit();
     echo json_encode(['success' => true, 'id' => (int)$id]);
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(['error' => 'db error']);
 }

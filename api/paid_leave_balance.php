@@ -32,15 +32,21 @@ $stmt = $pdo->prepare('SELECT IFNULL(SUM(grant_hours),0) AS total FROM paid_leav
 $stmt->execute([$targetId]);
 $grantedTotal = (float)$stmt->fetchColumn();
 
-$stmt = $pdo->prepare('SELECT IFNULL(SUM(grant_hours),0) AS total FROM paid_leaves WHERE user_id = ? AND (expire_date IS NULL OR expire_date >= CURDATE())');
+// 従来の「有効付与合計」は合計grantで計上（従来表示互換）
+$stmt = $pdo->prepare('SELECT IFNULL(SUM(grant_hours),0) AS total FROM paid_leaves WHERE user_id = ? AND (expire_date IS NULL OR expire_date > CURDATE())');
 $stmt->execute([$targetId]);
 $grantedActive = (float)$stmt->fetchColumn();
 
-$stmt = $pdo->prepare('SELECT IFNULL(SUM(used_hours),0) AS total FROM paid_leave_logs WHERE user_id = ?');
+// 合計利用は USE のみ（EXPIREは除外）
+$stmt = $pdo->prepare("SELECT IFNULL(SUM(used_hours),0) AS total FROM paid_leave_logs WHERE user_id = ? AND (log_type_id IS NULL OR log_type_id <> (SELECT id FROM log_types WHERE code = 'EXPIRE' LIMIT 1))");
 $stmt->execute([$targetId]);
 $usedTotal = (float)$stmt->fetchColumn();
 
-$balance = $grantedActive - $usedTotal;
+// サマリから現在残を取得（なければ従来計算にフォールバック）
+$stmt = $pdo->prepare('SELECT balance_hours FROM user_leave_summary WHERE user_id = ?');
+$stmt->execute([$targetId]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$balance = $row ? (float)$row['balance_hours'] : ($grantedActive - $usedTotal);
 
 echo json_encode([
     'user_id' => $targetId,

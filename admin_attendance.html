@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>勤怠データ管理</title>
+  <title>勤怠・有給管理</title>
     <style>
       body {
         font-family: "Segoe UI", sans-serif;
@@ -11,9 +11,9 @@
         margin: 0;
       }
       .container {
-        max-width: 600px;
+        max-width: 800px;
         width: calc(100vw - 240px);
-        min-width: 400px;
+        min-width: 600px;
         margin: 0 auto;
         background: #fff;
         border-radius: 8px;
@@ -114,14 +114,37 @@
       #userListTable td {
         padding: 0.3em 0.7em;
       }
+      /* tabs styling (align with admin_users.html) */
+      .tabs {
+        display: flex;
+        gap: 0px;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 0.8rem;
+      }
+      .tab-btn {
+        background: #eef6ff;
+        border: 1px solid #cfe2f3;
+        color: #1976d2;
+        border-radius: 6px 6px 0 0;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      .tab-btn.active {
+        background: #fff;
+        border-bottom-color: #fff;
+        font-weight: 600;
+      }
     </style>
   </head>
   <body style="margin:0;padding:0;">
     <div style="display:flex;align-items:flex-start;min-height:100vh;background:#f5f6fa;">
       <div class="user-sidebar" style="min-width:240px;width:240px;max-width:320px;background:#f8fafc;border-right:1px solid #e0e0e0;box-shadow:0 2px 8px #0001;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;position:fixed;left:0;top:0;bottom:0;z-index:10;">
         <h3 style="margin:1.5em 0 1em 0;font-size:1.1em;color:#1976d2;text-align:center;">表示月選択</h3>
-        <input type="month" id="monthSelect" value="2025-06" style="font-size:1.2em; text-align:center" />
-
+        <div style="display:flex;justify-content:center;align-items:center;gap:0.5em;margin-bottom:0.5em;">
+          <button id="monthPrevBtn" class="btn" style="padding:0.2em 0.7em;">＜</button>
+          <input type="month" id="monthSelect" style="font-size:1.2em; text-align:center" />
+          <button id="monthNextBtn" class="btn" style="padding:0.2em 0.7em;">＞</button>
+        </div>
         <h3 style="margin:1.5em 0 1em 0;font-size:1.1em;color:#1976d2;text-align:center;">ユーザー一覧</h3>
         <div style="flex:1;overflow-y:auto;padding-bottom:2em;">
           <table id="userListTable" style="width:100%;border-collapse:collapse;">
@@ -133,7 +156,7 @@
       <div class="container">
         <div style="display:flex;flex-direction:column;align-items:stretch;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-                <h2>勤怠データ管理</h2>
+                <h2>勤怠・有給管理</h2>
                 <div style="display:flex;justify-content:flex-end;margin-bottom:0.5em;">
                     <button class="btn" id="addAttendanceBtn" style="margin-right: 0.5em;">＋新規追加</button>
                     <button class="btn" id="adminMenuBtn" style="background:#fff;color:#1976d2;border:1.5px solid #1976d2;">メニューへ戻る</button>
@@ -141,22 +164,67 @@
 
           </div>
         </div>
-        <div id="statsBox" style="margin:1em 0;font-size:1.1em;color:#1976d2;font-weight:bold; text-align:center"></div>
-        <table class="attendance-table" id="attendanceTable">
-          <thead>
-            <tr>
-              <th>日付</th>
-              <th>出勤</th>
-              <th>退勤</th>
-              <th>休憩</th>
-              <th>労働時間</th>
-              <th>車距離</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- 勤怠データがここに挿入されます -->
-          </tbody>
-        </table>
+        <div id="main-tabbar" class="tabs" style="justify-content:start;margin:0.3em 0 0.8em 0;">
+          <button class="tab-btn active" id="tab-attendance">勤怠</button>
+          <button class="tab-btn" id="tab-leave">有給</button>
+        </div>
+        <div id="attendanceView">
+          <div id="statsBox" style="margin:1em 0;font-size:1.1em;color:#1976d2;font-weight:bold; text-align:center"></div>
+          <table class="attendance-table" id="attendanceTable">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>出勤</th>
+                <th>退勤</th>
+                <th>休憩</th>
+                <th>労働時間</th>
+                <th>車距離</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 勤怠データがここに挿入されます -->
+            </tbody>
+          </table>
+        </div>
+        <div id="leaveView" style="display:none;">
+          <div style="display:flex;gap:0.5em;justify-content:center;margin:0.3em 0 0.6em 0;flex-wrap:wrap;">
+            <button class="btn" id="btnRecalcUser">選択ユーザーの有休を再計算</button>
+            <button class="btn" id="btnRecalcAll" style="background:#455a64;">全ユーザーの有休を再計算</button>
+            <button class="btn" id="btnRecalcExpireUser" style="background:#2e7d32;">選択ユーザー 再計算→失効</button>
+            <button class="btn" id="btnRecalcExpireAll" style="background:#2e7d32;">全ユーザー 再計算→失効</button>
+            <span id="recalcMsg" style="color:#666;"></span>
+          </div>
+          <div id="leaveGrantPanel" style="display:block;">
+            <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 1em 0;">
+              <label>付与日
+                <input type="date" id="grantDate" style="font-size:1.1em;">
+              </label>
+              <label>時間
+                <input type="number" id="grantHours" min="0.25" step="0.25" style="width:100px;text-align:right;"> h
+              </label>
+              <label>有効期限
+                <input type="date" id="grantExpire" style="font-size:1.1em;">
+              </label>
+              <button class="btn" id="grantSubmitBtn">付与</button>
+              <span id="grantMsg" style="color:#666;"></span>
+            </div>
+          </div>
+          <div id="leaveHistoryPanel" style="display:block;">
+            <table class="attendance-table" id="leaveHistoryTable">
+              <thead>
+                <tr>
+                  <th>発生日</th>
+                  <th>種別</th>
+                  <th>時間</th>
+                  <th>理由</th>
+                  <th>有効期限</th>
+                  <th>残</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
     <script>
@@ -180,6 +248,28 @@
             window.location.href = 'punch.html';
           }
         });
+      
+      // monthSelectを現在の月に設定
+      const monthSelect = document.getElementById('monthSelect');
+      function setMonthToToday() {
+        monthSelect.value = new Date().toISOString().slice(0, 7);
+      }
+      setMonthToToday();
+
+      // スピンボタン（前月・翌月）
+      function changeMonth(offset) {
+        const val = monthSelect.value;
+        if (!val) return;
+        let [y, m] = val.split('-').map(Number);
+        m += offset;
+        if (m < 1) { m = 12; y -= 1; }
+        if (m > 12) { m = 1; y += 1; }
+        monthSelect.value = `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}`;
+        if (mainTab === 'attendance') renderTable(); else renderLeaveHistory();
+      }
+  document.getElementById('monthPrevBtn').onclick = () => changeMonth(-1);
+  document.getElementById('monthNextBtn').onclick = () => changeMonth(1);
+  monthSelect.onchange = () => { window.editingIdx = null; if (mainTab === 'attendance') renderTable(); else renderLeaveHistory(); };
       // ユーザー一覧取得
       async function loadUsers() {
         const res = await fetchWithAuth('api/admin_user_list.php');
@@ -196,8 +286,23 @@
         if (!res || !res.ok) return [];
         return await res.json();
       }
-      let users = [];
-      let selectedUserId = null;
+  let users = [];
+  let selectedUserId = null;
+  let mainTab = 'attendance'; // 'attendance' | 'leave'
+  let leaveMastersCache = null;
+  let defaultTypeNameCache = null;
+      // 新規追加ボタンのイベントは月のデータ有無に関わらず常に有効化（空月でも展開できるように）
+      const addAttendanceBtnEl = document.getElementById('addAttendanceBtn');
+      if (addAttendanceBtnEl) {
+        addAttendanceBtnEl.onclick = function() {
+          if (mainTab !== 'attendance') return; // 念のため
+          if (!selectedUserId) return; // ユーザー未選択時は何もしない
+          if (window.addingAttendance) return;
+          window.addingAttendance = true;
+          window.editingIdx = null;
+          renderTable();
+        };
+      }
       async function renderUserList() {
         users = await loadUsers();
         const userListTbody = document.querySelector("#userListTable tbody");
@@ -217,14 +322,22 @@
             selectedUserId = tr.getAttribute("data-id");
             window.editingIdx = null;
             renderUserList();
-            renderTable();
+            if (mainTab === 'attendance') {
+              renderTable();
+            } else {
+              renderLeaveView();
+            }
           };
         });
         // 初期選択
         if (!selectedUserId && users.length > 0) {
           selectedUserId = users[0].id;
           renderUserList();
-          renderTable();
+          if (mainTab === 'attendance') {
+            renderTable();
+          } else {
+            renderLeaveView();
+          }
         }
       }
       function formatDateHM(dateStr) {
@@ -349,27 +462,54 @@
           tr.className = "expand-panel";
           tr.innerHTML = `<td colspan="7">
               <div style="display:flex;flex-direction:column;gap:0.5em;align-items:flex-start;">
-                  <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">日付
-                    <input type="date" id="newDate" style="font-size:1.2em;width:9em;">
+                <div style="margin:0.2em 0; display:flex; gap:1em; align-items:center; flex-wrap:wrap;">
+                  <span style="font-weight:bold;color:#1976d2">登録モード</span>
+                  <label><input type="radio" name="new-mode" value="work" checked> 勤務</label>
+                  <label><input type="radio" name="new-mode" value="leave"> 有給のみ</label>
+                  <label><input type="radio" name="new-mode" value="both"> 勤務＋有給</label>
+                </div>
+                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">日付
+                  <input type="date" id="newDate" style="font-size:1.2em;width:9em;">
+                </label>
+
+                <div id="new-work-section" style="width:100%;">
+                  <div style="display:flex;gap:2em;flex-wrap:wrap;">
+                    <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">出勤
+                      <input type="time" id="newIn" style="font-size:1.2em;width:8em;">
+                    </label>
+                    <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">退勤
+                      <input type="time" id="newOut" style="font-size:1.2em;width:8em;">
+                    </label>
+                    <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">車距離
+                      <input type="number" id="newVehicleDistance" min="0" step="1" value="0" style="font-size:1.2em;width:7em;text-align:right;"> km
+                    </label>
+                  </div>
+                  <div style="width:100%; display:contents;">
+                    <div style="font-weight:bold;margin-bottom:0.3em; text-align:left">休憩:</div>
+                    <div id="newBreakList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
+                    <button type="button" class="btn" id="addBreakToNew" style="margin-top:0.5em;">＋休憩追加</button>
+                  </div>
+                </div>
+
+              <div id="new-leave-section" style="width:100%; border-top:1px dashed #e0e0e0; margin-top:0.8em; padding-top:0.8em;">
+                <div style="font-weight:bold;margin-bottom:0.3em; text-align:left; color:#1976d2">有給使用の登録</div>
+                <div id="new-pl-balance" class="muted" style="margin-bottom:0.4em;">残高: 取得中...</div>
+                <div style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;">
+                  <div>対象日: <b><span id="new-pl-date-label">(未選択)</span></b></div>
+                  <label style="display:flex;gap:0.4em;align-items:center;">使用時間
+                    <input type="number" id="new-pl-use-hours" step="0.25" min="0.25" style="width:90px;text-align:right;"> h
                   </label>
-                <div style="display:flex;gap:2em;flex-wrap:wrap;">
-                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">出勤
-                  <input type="time" id="newIn" style="font-size:1.2em;width:8em;">
-                </label>
-                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">退勤
-                  <input type="time" id="newOut" style="font-size:1.2em;width:8em;">
-                </label>
-                <label style="display:flex;flex-direction:column;align-items:flex-start;gap:0.2em;">車距離
-                  <input type="number" id="newVehicleDistance" min="0" step="1" value="0" style="font-size:1.2em;width:7em;text-align:right;"> km
-                </label>
-              </div>
-              <div style="width:100%; display:contents;">
-                <div style="font-weight:bold;margin-bottom:0.3em; text-align:left">休憩:</div>
-                <div id="newBreakList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
-                <button type="button" class="btn" id="addBreakToNew" style="margin-top:0.5em;">＋休憩追加</button>
+                  <div id="new-pl-quick" style="display:flex;gap:0.4em;align-items:center;flex-wrap:wrap;"></div>
+                  <label style="display:flex;gap:0.4em;align-items:center;">理由
+                    <input type="text" id="new-pl-use-reason" placeholder="年休など" style="min-width:200px;">
+                  </label>
+                  <button class="btn" id="new-pl-use-btn">有給使用を追加</button>
+                </div>
+                <div id="new-pl-use-msg" style="margin-top:0.4em;color:#666;"></div>
               </div>
               <div style="display:flex;gap:1em;margin-top:0.7em;width:100%;justify-content:flex-end;">
                 <button class="btn" id="saveNewBtn" style=" font-size: 1.3em;">保存</button>
+                <button class="btn" id="new-submit-both" style=" font-size: 1.3em; display:none;">勤務＋有給を同時登録</button>
                 <button class="btn" id="cancelNewBtn" style=" font-size: 1.3em;">キャンセル</button>
               </div>
             </div>
@@ -416,8 +556,121 @@
             renderNewBreaks();
           };
           renderNewBreaks();
+          // 登録モード制御
+          const modeRadios = tr.querySelectorAll('input[name="new-mode"]');
+          let newMode = 'work';
+          function applyNewMode(){
+            const workSec = tr.querySelector('#new-work-section');
+            const leaveSec = tr.querySelector('#new-leave-section');
+            const saveBtn = tr.querySelector('#saveNewBtn');
+            const leaveBtn = tr.querySelector('#new-pl-use-btn');
+            const bothBtn = tr.querySelector('#new-submit-both');
+            if (newMode === 'work'){
+              workSec.style.display = '';
+              leaveSec.style.display = 'none';
+              saveBtn.style.display = '';
+              leaveBtn.style.display = 'none';
+              bothBtn.style.display = 'none';
+            } else if (newMode === 'leave'){
+              workSec.style.display = 'none';
+              leaveSec.style.display = '';
+              saveBtn.style.display = 'none';
+              leaveBtn.style.display = '';
+              bothBtn.style.display = 'none';
+            } else { // both
+              workSec.style.display = '';
+              leaveSec.style.display = '';
+              saveBtn.style.display = 'none';
+              leaveBtn.style.display = 'none';
+              bothBtn.style.display = '';
+            }
+          }
+          modeRadios.forEach(r=>{ r.addEventListener('change', ()=>{ newMode = r.value; applyNewMode(); }); });
+          applyNewMode();
+          // 新規パネル: 有給使用 UI 初期化
+          (async function(){
+            const balEl = tr.querySelector('#new-pl-balance');
+            const dateEl = tr.querySelector('#newDate');
+            const dateLbl = tr.querySelector('#new-pl-date-label');
+            const quick = tr.querySelector('#new-pl-quick');
+            const hoursEl = tr.querySelector('#new-pl-use-hours');
+            const reasonEl = tr.querySelector('#new-pl-use-reason');
+            const btn = tr.querySelector('#new-pl-use-btn');
+            const msg = tr.querySelector('#new-pl-use-msg');
+
+            function setDateLabel(){
+              dateLbl.textContent = dateEl.value || '(未選択)';
+            }
+            dateEl.addEventListener('change', setDateLabel);
+            setDateLabel();
+
+            async function refreshBalance(){
+              const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
+              if (res && res.ok) {
+                const b = await res.json();
+                const fmt = (n)=> (Math.round(n*100)/100).toFixed(2);
+                balEl.textContent = `残高: ${fmt(b.balance_hours)} h（有効付与: ${fmt(b.granted_active_hours)} h / 利用: ${fmt(b.used_total_hours)} h）`;
+              } else {
+                balEl.textContent = '残高: 取得に失敗しました';
+              }
+            }
+            await refreshBalance();
+
+            // ユーザー設定取得（基準時間/半日・時間単位の許可）
+            let baseHours = 8;
+            let allowHalf = true, allowHour = true;
+            try {
+              const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
+              if (res && res.ok) {
+                const s = await res.json();
+                baseHours = s.base_hours_per_day_effective ?? baseHours;
+                allowHalf = (s.allow_half_day ?? 1) == 1;
+                allowHour = (s.allow_hourly ?? 1) == 1;
+              }
+            } catch {}
+            function mkBtn(label, val, enabled=true) {
+              const b = document.createElement('button');
+              b.className = 'btn';
+              b.textContent = label;
+              b.style.padding = '0.2em 0.6em';
+              if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
+              b.onclick = ()=>{ hoursEl.value = String(val); };
+              return b;
+            }
+            quick.appendChild(mkBtn('1日', baseHours, true));
+            quick.appendChild(mkBtn('半日', Math.max(0.25, baseHours/2), allowHalf));
+            quick.appendChild(mkBtn('1h', 1, allowHour));
+
+            async function submitLeaveOnly() {
+              const usedDate = dateEl.value;
+              const hoursStr = hoursEl.value.trim();
+              const reason = reasonEl.value.trim();
+              if (!usedDate) { msg.textContent = '日付を選択してください'; msg.style.color = '#d32f2f'; return; }
+              if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
+              const hours = parseFloat(hoursStr);
+              if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
+              btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
+              const res = await fetchWithAuth('api/paid_leave_use.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, used_date: usedDate, used_hours: hours, reason })
+              });
+              btn.disabled = false;
+              if (res && res.ok) {
+                msg.textContent = '有給使用を登録しました'; msg.style.color = '#2e7d32';
+                hoursEl.value = '';
+                await refreshBalance();
+                return true;
+              } else if (res) {
+                try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                msg.style.color = '#d32f2f';
+                return false;
+              }
+            }
+            btn.onclick = submitLeaveOnly;
+          })();
           // 保存
-          tr.querySelector('#saveNewBtn').onclick = async () => {
+          async function submitWorkOnly(closeOnSuccess=true) {
             const date = tr.querySelector('#newDate').value;
             const clockIn = tr.querySelector('#newIn').value;
             const clockOut = tr.querySelector('#newOut').value;
@@ -425,29 +678,29 @@
             // バリデーション
             if (!date || !clockIn || !clockOut) {
               alert('日付・出勤・退勤は必須です');
-              return;
+              return false;
             }
             if (clockIn >= clockOut) {
               alert('退勤は出勤より後にしてください');
-              return;
+              return false;
             }
             for (let i = 0; i < newBreaks.length; i++) {
               const b = newBreaks[i];
               if (!b.start || !b.end) {
                 alert(`休憩${i + 1}の時刻を入力してください`);
-                return;
+                return false;
               }
               if (b.start >= b.end) {
                 alert(`休憩${i + 1}の終了は開始より後にしてください`);
-                return;
+                return false;
               }
               if (b.start < clockIn) {
                 alert(`休憩${i + 1}の開始は出勤以降にしてください`);
-                return;
+                return false;
               }
               if (b.end > clockOut) {
                 alert(`休憩${i + 1}の終了は退勤以前にしてください`);
-                return;
+                return false;
               }
             }
             // API送信
@@ -464,10 +717,39 @@
               })
             });
             if (res.ok) {
+              if (closeOnSuccess) {
+                window.addingAttendance = false;
+                await renderTable();
+              }
+              return true;
+            } else {
+              alert('保存に失敗しました');
+              return false;
+            }
+          }
+          tr.querySelector('#saveNewBtn').onclick = () => submitWorkOnly(true);
+          // 勤務＋有給を同時登録
+          tr.querySelector('#new-submit-both').onclick = async () => {
+            // まず勤務登録を検証・送信（閉じない）
+            const workOk = await submitWorkOnly(false);
+            if (!workOk) return;
+            // 次に有給登録
+            const usedDate = tr.querySelector('#newDate').value;
+            const hoursStr = (tr.querySelector('#new-pl-use-hours').value || '').trim();
+            const reason = (tr.querySelector('#new-pl-use-reason').value || '').trim();
+            if (!usedDate) { alert('有給の対象日を選択してください'); return; }
+            if (!hoursStr) { alert('有給の使用時間を入力してください'); return; }
+            const hours = parseFloat(hoursStr);
+            if (!(hours > 0)) { alert('有給の使用時間は0より大きい値にしてください'); return; }
+            const res = await fetchWithAuth('api/paid_leave_use.php', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: userId, used_date: usedDate, used_hours: hours, reason })
+            });
+            if (res && res.ok) {
               window.addingAttendance = false;
               await renderTable();
             } else {
-              alert('保存に失敗しました');
+              try { const j = await res.json(); alert(j.error || '有給の登録に失敗しました'); } catch { alert('有給の登録に失敗しました'); }
             }
           };
           // キャンセル
@@ -477,13 +759,6 @@
           };
         }
         attendance.forEach((rec, idx) => {
-      // 新規追加ボタンイベント
-      document.getElementById('addAttendanceBtn').onclick = function() {
-        if (window.addingAttendance) return;
-        window.addingAttendance = true;
-        window.editingIdx = null;
-        renderTable();
-      };
           const breakMin = calcTotalBreak(rec.breaks || []);
           const breakStr = breakMin
             ? `${Math.floor(breakMin / 60)}:${(breakMin % 60)
@@ -783,6 +1058,241 @@
           }
         });
       }
+      // メインタブ制御
+      function setMainTab(tab){
+        mainTab = tab;
+        const attBtn = document.getElementById('tab-attendance');
+        const leaveBtn = document.getElementById('tab-leave');
+        const addBtn = document.getElementById('addAttendanceBtn');
+        const attView = document.getElementById('attendanceView');
+        const leaveView = document.getElementById('leaveView');
+        // active class toggle to match tabs styling
+        if (attBtn && leaveBtn) {
+          attBtn.classList.toggle('active', tab === 'attendance');
+          leaveBtn.classList.toggle('active', tab === 'leave');
+        }
+        if (tab === 'attendance'){
+          if (addBtn) addBtn.style.display = '';
+          attView.style.display = '';
+          leaveView.style.display = 'none';
+          renderTable();
+        } else {
+          if (addBtn) addBtn.style.display = 'none';
+          attView.style.display = 'none';
+          leaveView.style.display = '';
+          renderLeaveView();
+        }
+      }
+      document.getElementById('tab-attendance').onclick = ()=> setMainTab('attendance');
+      document.getElementById('tab-leave').onclick = ()=> setMainTab('leave');
+
+      // 有給ビュー
+      async function loadLeaveMasters(){
+        if (leaveMastersCache) return leaveMastersCache;
+        const res = await fetchWithAuth('api/masters_get.php');
+        if (res && res.ok){
+          leaveMastersCache = await res.json();
+          return leaveMastersCache;
+        }
+        return null;
+      }
+      async function getDefaultTypeName(userId){
+        if (defaultTypeNameCache && defaultTypeNameCache.userId === userId) return defaultTypeNameCache.name;
+        const masters = await loadLeaveMasters();
+        let typeName = '';
+        try {
+          const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
+          if (res && res.ok){
+            const s = await res.json();
+            const typeId = s.default_paid_leave_type_id;
+            const hit = masters && masters.paid_leave_types && masters.paid_leave_types.find(p=>p.id == typeId);
+            typeName = hit ? hit.name : '';
+          }
+        } catch {}
+        defaultTypeNameCache = { userId, name: typeName };
+        return typeName;
+      }
+      async function renderLeaveHistory(){
+        const tbody = document.querySelector('#leaveHistoryTable tbody');
+        tbody.innerHTML = '<tr><td colspan="6">読み込み中...</td></tr>';
+        const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${selectedUserId}&limit=200`);
+        if (!res || !res.ok){
+          tbody.innerHTML = '<tr><td colspan="6">読み込みに失敗しました</td></tr>';
+          return;
+        }
+        const data = await res.json();
+        const defTypeName = await getDefaultTypeName(selectedUserId);
+        const rows = [];
+        (data.grants || []).forEach(g=>{
+          rows.push({
+            kind: 'grant',
+            date: g.grant_date,
+            hours: parseFloat(g.grant_hours) || 0,
+            reason: defTypeName || '付与',
+            expire: g.expire_date || ''
+          });
+        });
+        const useEvents = Array.isArray(data.use_events) ? data.use_events : null;
+        if (useEvents) {
+          // イベント単位（1イベント=1行）
+          useEvents.forEach(u=>{
+            rows.push({
+              kind: 'use',
+              date: u.used_date,
+              hours: parseFloat(u.used_hours) || 0,
+              reason: u.reason || '',
+              expire: ''
+            });
+          });
+        } else {
+          // 後方互換: ログ単位
+          (data.uses || []).forEach(u=>{
+            rows.push({
+              kind: 'use',
+              date: u.used_date,
+              hours: parseFloat(u.used_hours) || 0,
+              reason: u.reason || '',
+              expire: ''
+            });
+          });
+        }
+        (data.expires || []).forEach(x=>{
+          rows.push({
+            kind: 'expire',
+            date: x.used_date,
+            hours: parseFloat(x.used_hours) || 0,
+            reason: '失効',
+            expire: ''
+          });
+        });
+        // 累積残の計算（古い→新しい順で累積）
+        // 同一日内の並び順を定義: 失効→取得→付与（失効は日初、付与は日中想定）
+        const kindOrder = (k)=> (k==='expire'?0:(k==='use'?1:2));
+        const asc = [...rows].sort((a,b)=>{
+          if (a.date === b.date) return kindOrder(a.kind) - kindOrder(b.kind);
+          return a.date < b.date ? -1 : 1;
+        });
+        let cum = 0;
+        asc.forEach(r=>{
+          cum += (r.kind === 'grant' ? r.hours : -r.hours);
+          r.balanceAfter = (Math.round(cum*100)/100);
+        });
+        // 表示は新しい→古い
+        rows.sort((a,b)=> a.date===b.date ? 0 : (a.date < b.date ? 1 : -1));
+        tbody.innerHTML = rows.map(r=>{
+          const h = (Math.round(r.hours*100)/100).toFixed(2);
+          const timeStr = r.kind==='grant' ? `+${h}` : `-${h}`;
+          // 有効期限の表示: grant のみ表示し、NULL/9999-xx-xx は『無期限』
+          const exp = (r.kind==='grant') ? ((!r.expire || String(r.expire).startsWith('9999-')) ? '無期限' : r.expire) : '';
+          const reason = r.reason || (r.kind==='grant' ? '付与' : '');
+          const kindLabel = r.kind === 'grant' ? '付与' : (r.kind==='expire' ? '失効' : '取得');
+          const bal = (r.balanceAfter !== undefined ? (Math.round(r.balanceAfter*100)/100).toFixed(2) : '');
+          return `<tr><td>${r.date}</td><td>${kindLabel}</td><td>${timeStr} h</td><td>${reason}</td><td>${exp}</td><td>${bal} h</td></tr>`;
+        }).join('');
+      }
+      // Subtabs removed: grant form and unified history are shown together
+      async function renderLeaveView(){
+        // 初期値セット: 今日と+4年
+        const gd = document.getElementById('grantDate');
+        const ge = document.getElementById('grantExpire');
+        if (gd){
+          const today = new Date();
+          const pad = n=> String(n).padStart(2,'0');
+          const tstr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+          if (!gd.value) gd.value = tstr;
+          function setExpire(){
+            const d = new Date(gd.value);
+            if (!isNaN(d.getTime())){
+              d.setFullYear(d.getFullYear()+4);
+              ge.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            }
+          }
+          gd.onchange = setExpire;
+          if (!ge.value) setExpire();
+        }
+        // Always show unified history by default
+        await renderLeaveHistory();
+      }
+      // 付与送信
+      document.addEventListener('click', async (e)=>{
+        if (e.target && e.target.id === 'grantSubmitBtn'){
+          const msg = document.getElementById('grantMsg');
+          const grantDate = document.getElementById('grantDate').value;
+          const grantHoursStr = document.getElementById('grantHours').value.trim();
+          const grantExpire = document.getElementById('grantExpire').value;
+          if (!grantDate){ msg.textContent = '付与日を入力してください'; msg.style.color = '#d32f2f'; return; }
+          if (!grantHoursStr){ msg.textContent = '時間を入力してください'; msg.style.color = '#d32f2f'; return; }
+          const grantHours = parseFloat(grantHoursStr);
+          if (!(grantHours>0)){ msg.textContent = '時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
+          msg.textContent = '登録中...'; msg.style.color = '#666';
+          const res = await fetchWithAuth('api/paid_leave_grant.php', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: selectedUserId, grant_date: grantDate, grant_hours: grantHours, expire_date: grantExpire })
+          });
+          if (res && res.ok){
+            msg.textContent = '付与を登録しました'; msg.style.color = '#2e7d32';
+            // 統一履歴を更新
+            await renderLeaveHistory();
+          } else {
+            try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+            msg.style.color = '#d32f2f';
+          }
+        }
+        if (e.target && e.target.id === 'btnRecalcUser'){
+          const msg = document.getElementById('recalcMsg');
+          msg.textContent = '再計算中...'; msg.style.color = '#666';
+          const res = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${selectedUserId}`);
+          if (res && res.ok) {
+            msg.textContent = '再計算が完了しました'; msg.style.color = '#2e7d32';
+            await renderLeaveHistory();
+          } else {
+            msg.textContent = '再計算に失敗しました'; msg.style.color = '#d32f2f';
+          }
+        }
+        if (e.target && e.target.id === 'btnRecalcAll'){
+          if (!confirm('全ユーザーの有休を再計算します。時間がかかる場合があります。実行しますか？')) return;
+          const msg = document.getElementById('recalcMsg');
+          msg.textContent = '全体再計算中...'; msg.style.color = '#666';
+          const res = await fetchWithAuth('api/paid_leave_recalc_all.php');
+          if (res && res.ok) {
+            msg.textContent = '全体再計算が完了しました'; msg.style.color = '#2e7d32';
+            await renderLeaveHistory();
+          } else {
+            msg.textContent = '全体再計算に失敗しました'; msg.style.color = '#d32f2f';
+          }
+        }
+        if (e.target && e.target.id === 'btnRecalcExpireUser'){
+          const msg = document.getElementById('recalcMsg');
+          msg.textContent = '再計算→失効（選択ユーザー）実行中...'; msg.style.color = '#666';
+          // 再計算
+          const r1 = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${selectedUserId}`);
+          if (!r1 || !r1.ok) { msg.textContent = '再計算に失敗しました'; msg.style.color = '#d32f2f'; return; }
+          // 失効（過去分バックフィル）
+          const r2 = await fetchWithAuth(`api/paid_leave_expire_batch.php?mode=backfill&user=${selectedUserId}`);
+          if (r2 && r2.ok) {
+            try { const j = await r2.json(); msg.textContent = `再計算→失効 完了（対象ユーザー: ${selectedUserId}, 失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch { msg.textContent = '再計算→失効 完了'; msg.style.color = '#2e7d32'; }
+            await renderLeaveHistory();
+          } else {
+            msg.textContent = '失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
+          }
+        }
+        if (e.target && e.target.id === 'btnRecalcExpireAll'){
+          if (!confirm('全ユーザーの「再計算→失効（過去分一括）」を実行します。時間がかかる場合があります。実行しますか？')) return;
+          const msg = document.getElementById('recalcMsg');
+          msg.textContent = '全体 再計算→失効 実行中...'; msg.style.color = '#666';
+          // 再計算（全体）
+          const r1 = await fetchWithAuth('api/paid_leave_recalc_all.php');
+          if (!r1 || !r1.ok) { msg.textContent = '全体再計算に失敗しました'; msg.style.color = '#d32f2f'; return; }
+          // 失効（過去分バックフィル 全体）
+          const r2 = await fetchWithAuth('api/paid_leave_expire_batch.php?mode=backfill');
+          if (r2 && r2.ok) {
+            try { const j = await r2.json(); msg.textContent = `全体 再計算→失効 完了（失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch { msg.textContent = '全体 再計算→失効 完了'; msg.style.color = '#2e7d32'; }
+            await renderLeaveHistory();
+          } else {
+            msg.textContent = '全体の失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
+          }
+        }
+      });
       window.editingIdx = null;
       window.editRec = function (idx) {
         window.editingIdx = idx;
@@ -800,11 +1310,7 @@
         await renderUserList();
         await renderTable();
       })();
-      // イベントで即時更新
-      document.getElementById("monthSelect").addEventListener("change", function () {
-        window.editingIdx = null;
-        renderTable();
-      });
+      // 月変更のリスナーは上部で設定済み
       document.getElementById("adminMenuBtn").onclick = function() {
         window.location.href = "admin.html";
       };
