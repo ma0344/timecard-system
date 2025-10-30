@@ -22,10 +22,14 @@ if (!$user || $user['role'] !== 'admin') {
 
 // ユーザー一覧取得（user_detail を左結合）
 $sql = 'SELECT u.id, u.name, u.role, u.visible,
-        COALESCE(d.use_vehicle, 1) AS use_vehicle,
-        COALESCE(d.contract_hours_per_day, 8) AS contract_hours_per_day,
-        d.hire_date AS hire_date,
-        d.retire_date AS retire_date
+    COALESCE(d.use_vehicle, 1) AS use_vehicle,
+    d.contract_hours_per_day AS contract_hours_per_day,
+    d.hire_date AS hire_date,
+    d.retire_date AS retire_date,
+    d.scheduled_weekly_days AS scheduled_weekly_days,
+    d.scheduled_weekly_hours AS scheduled_weekly_hours,
+    d.scheduled_annual_days AS scheduled_annual_days,
+    d.full_time AS full_time
     FROM users u
     LEFT JOIN user_detail d ON d.user_id = u.id
     ORDER BY u.id';

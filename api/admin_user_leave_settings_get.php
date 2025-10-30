@@ -46,7 +46,7 @@ $stmt->execute([$targetId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$row) {
-    // user_detail がまだ無いケースに備える（最小限のデフォルト）
+    // user_detail がまだ無いケースに備える（最小限のデフォルト; 契約時間は未設定/null）
     $row = [
         'user_id' => $targetId,
         'default_unit_id' => 1, // DAY
@@ -57,13 +57,17 @@ if (!$row) {
         'carryover_max_minutes' => 0,
         'negative_balance_allowed' => 0,
         'default_paid_leave_type_id' => 1, // ANNUAL
-        'contract_hours_per_day' => 8.0,
+        'contract_hours_per_day' => null,
     ];
 }
 
-$effectiveBaseHours = isset($row['base_hours_per_day_override']) && $row['base_hours_per_day_override'] !== null
-    ? (float)$row['base_hours_per_day_override']
-    : (isset($row['contract_hours_per_day']) ? (float)$row['contract_hours_per_day'] : 8.0);
+$effectiveBaseHours = null;
+if (isset($row['base_hours_per_day_override']) && $row['base_hours_per_day_override'] !== null) {
+    $effectiveBaseHours = (float)$row['base_hours_per_day_override'];
+} elseif (isset($row['contract_hours_per_day']) && $row['contract_hours_per_day'] !== null) {
+    $effectiveBaseHours = (float)$row['contract_hours_per_day'];
+}
+$hasBase = ($effectiveBaseHours !== null && $effectiveBaseHours > 0);
 
 echo json_encode([
     'user_id' => (int)$row['user_id'],
@@ -75,5 +79,7 @@ echo json_encode([
     'carryover_max_minutes' => isset($row['carryover_max_minutes']) ? (int)$row['carryover_max_minutes'] : 0,
     'negative_balance_allowed' => isset($row['negative_balance_allowed']) ? (int)$row['negative_balance_allowed'] : 0,
     'default_paid_leave_type_id' => isset($row['default_paid_leave_type_id']) ? (int)$row['default_paid_leave_type_id'] : 1,
-    'base_hours_per_day_effective' => $effectiveBaseHours,
+    'base_hours_per_day_effective' => $hasBase ? $effectiveBaseHours : null,
+    'contract_hours_per_day' => isset($row['contract_hours_per_day']) ? (($row['contract_hours_per_day'] !== null) ? (float)$row['contract_hours_per_day'] : null) : null,
+    'has_base_hours' => $hasBase ? 1 : 0,
 ]);

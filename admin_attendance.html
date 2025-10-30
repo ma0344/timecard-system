@@ -93,6 +93,15 @@
             background: #1565c0;
         }
 
+        .btn-secondary:active {
+            background: transparent;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #1976d2;
+        }
+
         .user-select {
             font-size: 1.1em;
             padding: 0.4em 1em;
@@ -146,6 +155,7 @@
             background: #eef6ff;
             border: 1px solid #cfe2f3;
             color: #1976d2;
+            font-size: 1.1em;
             border-radius: 6px 6px 0 0;
             padding: 6px 10px;
             cursor: pointer;
@@ -182,7 +192,7 @@
                     <h2>勤怠・有給管理</h2>
                     <div style="display:flex;justify-content:flex-end;margin-bottom:0.5em;">
                         <button class="btn" id="addAttendanceBtn" style="margin-right: 0.5em;">＋新規追加</button>
-                        <button class="btn" id="adminMenuBtn" style="background:#fff;color:#1976d2;border:1.5px solid #1976d2;">メニューへ戻る</button>
+                        <button class="btn btn-secondary" id="backBtn">← 管理メニューへ</button>
                     </div>
                 </div>
             </div>
@@ -220,7 +230,31 @@
                     <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 1em 0;">
                         <label>付与日 <input type="date" id="grantDate" style="font-size:1.1em;">
                         </label>
-                        <label>時間 <input type="number" id="grantHours" min="0.25" step="0.25" style="width:100px;text-align:right;"> h </label>
+                        <div class="inline" style="display:flex;align-items:center;gap:6px;">
+                            <label>単位 <select id="grantUnit" style="margin-left:6px;">
+                                    <option value="day">日</option>
+                                    <option value="hour">時間</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label id="grantDaysWrap">日数 <input type="number" id="grantDays" min="0.25" step="0.25" style="width:100px;text-align:right;"> 日 </label>
+                        <label id="grantPerDayWrap" style="display:none;">1日= <input type="number" id="grantPerDayHours" min="0.25" step="0.25" style="width:90px;text-align:right;"> 時間</label>
+                        <div id="avgCtrl" style="display:flex;align-items:center;gap:0.5em;flex-wrap:wrap;align-self:baseline;">
+                            <label style="display:flex;align-items:center;gap:0.3em;">参考期間 <select id="avgMode">
+                                    <option value="auto">自動（推奨）</option>
+                                    <option value="6m">過去6ヶ月</option>
+                                    <option value="1y">過去1年</option>
+                                    <option value="custom">カスタム</option>
+                                </select>
+                            </label>
+                            <label id="avgStartWrap" style="display:none;">開始 <input type="date" id="avgStart"></label>
+                            <label id="avgEndWrap" style="display:none;">終了 <input type="date" id="avgEnd"></label>
+                        </div>
+                        <label id="grantHoursWrap" style="display:none;">時間 <input type="number" id="grantHours" min="0.25" step="0.25" style="width:100px;text-align:right;"> h </label>
+                        <div style="display:flex;flex-direction:column;gap:2px;min-width:280px;">
+                            <span id="grantRef" style="color:#666;"></span>
+                            <span id="grantRefDetail" style="color:#888;font-size:0.92em; line-height:1.7em"></span>
+                        </div>
                         <label>有効期限 <input type="date" id="grantExpire" style="font-size:1.1em;">
                         </label>
                         <button class="btn" id="grantExpireClear" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2;">期限なし</button>
@@ -417,6 +451,20 @@
             const res = await fetchWithAuth('api/settings_get.php');
             if (!res) return;
             if (res.ok) settings = await res.json();
+        }
+
+        // 丸め（設定に準拠: type=floor/ceil/round, unit=1/5/10/15 分）
+        function roundHoursBySettings(hours) {
+            if (!settings) return hours;
+            const unit = Number(settings.rounding_unit || 1);
+            const type = String(settings.rounding_type || 'round');
+            const mins = hours * 60;
+            const q = mins / unit;
+            let r;
+            if (type === 'floor') r = Math.floor(q);
+            else if (type === 'ceil') r = Math.ceil(q);
+            else r = Math.round(q);
+            return (r * unit) / 60;
         }
 
         // 指定年月から「前月period_start日」～「選択月period_end日」までの範囲を計算
@@ -629,9 +677,9 @@
 
                     async function refreshBalance() {
                         const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
-                        if (res && res.ok) {
-                            const b = await res.json();
-                            const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            if (j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
                             balEl.textContent = `残高: ${fmt(b.balance_hours)} h（有効付与: ${fmt(b.granted_active_hours)} h / 利用: ${fmt(b.used_total_hours)} h）`;
                         } else {
                             balEl.textContent = '残高: 取得に失敗しました';
@@ -640,28 +688,19 @@
                     await refreshBalance();
 
                     // ユーザー設定取得（基準時間/半日・時間単位の許可）
-                    let baseHours = 8;
+                    let baseHours = null;
                     let allowHalf = true, allowHour = true;
-                    try {
-                        const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
-                        if (res && res.ok) {
-                            const s = await res.json();
-                            baseHours = s.base_hours_per_day_effective ?? baseHours;
-                            allowHalf = (s.allow_half_day ?? 1) == 1;
-                            allowHour = (s.allow_hourly ?? 1) == 1;
-                        }
-                    } catch { }
                     function mkBtn(label, val, enabled = true) {
                         const b = document.createElement('button');
                         b.className = 'btn';
                         b.textContent = label;
                         b.style.padding = '0.2em 0.6em';
                         if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
-                        b.onclick = () => { hoursEl.value = String(val); };
+                        b.onclick = () => { const v = roundHoursBySettings(val); hoursEl.value = String((Math.round(v * 100) / 100).toFixed(2)); };
                         return b;
                     }
-                    quick.appendChild(mkBtn('1日', baseHours, true));
-                    quick.appendChild(mkBtn('半日', Math.max(0.25, baseHours / 2), allowHalf));
+                    quick.appendChild(mkBtn('1日', baseHours ?? 0, !!baseHours));
+                    quick.appendChild(mkBtn('半日', baseHours ? Math.max(0.25, baseHours / 2) : 0, !!baseHours && allowHalf));
                     quick.appendChild(mkBtn('1h', 1, allowHour));
 
                     async function submitLeaveOnly() {
@@ -670,7 +709,7 @@
                         const reason = reasonEl.value.trim();
                         if (!usedDate) { msg.textContent = '日付を選択してください'; msg.style.color = '#d32f2f'; return; }
                         if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
-                        const hours = parseFloat(hoursStr);
+                        const hours = roundHoursBySettings(parseFloat(hoursStr));
                         if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                         btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
                         const res = await fetchWithAuth('api/paid_leave_use.php', {
@@ -685,7 +724,7 @@
                             await refreshBalance();
                             return true;
                         } else if (res) {
-                            try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                            try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch (e) { msg.textContent = '登録に失敗しました'; }
                             msg.style.color = '#d32f2f';
                             return false;
                         }
@@ -772,7 +811,7 @@
                         window.addingAttendance = false;
                         await renderTable();
                     } else {
-                        try { const j = await res.json(); alert(j.error || '有給の登録に失敗しました'); } catch { alert('有給の登録に失敗しました'); }
+                        try { const j = await res.json(); alert(j.error || '有給の登録に失敗しました'); } catch (e) { alert('有給の登録に失敗しました'); }
                     }
                 };
                 // キャンセル
@@ -951,17 +990,18 @@
                         await refreshBalance();
 
                         // ユーザー設定取得（基準時間/半日・時間単位の許可）
-                        let baseHours = 8;
+                        let baseHours = null;
                         let allowHalf = true, allowHour = true;
                         try {
                             const res = await fetchWithAuth(`api/admin_user_leave_settings_get.php?user_id=${userId}`);
                             if (res && res.ok) {
                                 const s = await res.json();
-                                baseHours = s.base_hours_per_day_effective ?? baseHours;
+                                baseHours = (s.base_hours_per_day_effective != null) ? s.base_hours_per_day_effective : null;
                                 allowHalf = (s.allow_half_day ?? 1) == 1;
                                 allowHour = (s.allow_hourly ?? 1) == 1;
+                                var hasBase = (s.has_base_hours ?? 0) == 1;
                             }
-                        } catch { }
+                        } catch (e) { }
                         // クイックボタン生成
                         function mkBtn(label, val, enabled = true) {
                             const b = document.createElement('button');
@@ -969,18 +1009,18 @@
                             b.textContent = label;
                             b.style.padding = '0.2em 0.6em';
                             if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
-                            b.onclick = () => { hoursEl.value = String(val); };
+                            b.onclick = () => { const v = roundHoursBySettings(val); hoursEl.value = String((Math.round(v * 100) / 100).toFixed(2)); };
                             return b;
                         }
-                        quick.appendChild(mkBtn('1日', baseHours, true));
-                        quick.appendChild(mkBtn('半日', Math.max(0.25, baseHours / 2), allowHalf));
+                        quick.appendChild(mkBtn('1日', baseHours ?? 0, !!baseHours));
+                        quick.appendChild(mkBtn('半日', baseHours ? Math.max(0.25, baseHours / 2) : 0, !!baseHours && allowHalf));
                         quick.appendChild(mkBtn('1h', 1, allowHour));
 
                         btn.onclick = async () => {
                             const hoursStr = hoursEl.value.trim();
                             const reason = editTr.querySelector('#pl-use-reason').value.trim();
                             if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
-                            const hours = parseFloat(hoursStr);
+                            const hours = roundHoursBySettings(parseFloat(hoursStr));
                             if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                             btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
                             const res = await fetchWithAuth('api/paid_leave_use.php', {
@@ -994,7 +1034,7 @@
                                 hoursEl.value = '';
                                 await refreshBalance();
                             } else if (res) {
-                                try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                                try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch (e) { msg.textContent = '登録に失敗しました'; }
                                 msg.style.color = '#d32f2f';
                             }
                         };
@@ -1126,7 +1166,7 @@
                     const hit = masters && masters.paid_leave_types && masters.paid_leave_types.find(p => p.id == typeId);
                     typeName = hit ? hit.name : '';
                 }
-            } catch { }
+            } catch (e) { }
             defaultTypeNameCache = { userId, name: typeName };
             return typeName;
         }
@@ -1215,24 +1255,66 @@
             const ge = document.getElementById('grantExpire');
             const gc = document.getElementById('grantExpireClear');
             if (gd) {
-                const today = new Date();
                 const pad = n => String(n).padStart(2, '0');
-                const tstr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-                if (!gd.value) gd.value = tstr;
+                // 月加算（末日補正）
+                function addMonthsEndFix(base, months) {
+                    const d = new Date(base.getTime());
+                    const srcD = d.getDate();
+                    d.setMonth(d.getMonth() + months);
+                    if (d.getDate() < srcD) d.setDate(0);
+                    return d;
+                }
+                function toYmd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+                async function computeDefaultGrantDate() {
+                    // 1) 直近付与日 + 1年
+                    try {
+                        const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${selectedUserId}&limit=200`);
+                        if (res && res.ok) {
+                            const hist = await res.json();
+                            const grants = Array.isArray(hist.grants) ? hist.grants : [];
+                            if (grants.length > 0) {
+                                // 最新付与日を取得
+                                let latest = grants[0].grant_date;
+                                for (const g of grants) { if (g.grant_date > latest) latest = g.grant_date; }
+                                const [y, m, d] = latest.split('-').map(Number);
+                                const dt = new Date(y, m - 1, d);
+                                const next = addMonthsEndFix(dt, 12);
+                                return toYmd(next);
+                            }
+                        }
+                    } catch (e) { }
+                    // 2) 入社日 + 6ヶ月（ユーザー情報から）
+                    try {
+                        const u = (users || []).find(x => String(x.id) === String(selectedUserId));
+                        if (u && u.hire_date) {
+                            const [y, m, d] = String(u.hire_date).split('-').map(Number);
+                            const dt = new Date(y, m - 1, d);
+                            const next = addMonthsEndFix(dt, 6);
+                            return toYmd(next);
+                        }
+                    } catch (e) { }
+                    // 3) フォールバック: 今日
+                    const today = new Date();
+                    return toYmd(today);
+                }
                 function setExpire() {
                     const d = new Date(gd.value);
                     if (!isNaN(d.getTime())) {
                         const months = Number(settings.paid_leave_valid_months || 24);
                         if (months > 0) {
-                            // 月加算（末日補正）
-                            const srcD = d.getDate();
-                            d.setMonth(d.getMonth() + months);
-                            if (d.getDate() < srcD) d.setDate(0);
-                            ge.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                            const exp = addMonthsEndFix(d, months);
+                            // 付与日の前日が満了日: +Nヶ月 の翌日ではなく "前日" にする
+                            const expMinus1 = new Date(exp.getTime());
+                            expMinus1.setDate(expMinus1.getDate() - 1);
+                            ge.value = toYmd(expMinus1);
                         } else {
                             ge.value = '';
                         }
                     }
+                }
+                // デフォルト付与日を自動設定（未入力時のみ）
+                if (!gd.value) {
+                    try { gd.value = await computeDefaultGrantDate(); } catch (e) { /* no-op */ }
                 }
                 gd.onchange = setExpire;
                 if (!ge.value) setExpire();
@@ -1240,16 +1322,509 @@
             }
             // Always show unified history by default
             await renderLeaveHistory();
+            // 参考値の初期計算
+            await updateGrantReference();
         }
+        // 参考基準: 1日=何時間？ と 日→時間の換算
+        async function updateGrantReference() {
+            try {
+                const unitSel = document.getElementById('grantUnit');
+                const daysWrap = document.getElementById('grantDaysWrap');
+                const hoursWrap = document.getElementById('grantHoursWrap');
+                const daysEl = document.getElementById('grantDays');
+                const hoursEl = document.getElementById('grantHours');
+                const perDayWrap = document.getElementById('grantPerDayWrap');
+                const perDayEl = document.getElementById('grantPerDayHours');
+                const ref = document.getElementById('grantRef');
+                const refDetail = document.getElementById('grantRefDetail');
+                // A/B結果集約用
+                const calc = { stageA: null, stageB: null };
+                // 参考詳細の段階A/B出力を一旦バッファし、最後に合成して描画する
+                let detailBlock = '';
+                let detailBlockB = '';
+                const gd = document.getElementById('grantDate');
+                const avgMode = document.getElementById('avgMode');
+                const avgStartWrap = document.getElementById('avgStartWrap');
+                const avgEndWrap = document.getElementById('avgEndWrap');
+                const avgStartEl = document.getElementById('avgStart');
+                const avgEndEl = document.getElementById('avgEnd');
+                // 安全な日付パース（YYYY-MM-DD → ローカルタイムの Date）
+                function parseYmdLocal(s) {
+                    const parts = String(s || '').split('-').map((n) => parseInt(n, 10));
+                    if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                        return new Date(parts[0], parts[1] - 1, parts[2]);
+                    }
+                    return new Date(NaN);
+                }
+                if (!unitSel || !daysWrap || !hoursWrap || !daysEl || !hoursEl || !ref) return;
+                const unit = unitSel.value;
+                daysWrap.style.display = (unit === 'day') ? '' : 'none';
+                hoursWrap.style.display = (unit === 'hour') ? '' : 'none';
+                perDayWrap.style.display = (unit === 'day') ? '' : 'none';
+                // 参考期間UIの表示制御
+                const mode = avgMode ? avgMode.value : 'auto';
+                const isCustom = (mode === 'custom');
+                if (avgStartWrap) avgStartWrap.style.display = isCustom ? '' : 'none';
+                if (avgEndWrap) avgEndWrap.style.display = isCustom ? '' : 'none';
+
+                // 現在のユーザー情報を取得
+                const u = (users || []).find(x => String(x.id) === String(selectedUserId));
+                const hireMissing = !(u && u.hire_date);
+                const grantDate = gd && gd.value ? gd.value : null;
+                let baseHours = null;
+                if (u && u.contract_hours_per_day != null && u.contract_hours_per_day > 0) {
+                    baseHours = Number(u.contract_hours_per_day);
+                }
+                // 付与日数のデフォルト（設定の有休付与ルールから算出、初期未入力時のみ適用）
+                try {
+                    if (unit === 'day' && grantDate && daysEl && !daysEl.value) {
+                        // paid_leave_rules は settings に JSON文字列で入っている想定
+                        let rules = null;
+                        if (settings && settings.paid_leave_rules) {
+                            try { rules = JSON.parse(settings.paid_leave_rules); } catch (e) { rules = null; }
+                        }
+                        if (!hireMissing && rules && Array.isArray(rules.milestones) && Array.isArray(rules.fulltime)) {
+                            const hire = u && u.hire_date ? parseYmdLocal(u.hire_date) : null;
+                            const gdDt = parseYmdLocal(grantDate);
+                            if (hire && !isNaN(hire.getTime()) && !isNaN(gdDt.getTime())) {
+                                // 勤続月数を計算
+                                let months = (gdDt.getFullYear() - hire.getFullYear()) * 12 + (gdDt.getMonth() - hire.getMonth());
+                                // 日付の端数: 月初と月末の違いは大勢に影響しないので単純化（必要なら日数で補正可）
+                                if (gdDt.getDate() < hire.getDate()) months -= 1; // ざっくり調整
+                                // 勤続期間を月数へ変換
+                                const parseMilestoneToMonths = (s) => {
+                                    if (!s) return 0;
+                                    const m = String(s).toLowerCase().replace(/\s+/g, '');
+                                    const yIdx = m.indexOf('y');
+                                    if (yIdx >= 0) {
+                                        const y = parseInt(m.substring(0, yIdx), 10) || 0;
+                                        let rest = m.substring(yIdx + 1);
+                                        // 末尾の記号（+ など）や文字を除去して月だけ抽出
+                                        const mm = parseInt(rest.replace(/[^0-9]/g, ''), 10) || 0;
+                                        return y * 12 + mm;
+                                    }
+                                    // 純粋な「◯m」等は数字だけ抽出
+                                    return parseInt(m.replace(/[^0-9]/g, ''), 10) || 0;
+                                };
+                                const milestoneMonths = rules.milestones.map(parseMilestoneToMonths);
+                                // 勤続月数に最も近い（超えない）インデックスを選択
+                                let idx = 0;
+                                for (let i = 0; i < milestoneMonths.length; i++) {
+                                    if (months >= milestoneMonths[i]) idx = i; else break;
+                                }
+                                const defaultDays = rules.fulltime[idx] ?? rules.fulltime[0] ?? null;
+                                if (defaultDays != null && !isNaN(defaultDays)) {
+                                    daysEl.value = String(defaultDays);
+                                    try { daysEl.dataset.autofilled = 'rules-default'; } catch (e) { /* ignore */ }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore default days errors */ }
+                // 参考平均の取得: 契約時間が無い、または管理者が上書きモードを選択した場合は平均APIを呼び出す
+                if (grantDate && ((baseHours === null || !(baseHours > 0)) || mode !== 'auto')) {
+                    try {
+                        // end_date の決定（デフォルトは付与日前日）
+                        function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+                        const gdDate = new Date(grantDate);
+                        let endDate = new Date(gdDate); endDate.setDate(endDate.getDate() - 1);
+                        if (avgEndEl && avgEndEl.value && mode === 'custom') {
+                            const e = new Date(avgEndEl.value);
+                            if (!isNaN(e.getTime())) endDate = e;
+                        }
+                        const endStr = fmt(endDate);
+                        // start_date の決定
+                        let startStr = '';
+                        if (mode === '6m' || mode === '1y' || mode === 'custom') {
+                            if (mode === '6m' || mode === '1y') {
+                                const s = new Date(endDate);
+                                s.setMonth(s.getMonth() + (mode === '6m' ? -6 : -12));
+                                s.setDate(s.getDate() + 1);
+                                startStr = fmt(s);
+                                // カスタム選択直後のデフォルト補助
+                                if (mode === 'custom') {
+                                    if (avgStartEl && !avgStartEl.value) avgStartEl.value = startStr;
+                                    if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
+                                }
+                            } else if (mode === 'custom' && avgStartEl && avgStartEl.value) {
+                                startStr = avgStartEl.value;
+                                if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
+                            }
+                        }
+                        const r = await fetchWithAuth('api/attendance_avg.php', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: Number(selectedUserId), end_date: endStr, start_date: startStr || undefined })
+                        });
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            if ((baseHours === null || !(baseHours > 0)) && j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
+                            // 参考詳細の表示
+                            if (refDetail) {
+                                const type = String(settings.rounding_type || 'round');
+                                const unit = Number(settings.rounding_unit || 1);
+                                const avg = (j && j.avg_hours_per_day != null) ? Number(j.avg_hours_per_day) : null;
+                                const avgRounded = (avg != null) ? roundHoursBySettings(avg) : null;
+                                const wd = j?.work_days ?? 0;
+                                const th = (j?.total_hours != null) ? Number(j.total_hours).toFixed(2) : '0.00';
+                                const ss = j?.start_date || (startStr || '');
+                                const ee = j?.end_date || endStr;
+                                const roundLabel = (type === 'floor' ? '切り捨て' : (type === 'ceil' ? '切り上げ' : '四捨五入')) + `/${unit}分単位`;
+                                let html = (avg != null)
+                                    ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRounded.toFixed(2)}時間/日（${roundLabel}）`
+                                    : `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: データ不足`;
+
+                                // 段階A: 区分推定と付与日数の自動設定（参考詳細にも表示）
+                                try {
+                                    const unitSel = document.getElementById('grantUnit');
+                                    const daysEl = document.getElementById('grantDays');
+                                    const gdEl = document.getElementById('grantDate');
+                                    const grantDate = gdEl && gdEl.value ? gdEl.value : null;
+                                    const u = (users || []).find(x => String(x.id) === String(selectedUserId));
+                                    if (unitSel && unitSel.value === 'day' && daysEl && grantDate) {
+                                        // 週平均と年換算
+                                        const d1 = new Date(ss), d2 = new Date(ee);
+                                        const periodDays = (isNaN(d1) || isNaN(d2)) ? 0 : Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
+                                        const weeks = periodDays > 0 ? (periodDays / 7) : 0;
+                                        const weeklyDays = (weeks > 0) ? (wd / weeks) : 0;
+                                        const weeklyHours = (weeks > 0) ? ((Number(j.total_hours || 0)) / weeks) : 0;
+                                        const isInitial = (j?.start_source === 'hire_or_6m' || j?.start_source === 'last_6m');
+                                        const annualizedDays = (isInitial ? (wd * 2) : wd);
+
+                                        // しきい値（段階Aは定数。段階Bで設定化予定）
+                                        const PT_HOURS_LT = 30;
+                                        const PT_DAYS_MAX = 4;
+                                        const PT_ANNUAL_MAX = 216;
+                                        const MIN_ANY_GRANT = 48; // これ未満は付与なし
+                                        const buckets = [
+                                            { key: '4d', min: 169, max: 216 },
+                                            { key: '3d', min: 121, max: 168 },
+                                            { key: '2d', min: 73, max: 120 },
+                                            { key: '1d', min: 48, max: 72 },
+                                        ];
+
+                                        // パートタイム判定（推定）
+                                        const isPart = ((weeklyHours < PT_HOURS_LT && weeklyDays <= PT_DAYS_MAX) || (annualizedDays <= PT_ANNUAL_MAX));
+                                        let bucket = '4d';
+                                        for (const b of buckets) {
+                                            if (annualizedDays >= b.min && annualizedDays <= b.max) { bucket = b.key; break; }
+                                        }
+
+                                        // 設定ルールと勤続期間→列インデックス
+                                        let rules = null;
+                                        if (settings && settings.paid_leave_rules) {
+                                            try { rules = JSON.parse(settings.paid_leave_rules); } catch (e) { rules = null; }
+                                        }
+                                        const milestones = (rules && Array.isArray(rules.milestones) ? rules.milestones : ['6m', '1y6m', '2y6m', '3y6m', '4y6m', '5y6m', '6y6m+']);
+                                        function parseMilestoneToMonths(s) { const m = String(s || '').toLowerCase().replace(/\s+/g, ''); const i = m.indexOf('y'); if (i >= 0) { const y = parseInt(m.substring(0, i), 10) || 0; const mm = parseInt(m.substring(i + 1).replace(/[^0-9]/g, ''), 10) || 0; return y * 12 + mm; } return parseInt(m.replace(/[^0-9]/g, '') || '0', 10) || 0; }
+                                        const mlMonths = milestones.map(parseMilestoneToMonths);
+                                        let msIdx = 0;
+                                        if (u && u.hire_date && grantDate) {
+                                            const h = parseYmdLocal(u.hire_date);
+                                            const g = parseYmdLocal(grantDate);
+                                            if (!isNaN(h) && !isNaN(g)) {
+                                                let months = (g.getFullYear() - h.getFullYear()) * 12 + (g.getMonth() - h.getMonth());
+                                                if (g.getDate() < h.getDate()) months -= 1;
+                                                for (let i = 0; i < mlMonths.length; i++) { if (months >= mlMonths[i]) msIdx = i; else break; }
+                                            }
+                                        }
+
+                                        // 付与対象外（年換算48日未満）
+                                        let noGrant = (annualizedDays > 0 && annualizedDays < MIN_ANY_GRANT);
+                                        let chosen = null; let tableSrc = '常勤';
+                                        if (!noGrant && rules) {
+                                            if (isPart && rules.parttime && rules.parttime[bucket]) { chosen = rules.parttime[bucket]?.[msIdx]; tableSrc = `２－２ : 週${bucket.replace('d', '日')}`; }
+                                            else if (rules.fulltime) { chosen = rules.fulltime?.[msIdx]; tableSrc = '２'; }
+                                        }
+
+                                        // days 自動設定（未入力、または先に自動入力した値は上書き）
+                                        const wasAuto = !!(daysEl.dataset && daysEl.dataset.autofilled);
+                                        if (hireMissing) {
+                                            if (wasAuto) {
+                                                daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* ignore */ }
+                                            }
+                                        } else {
+                                            if (noGrant) {
+                                                if (wasAuto) { daysEl.value = ''; daysEl.dataset.autofilled = ''; }
+                                            } else if (chosen != null && !isNaN(chosen)) {
+                                                if (!daysEl.value || wasAuto) {
+                                                    daysEl.value = String(chosen);
+                                                    try { daysEl.dataset.autofilled = 'stageA'; } catch (e) { /* ignore */ }
+                                                }
+                                            }
+                                        }
+
+                                        // 参考追記（Stage A block）
+                                        const msLabel = milestones[msIdx] || '';
+                                        const classLabel = noGrant ? '付与対象外' : (isPart ? `短時間(${bucket.replace('d', '日')})` : '常勤');
+                                        const tblDisplay = String(tableSrc).includes('２－２') ? '表2-2' : '表2';
+                                        const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tblDisplay}</span>`;
+                                        const adoptedSrcA = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                                        const adoptedA = (adoptedSrcA === 'stageA');
+                                        const saDays = (noGrant ? null : (typeof chosen === 'number' ? chosen : null));
+                                        const saDaysLabel = (saDays != null)
+                                            ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${saDays}日</span> ${tableBadge}`
+                                            : `<span style=\"font-weight:bold;text-decoration:underline;${noGrant ? 'color:#d32f2f;' : 'color:#777; font-style:italic;'}\">算定付与日数: ${noGrant ? '判定不可' : '—'}${noGrant ? `（最小基準${MIN_ANY_GRANT}日未満）` : ''}</span>`;
+                                        const saHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜勤務記録からの推定＞</span>${saDaysLabel}${adoptedA ? `<span style=\"margin-left:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;\">採用</span>` : ''}</div>`;
+                                        const saGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">`
+                                            + `<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${classLabel}</span></div>`
+                                            + `<div><span style=\"color:#555;\">年換算</span><span style=\"float:right;text-align:right;\">${annualizedDays} 日</span></div>`
+                                            + `<div><span style=\"color:#555;\">週平均日数</span><span style=\"float:right;text-align:right;\">${weeklyDays.toFixed(2)} 日</span></div>`
+                                            + `<div><span style=\"color:#555;\">週平均時間</span><span style=\"float:right;text-align:right;\">${weeklyHours.toFixed(2)} 時間</span></div>`
+                                            + `</div>`;
+                                        const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedA ? 'border-left:4px solid #1976d2;background:#f7fbff;' : ''}\">`;
+                                        const saWrapClose = `</div>`;
+                                        // 勤続期間は最上段ヘッダに集約するため、ここでは表示しない
+                                        html += `<br>${saWrapOpen}${saHeader}${saGrid}${saWrapClose}`;
+
+                                        // Stage A 結果保存
+                                        calc.stageA = {
+                                            days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)),
+                                            classLabel,
+                                            msLabel,
+                                            bucket,
+                                            noGrant
+                                        };
+                                    }
+                                } catch (e) { /* ignore stage-A errors */ }
+
+                                detailBlock = html;
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                // 段階B: 厳密分類API（所定パターン＋8割判定）を呼び出し、推奨日数を反映
+                try {
+                    const grantDateEff = gd && gd.value ? gd.value : null;
+                    if (grantDateEff && unit === 'day') {
+                        // 参考期間がカスタムの場合は開始日を連動
+                        let startDateOverride = '';
+                        if (avgMode && avgMode.value === 'custom' && avgStartEl && avgStartEl.value) {
+                            startDateOverride = avgStartEl.value;
+                        }
+                        // 所定未設定（契約時間なし かつ scheduled_* が全て未設定）の場合は Stage A を優先
+                        const preferStageA = (function () {
+                            const isFullTime = !!(u && Number(u.full_time) === 1);
+                            const hasContract = !!(u && u.contract_hours_per_day != null && Number(u.contract_hours_per_day) > 0);
+                            const hasSchedWD = !!(u && u.scheduled_weekly_days != null && Number(u.scheduled_weekly_days) > 0);
+                            const hasSchedWH = !!(u && u.scheduled_weekly_hours != null && Number(u.scheduled_weekly_hours) > 0);
+                            const hasSchedAD = !!(u && u.scheduled_annual_days != null && Number(u.scheduled_annual_days) > 0);
+                            // 常勤フラグ or 契約 or 所定いずれかがあればStage B優先
+                            return (!isFullTime && !hasContract && !hasSchedWD && !hasSchedWH && !hasSchedAD);
+                        })();
+                        const body = { user_id: Number(selectedUserId), grant_date: grantDateEff };
+                        if (startDateOverride) body.start_date = startDateOverride;
+                        const r2 = await fetchWithAuth('api/paid_leave_classify.php', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                        });
+                        if (r2 && r2.ok) {
+                            const c = await r2.json();
+                            const wasAuto = !!(daysEl.dataset && daysEl.dataset.autofilled);
+                            const eligible = (c.eligible_by_min_annual !== false) && (c.eligible_by_attendance !== false);
+                            if (!preferStageA && !hireMissing) {
+                                if (!eligible) {
+                                    if (wasAuto) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
+                                } else if (c.default_days != null && !isNaN(c.default_days)) {
+                                    if (!daysEl.value || wasAuto) {
+                                        daysEl.value = String(c.default_days);
+                                        try { daysEl.dataset.autofilled = 'stageB'; } catch (e) { /* noop */ }
+                                    }
+                                }
+                            } else if (hireMissing && wasAuto) {
+                                // 入社日未登録時は自動採用しない
+                                try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ }
+                            }
+                            if (refDetail) {
+                                const rawCls = String(c.classification || '');
+                                const cls = rawCls ? ((rawCls === 'fulltime') ? '常勤' : 'パート') : '';
+                                const msRaw = String(c.milestone_label || '');
+                                const ms = msRaw ? msRaw.replace('y', '年').replace('m', 'か月') : '';
+                                const exp = (c.expected_days != null) ? Number(c.expected_days) : null;
+                                const rate = (c.attendance_rate != null) ? Number(c.attendance_rate) : null;
+                                let eligA = (c.eligible_by_attendance === null) ? '判定不可' : (c.eligible_by_attendance ? 'ＯＫ' : 'ＮＧ');
+                                let eligM = (c.eligible_by_min_annual === null) ? '判定不可' : (c.eligible_by_min_annual ? 'ＯＫ' : 'ＮＧ');
+                                // Stage A と同一の勤続期間なら B 側の表示は省略
+                                const aMS = (calc.stageA && calc.stageA.msLabel) ? String(calc.stageA.msLabel).toLowerCase() : '';
+                                const bMS = msRaw ? String(msRaw).toLowerCase() : '';
+                                const showMsInB = !(aMS && bMS && aMS === bMS);
+                                // 所定未設定時は『判定不可』として統一表示
+                                const clsDisplay = preferStageA ? '判定不可' : (cls || '不明');
+                                if (preferStageA) { eligA = '判定不可'; eligM = '判定不可'; }
+                                // Stage B block（header + grid）
+                                const tableLabel = (cls === '常勤') ? '表2' : '表2-2';
+                                const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tableLabel}</span>`;
+                                const adoptedSrcB = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                                const adoptedB = (adoptedSrcB === 'stageB');
+                                const sbDays = (preferStageA ? null : (c.default_days != null ? Number(c.default_days) : null));
+                                const sbDaysLabel = (sbDays != null)
+                                    ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${sbDays}日</span> ${tableBadge}`
+                                    : `<span style=\"font-weight:bold;text-decoration:underline;color:#777;font-style:italic;\">算定付与日数: 判定不可</span>`;
+                                const sbHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜契約内容に準拠＞</span>${sbDaysLabel}${adoptedB ? `<span style=\"margin-left:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;\">採用</span>` : ''}</div>`;
+                                const sbGridParts = [];
+                                sbGridParts.push(`<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${clsDisplay}</span></div>`);
+                                if (!preferStageA && exp != null) sbGridParts.push(`<div><span style=\"color:#555;\">想定出勤日</span><span style=\"float:right;text-align:right;\">${exp.toFixed(1)} 日</span></div>`);
+                                if (!preferStageA && rate != null) sbGridParts.push(`<div><span style=\"color:#555;\">出勤率</span><span style=\"float:right;text-align:right;\">${(rate * 100).toFixed(1)} %</span></div>`);
+                                sbGridParts.push(`<div><span style=\"color:#555;\">8割判定</span><span style=\"float:right;text-align:right;\">${eligA}</span></div>`);
+                                sbGridParts.push(`<div><span style=\"color:#555;\">最小日数判定</span><span style=\"float:right;text-align:right;\">${eligM}</span></div>`);
+                                const sbGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">${sbGridParts.join('')}<\/div>`;
+                                const sbWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedB ? 'border-left:4px solid #1976d2;background:#f7fbff;' : ''}\">`;
+                                const sbWrapClose = `</div>`;
+                                detailBlockB = `${sbWrapOpen}${sbHeader}${sbGrid}${sbWrapClose}`;
+
+                                // Stage B 結果保存
+                                calc.stageB = {
+                                    days: (eligible && c.default_days != null && !isNaN(c.default_days)) ? Number(c.default_days) : null,
+                                    classification: cls || '不明',
+                                    msLabel: msRaw || '',
+                                    eligible
+                                };
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore stage B errors */ }
+                // 勤続期間ヘッダ（最上段）を生成
+                let headerHtml = '';
+                try {
+                    if (unit === 'day' && (detailBlock || detailBlockB)) {
+                        if (hireMissing) {
+                            headerHtml = `<div style="font-weight:bold; color:#d32f2f;">勤続期間: 判定不可（入社日未登録）</div>`;
+                        } else {
+                            const msRaw = (calc.stageB && calc.stageB.msLabel) ? calc.stageB.msLabel : (calc.stageA && calc.stageA.msLabel ? calc.stageA.msLabel : '');
+                            if (msRaw) {
+                                const ms = String(msRaw).replace(/y/g, '年').replace(/m/g, 'か月');
+                                headerHtml = `<div style="font-weight:bold;">勤続期間: ${ms}</div>`;
+                            }
+                        }
+                    }
+                } catch (e) { /* noop */ }
+                // 段階A/Bの詳細を合成して描画（A→Bの順）。どちらかが空なら非空のみ描画
+                try {
+                    if (refDetail) {
+                        const merged = [headerHtml, detailBlock, detailBlockB].filter(Boolean).join('');
+                        refDetail.innerHTML = merged || '';
+                    }
+                } catch (e) { /* no-op */ }
+                // 単位が日: 1日あたり時間の初期値を設定（初回のみ上書き）
+                if (unit === 'day' && perDayEl) {
+                    if (!perDayEl.value && baseHours && baseHours > 0) {
+                        // 契約時間が無い→平均、契約時間がある→契約時間を優先
+                        const uHasContract = (u && u.contract_hours_per_day != null && u.contract_hours_per_day > 0);
+                        const val = roundHoursBySettings(Number(baseHours));
+                        if (!uHasContract) perDayEl.value = (Math.round(val * 100) / 100).toFixed(2);
+                    }
+                }
+                let info = '';
+                if (unit === 'day') {
+                    const perH = parseFloat(perDayEl?.value || '0');
+                    if (perH > 0) {
+                        info = `参考: 1日=${perH.toFixed(2)}時間`;
+                    } else if (baseHours && baseHours > 0) {
+                        info = `参考: 1日=${(Math.round(baseHours * 100) / 100).toFixed(2)}時間`;
+                    } else {
+                        info = `参考: 算出対象の勤務実績が不足しています`;
+                    }
+                }
+                // 単位が日なら、日×1日あたり時間→時間へ換算し、送信値（hoursEl）に反映
+                if (unit === 'day') {
+                    const d = parseFloat(daysEl.value || '0');
+                    const perH = parseFloat(perDayEl?.value || '0');
+                    if (d > 0 && perH > 0) {
+                        const hRaw = d * perH;
+                        const h = roundHoursBySettings(hRaw);
+                        hoursEl.value = (Math.round(h * 100) / 100).toFixed(2);
+                        info += ` → ${d}日=${(Math.round(h * 100) / 100).toFixed(2)}時間`;
+                    }
+                }
+                // 採用結果サマリー + 詳細の折りたたみ
+                try {
+                    const parent = ref && ref.parentElement ? ref.parentElement : null;
+                    if (parent && refDetail) {
+                        // 開閉状態（デフォルトは折りたたみ）
+                        const collapsed = (localStorage.getItem('pl_ref_collapsed') !== '0');
+                        refDetail.style.display = collapsed ? 'none' : '';
+                        // トグルボタン生成/更新
+                        let toggle = document.getElementById('grantRefToggle');
+                        if (!toggle) {
+                            toggle = document.createElement('button');
+                            toggle.id = 'grantRefToggle';
+                            toggle.className = 'btn btn-secondary';
+                            toggle.style.padding = '0.15em 0.6em';
+                            toggle.style.fontSize = '0.9em';
+                            toggle.style.alignSelf = 'end';
+                            toggle.style.width = 'auto';
+                            // refのすぐ後に配置
+                            if (ref.nextSibling) parent.insertBefore(toggle, ref.nextSibling); else parent.appendChild(toggle);
+                        }
+                        toggle.textContent = collapsed ? '詳細を表示' : '詳細を隠す';
+                        toggle.onclick = () => {
+                            const isCollapsed = (refDetail.style.display === 'none');
+                            refDetail.style.display = isCollapsed ? '' : 'none';
+                            localStorage.setItem('pl_ref_collapsed', isCollapsed ? '0' : '1');
+                            toggle.textContent = isCollapsed ? '詳細を隠す' : '詳細を表示';
+                        };
+
+                        // サマリー（採用結果）
+                        const src = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                        const srcLabel = src === 'stageB' ? '契約労働時間準拠' : (src === 'stageA' ? '勤務記録から推定' : (src === 'rules-default' ? '設定既定' : '手入力'));
+                        const dVal = (unit === 'day') ? (parseFloat(daysEl.value || '0') || 0) : 0;
+                        // 一致判定
+                        let agree = false;
+                        if (calc.stageA && calc.stageB && typeof calc.stageA.days === 'number' && typeof calc.stageB.days === 'number') {
+                            agree = (calc.stageA.days === calc.stageB.days);
+                        }
+                        const agreeBadge = agree
+                            ? ` <span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;">一致</span>`
+                            : ` <span style="background:#eeeeee;color:#555;border:1px solid #ccc;border-radius:3px;padding:0 4px;">不一致</span>`;
+                        const summary = (unit === 'day')
+                            ? `採用結果: <b>${dVal > 0 ? dVal + '日' : '—'}</b>（${srcLabel}）${agreeBadge}`
+                            : info;
+                        // refは従来の参考情報も保持
+                        ref.innerHTML = (unit === 'day') ? (summary + (info ? `　|　${info}` : '')) : info;
+
+                        // 入社日未登録の警告表示（自動採用抑制を明示）
+                        let warn = document.getElementById('grantRefWarn');
+                        if (!warn) {
+                            warn = document.createElement('div');
+                            warn.id = 'grantRefWarn';
+                            warn.style.fontSize = '0.9em';
+                            warn.style.marginTop = '4px';
+                            // refの直後に配置
+                            if (ref.nextSibling) parent.insertBefore(warn, ref.nextSibling); else parent.appendChild(warn);
+                        }
+                        if (hireMissing) {
+                            warn.style.color = '#d32f2f';
+                            warn.textContent = '入社日が未登録のため、勤続期間の算定ができません。自動採用を抑制しています。';
+                        } else {
+                            warn.textContent = '';
+                        }
+                    }
+                } catch (e) { ref.textContent = info; }
+                if (refDetail && !refDetail.innerHTML) refDetail.innerHTML = '';
+            } catch (e) { /* no-op */ }
+        }
+        // 単位・日数・付与日の変更で参考値更新
+        document.addEventListener('input', (e) => {
+            if (e.target && (e.target.id === 'grantUnit' || e.target.id === 'grantDays' || e.target.id === 'grantPerDayHours' || e.target.id === 'grantDate' || e.target.id === 'avgMode' || e.target.id === 'avgStart' || e.target.id === 'avgEnd')) {
+                if (e.target.id === 'grantDays') { try { e.target.dataset.autofilled = ''; } catch (err) { /* ignore */ } }
+                updateGrantReference();
+            }
+        });
+        document.addEventListener('change', (e) => {
+            if (e.target && (e.target.id === 'grantUnit' || e.target.id === 'grantDays' || e.target.id === 'grantPerDayHours' || e.target.id === 'grantDate' || e.target.id === 'avgMode' || e.target.id === 'avgStart' || e.target.id === 'avgEnd')) {
+                updateGrantReference();
+            }
+        });
         // 付与送信
         document.addEventListener('click', async (e) => {
             if (e.target && e.target.id === 'grantSubmitBtn') {
                 const msg = document.getElementById('grantMsg');
                 const grantDate = document.getElementById('grantDate').value;
+                const unit = document.getElementById('grantUnit')?.value || 'day';
                 const grantHoursStr = document.getElementById('grantHours').value.trim();
                 const grantExpire = document.getElementById('grantExpire').value;
                 if (!grantDate) { msg.textContent = '付与日を入力してください'; msg.style.color = '#d32f2f'; return; }
-                if (!grantHoursStr) { msg.textContent = '時間を入力してください'; msg.style.color = '#d32f2f'; return; }
+                if (!grantHoursStr) { msg.textContent = (unit === 'day' ? '日数を入力してください' : '時間を入力してください'); msg.style.color = '#d32f2f'; return; }
                 const grantHours = parseFloat(grantHoursStr);
                 if (!(grantHours > 0)) { msg.textContent = '時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                 msg.textContent = '登録中...'; msg.style.color = '#666';
@@ -1261,8 +1836,9 @@
                     msg.textContent = '付与を登録しました'; msg.style.color = '#2e7d32';
                     // 統一履歴を更新
                     await renderLeaveHistory();
+                    await updateGrantReference();
                 } else {
-                    try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                    try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch (e) { msg.textContent = '登録に失敗しました'; }
                     msg.style.color = '#d32f2f';
                 }
             }
@@ -1298,7 +1874,7 @@
                 // 失効（過去分バックフィル）
                 const r2 = await fetchWithAuth(`api/paid_leave_expire_batch.php?mode=backfill&user=${selectedUserId}`);
                 if (r2 && r2.ok) {
-                    try { const j = await r2.json(); msg.textContent = `再計算→失効 完了（対象ユーザー: ${selectedUserId}, 失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch { msg.textContent = '再計算→失効 完了'; msg.style.color = '#2e7d32'; }
+                    try { const j = await r2.json(); msg.textContent = `再計算→失効 完了（対象ユーザー: ${selectedUserId}, 失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch (e) { msg.textContent = '再計算→失効 完了'; msg.style.color = '#2e7d32'; }
                     await renderLeaveHistory();
                 } else {
                     msg.textContent = '失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
@@ -1314,7 +1890,7 @@
                 // 失効（過去分バックフィル 全体）
                 const r2 = await fetchWithAuth('api/paid_leave_expire_batch.php?mode=backfill');
                 if (r2 && r2.ok) {
-                    try { const j = await r2.json(); msg.textContent = `全体 再計算→失効 完了（失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch { msg.textContent = '全体 再計算→失効 完了'; msg.style.color = '#2e7d32'; }
+                    try { const j = await r2.json(); msg.textContent = `全体 再計算→失効 完了（失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; } catch (e) { msg.textContent = '全体 再計算→失効 完了'; msg.style.color = '#2e7d32'; }
                     await renderLeaveHistory();
                 } else {
                     msg.textContent = '全体の失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
@@ -1339,7 +1915,7 @@
             await renderTable();
         })();
         // 月変更のリスナーは上部で設定済み
-        document.getElementById("adminMenuBtn").onclick = function () {
+        document.getElementById("backBtn").onclick = function () {
             window.location.href = "admin.html";
         };
     </script>

@@ -1,0 +1,140 @@
+<?php
+// api/attendance_avg.php
+// 指定ユーザーの期間平均（休憩控除後）1日あたり時間を返す
+// ポリシー: 期間は「前回付与日〜今回付与日前日（ただし最大1年間）」
+// 入力: JSON { user_id:number, end_date:string('YYYY-MM-DD') }
+// 出力: { user_id, start_date, end_date, work_days, total_minutes, total_hours, avg_hours_per_day }
+
+session_start();
+header('Content-Type: application/json');
+require_once '../db_config.php';
+
+try {
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'not logged in']);
+        exit;
+    }
+    // 管理者のみ
+    $adminId = $_SESSION['user_id'];
+    $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+    $stmt->execute([$adminId]);
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$admin || $admin['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'forbidden']);
+        exit;
+    }
+
+    $raw = file_get_contents('php://input');
+    $j = json_decode($raw, true);
+    $userId = isset($j['user_id']) ? (int)$j['user_id'] : 0;
+    $endDate = isset($j['end_date']) ? trim($j['end_date']) : '';
+    $startDateOverride = isset($j['start_date']) ? trim($j['start_date']) : '';
+    if ($userId <= 0 || !$endDate) {
+        http_response_code(400);
+        echo json_encode(['error' => 'user_id and end_date required']);
+        exit;
+    }
+
+    // 前回付与日（end_date より前の最新の grant_date）を取得
+    $stmt = $pdo->prepare('SELECT grant_date FROM paid_leaves WHERE user_id = ? AND grant_date < ? ORDER BY grant_date DESC, id DESC LIMIT 1');
+    $stmt->execute([$userId, $endDate]);
+    $prev = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // 期間開始の決定:
+    //  - 明示 start_date が指定された場合はそれを採用（検証: end 以前）
+    //  - 無指定の場合:
+    //      * 前回付与が存在: start = max(前回付与日, end-1年+1日)
+    //      * 前回付与が無い: start = max(入社日, end-6ヶ月+1日) ただし入社日が不明なら end-6ヶ月+1日
+    $end = new DateTime($endDate);
+    $startByYear = clone $end;
+    $startByYear->modify('-1 year');
+    $startByYear->modify('+1 day');
+    $startByHalf = clone $end;
+    $startByHalf->modify('-6 months');
+    $startByHalf->modify('+1 day');
+    $start = $startByHalf; // 既定
+    $startSource = 'auto';
+    if ($startDateOverride) {
+        $startTmp = DateTime::createFromFormat('Y-m-d', $startDateOverride);
+        if (!$startTmp) {
+            http_response_code(400);
+            echo json_encode(['error' => 'invalid start_date format']);
+            exit;
+        }
+        if ($startTmp > $end) {
+            http_response_code(400);
+            echo json_encode(['error' => 'start_date must be on or before end_date']);
+            exit;
+        }
+        $start = $startTmp;
+        $startSource = 'override';
+    } else {
+        if ($prev && isset($prev['grant_date']) && $prev['grant_date']) {
+            $prevDt = new DateTime($prev['grant_date']);
+            $start = ($prevDt > $startByYear) ? $prevDt : $startByYear;
+            $startSource = 'prev_grant_or_1y';
+        } else {
+            // 入社日を考慮
+            $stmt = $pdo->prepare('SELECT hire_date FROM user_detail WHERE user_id = ?');
+            $stmt->execute([$userId]);
+            $ud = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($ud && !empty($ud['hire_date'])) {
+                $hire = new DateTime($ud['hire_date']);
+                $start = ($hire > $startByHalf) ? $hire : $startByHalf;
+                $startSource = 'hire_or_6m';
+            } else {
+                $start = $startByHalf;
+                $startSource = 'last_6m';
+            }
+        }
+    }
+    $startDate = $start->format('Y-m-d');
+
+    // 日別の労働分（休憩控除）を集計
+    $sql = "WITH daily AS (
+                SELECT t.user_id, t.work_date,
+                       GREATEST(0,
+                         TIMESTAMPDIFF(MINUTE, t.clock_in, t.clock_out)
+                         - IFNULL(bm.break_minutes, 0)
+                       ) AS minutes
+                FROM timecards t
+                LEFT JOIN (
+                    SELECT timecard_id,
+                           SUM(TIMESTAMPDIFF(MINUTE, break_start, break_end)) AS break_minutes
+                    FROM breaks
+                    GROUP BY timecard_id
+                ) bm ON bm.timecard_id = t.id
+                WHERE t.user_id = :uid
+                  AND t.work_date BETWEEN :start AND :end
+                  AND t.clock_in IS NOT NULL AND t.clock_out IS NOT NULL
+           )
+           SELECT COUNT(*) AS work_days,
+                  COALESCE(SUM(minutes),0) AS total_minutes
+           FROM daily";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+    $stmt->bindValue(':start', $startDate, PDO::PARAM_STR);
+    $stmt->bindValue(':end', $endDate, PDO::PARAM_STR);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['work_days' => 0, 'total_minutes' => 0];
+    $workDays = (int)$row['work_days'];
+    $totalMinutes = (int)$row['total_minutes'];
+    $totalHours = round($totalMinutes / 60, 2);
+    $avgHours = ($workDays > 0) ? round(($totalMinutes / 60) / $workDays, 2) : null;
+
+    echo json_encode([
+        'user_id' => $userId,
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+        'start_source' => $startSource,
+        'work_days' => $workDays,
+        'total_minutes' => $totalMinutes,
+        'total_hours' => $totalHours,
+        'avg_hours_per_day' => $avgHours,
+    ]);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'server error', 'message' => $e->getMessage()]);
+}

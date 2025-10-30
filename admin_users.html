@@ -95,6 +95,12 @@
             background: #1565c0;
         }
 
+        .btn-secondary {
+            background: transparent;
+            color: #1976d2;
+            border: 1.5px solid #1976d2;
+        }
+
         /* 展開行 */
         .expand-toggle {
             background: none;
@@ -309,10 +315,7 @@
 <body>
     <div class="container">
         <div style="text-align: right; margin-bottom: 0.7em">
-            <button
-                class="btn"
-                onclick="location.href='admin.html'"
-                style="background: #fff; color: #1976d2; border: 1.5px solid #1976d2"> メニューへ戻る </button>
+            <button class="btn btn-secondary" id="backBtn">← 管理メニューへ</button>
         </div>
         <h2>ユーザーアカウント管理</h2>
         <div
@@ -388,6 +391,11 @@
                     window.location.href = "punch.html";
                 }
             });
+        // 戻るボタン
+        (function () {
+            const back = document.getElementById('backBtn');
+            if (back) back.onclick = () => { window.location.href = 'admin.html'; };
+        })();
         // 全社設定の取得（所定労働時間・繰越月数 など）
         let orgSettings = null;
         async function loadOrgSettings() {
@@ -505,6 +513,14 @@
                                 <option value="admin">管理者</option>
                             </select>
                         </div>
+                        <div>区分</div>
+                        <div class="inline">
+                            <label class="toggle-s" for="newFullTime">
+                                <input type="checkbox" class="toggle__input-s" id="newFullTime" checked>
+                                <span class="toggle__slider-s"></span>
+                            </label>
+                            <span id="new-ft-label" class="muted">常勤</span>
+                        </div>
                         <div>自家用車</div>
                         <div class="inline">
                             <label class="toggle-s" for="newUseVehicle">
@@ -514,7 +530,13 @@
                             <span id="new-vehicle-label" class="muted">使用する</span>
                         </div>
                         <div>契約労働時間（1日あたり）</div>
-                        <div><input type="number" id="newContractHours" min="0" step="0.25" value="${baseHoursDefault}" style="width:90px;text-align:right;"> h/日</div>
+                        <div><input type="number" id="newContractHours" min="0" step="0.25" value="${baseHoursDefault}" placeholder="未設定可" style="width:90px;text-align:right;"> h/日</div>
+                        <div class="muted">予定（所定）労働パターン（任意）</div>
+                        <div class="inline" style="gap:12px; flex-wrap:wrap; align-items:center;">
+                          <label>週日数 <input type="number" id="newSchedWD" min="0" step="1" placeholder="例: 5" style="width:80px; text-align:right;"> 日/週</label>
+                          <label>週時間 <input type="number" id="newSchedWH" min="0" step="0.25" placeholder="例: 40" style="width:90px; text-align:right;"> h/週</label>
+                          <label>年日数 <input type="number" id="newSchedAD" min="0" step="1" placeholder="例: 240" style="width:90px; text-align:right;"> 日/年</label>
+                        </div>
                     </div>
                     <div style="margin-top:14px; display:flex; gap:8px;">
                         <button class="btn" id="newUserSaveBtn">登録</button>
@@ -531,6 +553,14 @@
                 sync();
                 cb.addEventListener('change', sync);
             })();
+            (function () {
+                const cb = document.getElementById('newFullTime');
+                const lbl = document.getElementById('new-ft-label');
+                if (!cb || !lbl) return;
+                const sync = () => { if (cb.checked) { lbl.textContent = '常勤'; lbl.classList.remove('muted'); } else { lbl.textContent = '非常勤'; lbl.classList.add('muted'); } };
+                sync();
+                cb.addEventListener('change', sync);
+            })();
             document.getElementById('newUserCancelBtn').onclick = function () {
                 const p = document.getElementById('new-user-panel');
                 if (p) p.remove();
@@ -544,13 +574,21 @@
             const name = (root.querySelector('#newUserName')?.value || '').trim();
             const roleVal = (root.querySelector('#newUserRole')?.value || 'user');
             const role = roleVal === 'admin' ? 'admin' : 'user';
+            const full_time = (root.querySelector('#newFullTime')?.checked ? 1 : 0);
             const use_vehicle = (root.querySelector('#newUseVehicle')?.checked ? 1 : 0);
-            const contract_hours_per_day = parseFloat(root.querySelector('#newContractHours')?.value || '0') || 0;
+            const chRawNew = (root.querySelector('#newContractHours')?.value ?? '').toString().trim();
+            const contract_hours_per_day = (chRawNew === '') ? null : (parseFloat(chRawNew) > 0 ? parseFloat(chRawNew) : null);
+            const sched_wd_raw = (root.querySelector('#newSchedWD')?.value ?? '').toString().trim();
+            const sched_wh_raw = (root.querySelector('#newSchedWH')?.value ?? '').toString().trim();
+            const sched_ad_raw = (root.querySelector('#newSchedAD')?.value ?? '').toString().trim();
+            const scheduled_weekly_days = (sched_wd_raw === '') ? null : ((parseInt(sched_wd_raw) > 0) ? parseInt(sched_wd_raw) : null);
+            const scheduled_weekly_hours = (sched_wh_raw === '') ? null : ((parseFloat(sched_wh_raw) > 0) ? parseFloat(sched_wh_raw) : null);
+            const scheduled_annual_days = (sched_ad_raw === '') ? null : ((parseInt(sched_ad_raw) > 0) ? parseInt(sched_ad_raw) : null);
             if (!name) { alert('ユーザー名を入力してください'); return; }
             if (contract_hours_per_day < 0) { alert('契約労働時間は0以上で入力してください'); return; }
             const res = await fetchWithAuth('api/admin_user_create.php', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, role, use_vehicle, contract_hours_per_day })
+                body: JSON.stringify({ name, role, full_time, use_vehicle, contract_hours_per_day, scheduled_weekly_days, scheduled_weekly_hours, scheduled_annual_days })
             });
             if (res && res.ok) {
                 const data = await res.json();
@@ -620,7 +658,7 @@
                                         <div>ユーザー名</div><div>${user.name}</div>
                                         <div>権限</div><div>${user.role === 'admin' ? '管理者' : '一般'}</div>
                                         <div>自家用車</div><div>${user.use_vehicle == 1 ? '利用する' : '利用しない'}</div>
-                                        <div>契約時間</div><div>${user.contract_hours_per_day ?? 8} h/日</div>
+                                        <div>契約時間</div><div>${(user.contract_hours_per_day != null ? user.contract_hours_per_day + ' h/日' : '未設定')}</div>
                                     </div>
                                 </div>
                                 <div id="panel-details-${user.id}" class="tab-panel">
@@ -662,6 +700,14 @@
                             <option value="admin" ${roleAdminSel}>管理者</option>
                         </select>
                     </div>
+                    <div>区分</div>
+                    <div class="inline">
+                        <label class="toggle-s" for="det-fulltime-${user.id}">
+                            <input type="checkbox" class="toggle__input-s" id="det-fulltime-${user.id}" ${user.full_time == 1 ? 'checked' : ''} ${disabled}>
+                            <span class="toggle__slider-s"></span>
+                        </label>
+                        <label id="det-fulltime-label-${user.id}" for="det-fulltime-${user.id}" style="cursor:pointer; user-select:none" class="${user.full_time == 1 ? '' : 'muted'}">${user.full_time == 1 ? '常勤' : '非常勤'}</label>
+                    </div>
                     <div>自家用車</div>
                     <div class="inline">
                         <label class="toggle-s" for="det-vehicle-${user.id}">
@@ -671,7 +717,13 @@
                         <label for="det-vehicle-${user.id}" id="det-vehicle-label-${user.id}" style="cursor:pointer; user-select:none" class="${checked ? '' : 'muted'}">${checked ? '利用する' : '利用しない'}</label>
                     </div>
                     <div>契約労働時間</div>
-                    <div class="inline"><input type="number" step="0.25" min="0" id="det-contract-${user.id}" value="${user.contract_hours_per_day ?? 8}" ${disabled} style="width:90px; text-align:right;"> h/日</div>
+                    <div class="inline"><input type="number" step="0.25" min="0" id="det-contract-${user.id}" value="${(user.contract_hours_per_day ?? '')}" ${disabled} placeholder="未設定" style="width:90px; text-align:right;"> h/日</div>
+                    <div class="muted">予定（所定）労働パターン</div>
+                    <div class="inline" style="gap:12px; flex-wrap:wrap; align-items:center;">
+                        <label>週日数 <input type="number" step="1" min="0" id="det-sched-wd-${user.id}" value="${(user.scheduled_weekly_days ?? '')}" ${disabled} placeholder="未設定" style="width:80px; text-align:right;"> 日/週</label>
+                        <label>週時間 <input type="number" step="0.25" min="0" id="det-sched-wh-${user.id}" value="${(user.scheduled_weekly_hours ?? '')}" ${disabled} placeholder="未設定" style="width:90px; text-align:right;"> h/週</label>
+                        <label>年日数 <input type="number" step="1" min="0" id="det-sched-ad-${user.id}" value="${(user.scheduled_annual_days ?? '')}" ${disabled} placeholder="未設定" style="width:90px; text-align:right;"> 日/年</label>
+                    </div>
                     <div>入社日</div>
                     <div><input type="date" id="det-hire-${user.id}" value="${user.hire_date ?? ''}" ${disabled} style="max-width:160px;"></div>
                     <div>退職日</div>
@@ -698,6 +750,19 @@
                 cb.addEventListener('change', sync);
             })();
 
+            // 区分(常勤/非常勤)ラベル同期
+            (function () {
+                const cb = document.getElementById(`det-fulltime-${user.id}`);
+                const lbl = document.getElementById(`det-fulltime-label-${user.id}`);
+                if (!cb || !lbl) return;
+                const sync = () => {
+                    if (cb.checked) { lbl.textContent = '常勤'; lbl.classList.remove('muted'); }
+                    else { lbl.textContent = '非常勤'; lbl.classList.add('muted'); }
+                };
+                sync();
+                cb.addEventListener('change', sync);
+            })();
+
             // ハンドラ
             const saveBtn = document.getElementById(`det-save-${user.id}`);
             if (saveBtn) {
@@ -705,7 +770,15 @@
                     const name = (document.getElementById(`det-name-${user.id}`)?.value || '').trim();
                     const role = (document.getElementById(`det-role-${user.id}`)?.value || 'user');
                     const use_vehicle = (document.getElementById(`det-vehicle-${user.id}`)?.checked ? 1 : 0);
-                    const ch = parseFloat(document.getElementById(`det-contract-${user.id}`)?.value || '8') || 8;
+                    const chRaw = (document.getElementById(`det-contract-${user.id}`)?.value ?? '').toString().trim();
+                    const ch = (chRaw === '') ? null : (parseFloat(chRaw) > 0 ? parseFloat(chRaw) : null);
+                    const swdRaw = (document.getElementById(`det-sched-wd-${user.id}`)?.value ?? '').toString().trim();
+                    const swhRaw = (document.getElementById(`det-sched-wh-${user.id}`)?.value ?? '').toString().trim();
+                    const sadRaw = (document.getElementById(`det-sched-ad-${user.id}`)?.value ?? '').toString().trim();
+                    const scheduled_weekly_days = (swdRaw === '') ? null : ((parseInt(swdRaw) > 0) ? parseInt(swdRaw) : null);
+                    const scheduled_weekly_hours = (swhRaw === '') ? null : ((parseFloat(swhRaw) > 0) ? parseFloat(swhRaw) : null);
+                    const scheduled_annual_days = (sadRaw === '') ? null : ((parseInt(sadRaw) > 0) ? parseInt(sadRaw) : null);
+                    const detFull = (document.getElementById(`det-fulltime-${user.id}`)?.checked) ? 1 : 0;
                     const hireDateRaw = (document.getElementById(`det-hire-${user.id}`)?.value || '');
                     const hire_date = hireDateRaw === '' ? null : hireDateRaw;
                     const retireDateRaw = (document.getElementById(`det-retire-${user.id}`)?.value || '');
@@ -713,7 +786,7 @@
                     if (!name) { alert('ユーザー名を入力してください'); return; }
                     const res = await fetchWithAuth('api/admin_user_update.php', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: user.id, name, role, use_vehicle, contract_hours_per_day: ch, hire_date, retire_date })
+                        body: JSON.stringify({ id: user.id, name, role, use_vehicle, contract_hours_per_day: ch, full_time: detFull, hire_date, retire_date, scheduled_weekly_days, scheduled_weekly_hours, scheduled_annual_days })
                     });
                     if (res && res.ok) {
                         await renderTable();
@@ -1006,7 +1079,8 @@
                 return dt;
             };
             const exp = months > 0 ? addMonths(today, months) : null;
-            const estr = exp ? `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}` : '';
+            const expEff = exp ? (function () { const t = new Date(exp.getTime()); t.setDate(t.getDate() - 1); return t; })() : null;
+            const estr = expEff ? `${expEff.getFullYear()}-${pad(expEff.getMonth() + 1)}-${pad(expEff.getDate())}` : '';
             const dEl = document.getElementById(`lg-date-${user.id}`);
             const eEl = document.getElementById(`lg-expire-${user.id}`);
             dEl.value = dstr;
@@ -1018,11 +1092,12 @@
                 const dt = new Date(val);
                 if (isNaN(dt)) return;
                 const ex2 = months > 0 ? addMonths(dt, months) : null;
+                const ex2Eff = ex2 ? (function () { const t = new Date(ex2.getTime()); t.setDate(t.getDate() - 1); return t; })() : null;
                 const ecur = eEl.value;
                 // ユーザーが手動で上書きした可能性を考慮し、空または初期値と同じなら更新
                 if (!ecur || ecur === estr) {
-                    if (ex2) {
-                        const nstr = `${ex2.getFullYear()}-${pad(ex2.getMonth() + 1)}-${pad(ex2.getDate())}`;
+                    if (ex2Eff) {
+                        const nstr = `${ex2Eff.getFullYear()}-${pad(ex2Eff.getMonth() + 1)}-${pad(ex2Eff.getDate())}`;
                         eEl.value = nstr;
                     } else {
                         eEl.value = '';

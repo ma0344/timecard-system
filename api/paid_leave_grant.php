@@ -59,7 +59,17 @@ try {
     // 期限指定なしの場合は、設定に従って決定（<=0 の場合は無期限=NULL）
     if ($expireDate === null) {
         if ($months > 0) {
-            $expireDate = date('Y-m-d', strtotime($grantDate . ' +' . $months . ' months'));
+            // 月加算（末日補正）＋ 前日を満了日とする
+            $dt = new DateTime($grantDate);
+            $origDay = (int)$dt->format('d');
+            $dt->modify('+' . $months . ' months');
+            if ((int)$dt->format('d') < $origDay) {
+                // PHPの+monthsで月末を超えた場合、翌月に進むことがあるため、前月末日に補正
+                $dt->modify('last day of previous month');
+            }
+            // 満了日は「+months」の前日
+            $dt->modify('-1 day');
+            $expireDate = $dt->format('Y-m-d');
         } else {
             $expireDate = null; // 無期限
         }
