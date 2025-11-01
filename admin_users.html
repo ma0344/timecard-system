@@ -98,6 +98,15 @@
         .btn-secondary {
             background: transparent;
             color: #1976d2;
+        }
+
+        .btn-secondary:active {
+            background: transparent;
+        }
+
+        .btn-secondary_2 {
+            background: transparent;
+            color: #1976d2;
             border: 1.5px solid #1976d2;
         }
 
@@ -308,6 +317,22 @@
             td {
                 font-size: 0.95em;
             }
+        }
+
+        input[type="date" i] {
+            font-size: 1.2em;
+            height: 29px;
+            width: 120px;
+        }
+
+        .grantExpireDateWrap {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            grid-template-columns: auto auto auto;
+            gap: 6px;
+            align-self: stretch;
+            height: 29px;
+            min-width: 220px;
         }
     </style>
 </head>
@@ -1066,15 +1091,15 @@
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px; align-self:auto;">
                       <div class="inline" style="display:flex;align-items:center;gap:6px; width:313.13px">
-                        <label>付与単位 <select id="grantUnit-${user.id}" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                        <label>付与単位 <select id="grantUnit-${user.id}" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px; width:60px;">
                           <option value="day">日</option>
                           <option value="hour">時間</option>
                         </select></label>
                       </div>
                       <div style="display:flex; flex-direction: row;">
-                        <label id="grantHoursWrap-${user.id}" style="display:none; margin-right:160.34px">付与時間 <input type="number" id="grantHours-${user.id}" min="1" step="1" style="width:50px;text-align:right; margin-left:6px; font-size:1em; height:23px;"> h </label>
-                        <label id="grantDaysWrap-${user.id}">付与日数 <input type="number" id="grantDays-${user.id}" min="1" step="1" style="width:50px; margin-left:6px;text-align:right; font-size:1em; height:23px;"> 日 </label>
-                        <label id="grantPerDayWrap-${user.id}" style="display:none; margin-left:26px;">1日= <input type="number" id="grantPerDayHours-${user.id}" min="1" step="1" style="width:50px;text-align:right; font-size:1em; height:23px;"> 時間</label>
+                        <label id="grantHoursWrap-${user.id}" style="display:none; margin-right:160.34px">付与時間 <input type="number" id="grantHours-${user.id}" min="1" step="1" style="text-align:right; margin-left:6px; font-size:1em; height:29px; width:60px;"> h </label>
+                        <label id="grantDaysWrap-${user.id}">付与日数 <input type="number" id="grantDays-${user.id}" min="1" step="1" style="margin-left:6px;text-align:right; font-size:1em; height:29px; width:60px;"> 日 </label>
+                        <label id="grantPerDayWrap-${user.id}" style="display:none; margin-left:26px;">1日= <input type="number" id="grantPerDayHours-${user.id}" min="1" step="1" style="text-align:right; font-size:1em; height:29px; width:60px;"> 時間</label>
                       </div>
                     </div>
                   </div>
@@ -1083,15 +1108,15 @@
                     <div id="avgStartLabel-${user.id}" style="color:#555;">開始</div>
                     <div id="avgEndLabel-${user.id}" style="color:#555;">終了</div>
                     <div>
-                      <select id="avgMode-${user.id}" style="font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                      <select id="avgMode-${user.id}" style="font-size:1em; padding-block:1px; padding-inline:2px; height:29px;width:auto;">
                         <option value="auto">自動（推奨）</option>
                         <option value="6m">過去6ヶ月</option>
                         <option value="1y">過去1年</option>
                         <option value="custom">カスタム</option>
                       </select>
                     </div>
-                    <div id="avgStartWrap-${user.id}"><input type="date" id="avgStart-${user.id}" style="font-size:1.2em; height:25px;" disabled></div>
-                    <div id="avgEndWrap-${user.id}"><input type="date" id="avgEnd-${user.id}" style="font-size:1.2em; height:25px;" disabled></div>
+                    <div id="avgStartWrap-${user.id}"><input type="date" id="avgStart-${user.id}" style="font-size:1.2em;" disabled></div>
+                    <div id="avgEndWrap-${user.id}"><input type="date" id="avgEnd-${user.id}" style="font-size:1.2em;" disabled></div>
                   </div>
                   <div style="flex-basis:100%;height:0;"></div>
                   <div id="grantSummaryRow-${user.id}" style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:0.5em;">
@@ -1111,7 +1136,7 @@
             const pad = (n) => String(n).padStart(2, '0');
             const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
             const addMonthsEndFix = (base, months) => { const d = new Date(base.getTime()); const srcD = d.getDate(); d.setMonth(d.getMonth() + months); if (d.getDate() < srcD) d.setDate(0); return d; };
-            const parseYmdLocal = (s) => { const p = String(s || '').split('-').map((n)=>parseInt(n,10)); return (p.length>=3 && !isNaN(p[0])&&!isNaN(p[1])&&!isNaN(p[2])) ? new Date(p[0],p[1]-1,p[2]) : new Date(NaN); };
+            const parseYmdLocal = (s) => { const p = String(s || '').split('-').map((n) => parseInt(n, 10)); return (p.length >= 3 && !isNaN(p[0]) && !isNaN(p[1]) && !isNaN(p[2])) ? new Date(p[0], p[1] - 1, p[2]) : new Date(NaN); };
 
             // 要素参照
             const gd = q(`#grantDate-${user.id}`);
@@ -1158,32 +1183,34 @@
                             if (grants.length > 0) {
                                 let latest = grants[0].grant_date;
                                 for (const g of grants) { if (g.grant_date > latest) latest = g.grant_date; }
-                                const [y,m,d] = latest.split('-').map(Number);
-                                const dt = new Date(y, m-1, d);
+                                const [y, m, d] = latest.split('-').map(Number);
+                                const dt = new Date(y, m - 1, d);
                                 const next = addMonthsEndFix(dt, 12);
                                 return toYmd(next);
                             }
                         }
-                    } catch {}
+                    } catch { }
                     // 2) 入社日 + 6ヶ月
                     try {
                         if (user && user.hire_date) {
-                            const [y,m,d] = String(user.hire_date).split('-').map(Number);
-                            const dt = new Date(y, m-1, d);
+                            const [y, m, d] = String(user.hire_date).split('-').map(Number);
+                            const dt = new Date(y, m - 1, d);
                             const next = addMonthsEndFix(dt, 6);
                             return toYmd(next);
                         }
-                    } catch {}
+                    } catch { }
                     // 3) 今日
                     const today = new Date();
                     return toYmd(today);
                 }
-                if (gd && !gd.value) { try { gd.value = await computeDefaultGrantDate(); } catch {} }
+                if (gd && !gd.value) { try { gd.value = await computeDefaultGrantDate(); } catch { } }
                 if (gc) gc.onclick = () => { ge.value = ''; };
                 if (gd) {
                     gd.addEventListener('change', setExpireFromGrant);
                     if (!ge.value) setExpireFromGrant();
                 }
+                // 重要: デフォルト付与日の設定後に初回の参考計算を実行（初期表示でAPIが走らない問題の対策）
+                try { await updateGrantReferenceScoped(); } catch {}
             })();
 
             // 参考更新ロジック（スコープ化）
@@ -1212,7 +1239,7 @@
                     const calc = { stageA: null, stageB: null };
                     if (grantDate) {
                         try {
-                            function fmt(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+                            function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
                             const gdDate = parseYmdLocal(grantDate);
                             let endDate = new Date(gdDate); endDate.setDate(endDate.getDate() - 1);
                             const endStr = fmt(endDate);
@@ -1230,7 +1257,7 @@
                             } else if (mode === 'custom') {
                                 if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
                                 if (avgStartEl && !avgStartEl.value) {
-                                    const s = new Date(endDate); s.setMonth(s.getMonth()-6); s.setDate(s.getDate()+1); avgStartEl.value = fmt(s);
+                                    const s = new Date(endDate); s.setMonth(s.getMonth() - 6); s.setDate(s.getDate() + 1); avgStartEl.value = fmt(s);
                                 }
                                 if (avgStartEl) avgStartEl.disabled = false;
                                 if (avgEndEl) avgEndEl.disabled = false;
@@ -1239,7 +1266,7 @@
                                 if (avgStartEl) avgStartEl.disabled = true;
                                 if (avgEndEl) avgEndEl.disabled = true;
                             }
-                            const r = await fetchWithAuth('api/attendance_avg.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: Number(user.id), end_date: endStr, start_date: startStr || undefined }) });
+                            const r = await fetchWithAuth('api/attendance_avg.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: Number(user.id), end_date: endStr, start_date: startStr || undefined }) });
                             if (r && r.ok) {
                                 const j = await r.json();
                                 if ((baseHours === null || !(baseHours > 0)) && j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
@@ -1252,8 +1279,8 @@
                                     const ee = j?.end_date || endStr;
                                     const roundLabelHour = '1時間単位で切り上げ';
                                     let html = (avg != null)
-                                      ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRoundedHour.toFixed(2)}時間/日（${roundLabelHour}）`
-                                      : `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: データ不足`;
+                                        ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRoundedHour.toFixed(2)}時間/日（${roundLabelHour}）`
+                                        : `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: データ不足`;
 
                                     // Stage A（勤務記録から推定）
                                     try {
@@ -1267,48 +1294,48 @@
                                         const isInitial = (j?.start_source === 'hire_or_6m' || j?.start_source === 'last_6m');
                                         const annualizedDays = (isInitial ? (wd * 2) : wd);
                                         const PT_HOURS_LT = 30, PT_DAYS_MAX = 4, PT_ANNUAL_MAX = 216, MIN_ANY_GRANT = 48;
-                                        const buckets = [ { key:'4d', min:169, max:216 }, { key:'3d', min:121, max:168 }, { key:'2d', min:73, max:120 }, { key:'1d', min:48, max:72 } ];
+                                        const buckets = [{ key: '4d', min: 169, max: 216 }, { key: '3d', min: 121, max: 168 }, { key: '2d', min: 73, max: 120 }, { key: '1d', min: 48, max: 72 }];
                                         const isPart = ((weeklyHours < PT_HOURS_LT && weeklyDays <= PT_DAYS_MAX) || (annualizedDays <= PT_ANNUAL_MAX));
-                                        let bucket = '4d'; for (const b of buckets){ if (annualizedDays >= b.min && annualizedDays <= b.max){ bucket = b.key; break; } }
-                                        const milestones = (rules && Array.isArray(rules.milestones) ? rules.milestones : ['6m','1y6m','2y6m','3y6m','4y6m','5y6m','6y6m+']);
-                                        function parseMilestoneToMonths(s){ const m=String(s||'').toLowerCase().replace(/\s+/g,''); const i=m.indexOf('y'); if(i>=0){ const y=parseInt(m.substring(0,i),10)||0; const mm=parseInt(m.substring(i+1).replace(/[^0-9]/g,''),10)||0; return y*12+mm; } return parseInt(m.replace(/[^0-9]/g,'')||'0',10)||0; }
+                                        let bucket = '4d'; for (const b of buckets) { if (annualizedDays >= b.min && annualizedDays <= b.max) { bucket = b.key; break; } }
+                                        const milestones = (rules && Array.isArray(rules.milestones) ? rules.milestones : ['6m', '1y6m', '2y6m', '3y6m', '4y6m', '5y6m', '6y6m+']);
+                                        function parseMilestoneToMonths(s) { const m = String(s || '').toLowerCase().replace(/\s+/g, ''); const i = m.indexOf('y'); if (i >= 0) { const y = parseInt(m.substring(0, i), 10) || 0; const mm = parseInt(m.substring(i + 1).replace(/[^0-9]/g, ''), 10) || 0; return y * 12 + mm; } return parseInt(m.replace(/[^0-9]/g, '') || '0', 10) || 0; }
                                         const mlMonths = milestones.map(parseMilestoneToMonths);
-                                        let msIdx = 0; if (u && u.hire_date && grantDate){ const h=parseYmdLocal(u.hire_date); const g=parseYmdLocal(grantDate); if(!isNaN(h)&&!isNaN(g)){ let months=(g.getFullYear()-h.getFullYear())*12+(g.getMonth()-h.getMonth()); if(g.getDate()<h.getDate()) months-=1; for(let i=0;i<mlMonths.length;i++){ if(months>=mlMonths[i]) msIdx=i; else break; } } }
+                                        let msIdx = 0; if (u && u.hire_date && grantDate) { const h = parseYmdLocal(u.hire_date); const g = parseYmdLocal(grantDate); if (!isNaN(h) && !isNaN(g)) { let months = (g.getFullYear() - h.getFullYear()) * 12 + (g.getMonth() - h.getMonth()); if (g.getDate() < h.getDate()) months -= 1; for (let i = 0; i < mlMonths.length; i++) { if (months >= mlMonths[i]) msIdx = i; else break; } } }
                                         let noGrant = (annualizedDays > 0 && annualizedDays < MIN_ANY_GRANT);
                                         let chosen = null; let tableSrc = '常勤';
                                         if (!noGrant && rules) {
-                                            if (isPart && rules.parttime && rules.parttime[bucket]) { chosen = rules.parttime[bucket]?.[msIdx]; tableSrc = `２－２ : 週${bucket.replace('d','日')}`; }
+                                            if (isPart && rules.parttime && rules.parttime[bucket]) { chosen = rules.parttime[bucket]?.[msIdx]; tableSrc = `２－２ : 週${bucket.replace('d', '日')}`; }
                                             else if (rules.fulltime) { chosen = rules.fulltime?.[msIdx]; tableSrc = '２'; }
                                         }
                                         const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
                                         const wasAutoH = !!(hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled);
                                         if (hireMissing || noGrant) {
-                                            if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch {} }
-                                            if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch {} }
+                                            if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch { } }
+                                            if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch { } }
                                         } else if (chosen != null && !isNaN(chosen)) {
-                                            if (unitSel && unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(chosen); try { daysEl.dataset.autofilled = 'stageA'; } catch {} } }
+                                            if (unitSel && unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(chosen); try { daysEl.dataset.autofilled = 'stageA'; } catch { } } }
                                             if (unitSel && unitSel.value === 'hour' && hoursEl) {
                                                 const perHInput = parseFloat(perDayEl?.value || '0');
                                                 let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
                                                 if (perH > 0) perH = Math.ceil(perH);
-                                                try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageA'; } catch {}
+                                                try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageA'; } catch { }
                                                 if (perH > 0) { const hRaw = Number(chosen) * perH; const h = Math.ceil(hRaw); if (!hoursEl.value || wasAutoH) { hoursEl.value = String(h); } }
                                             }
                                         }
-                                        const classLabel = (isPart ? `短時間(${bucket.replace('d','日')})` : '常勤');
+                                        const classLabel = (isPart ? `短時間(${bucket.replace('d', '日')})` : '常勤');
                                         const tblDisplay = String(tableSrc).includes('２－２') ? '表2-2' : '表2';
                                         const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tblDisplay}</span>`;
                                         const saDays = (noGrant ? null : (typeof chosen === 'number' ? chosen : null));
                                         const saDaysLabel = (saDays != null)
-                                          ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${saDays}日</span> ${tableBadge}`
-                                          : `<span style=\"font-weight:bold;text-decoration:underline;${noGrant ? 'color:#d32f2f;' : 'color:#777; font-style:italic;'}\">算定付与日数: ${noGrant ? '判定不可' : '—'}${noGrant ? '（最小基準48日未満）' : ''}</span>`;
+                                            ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${saDays}日</span> ${tableBadge}`
+                                            : `<span style=\"font-weight:bold;text-decoration:underline;${noGrant ? 'color:#d32f2f;' : 'color:#777; font-style:italic;'}\">算定付与日数: ${noGrant ? '判定不可' : '—'}${noGrant ? '（最小基準48日未満）' : ''}</span>`;
                                         const saHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜勤務記録からの推定＞</span>${saDaysLabel}</div>`;
                                         const saGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">`
-                                          + `<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${classLabel}</span></div>`
-                                          + `<div><span style=\"color:#555;\">年換算</span><span style=\"float:right;text-align:right;\">${annualizedDays} 日</span></div>`
-                                          + `<div><span style=\"color:#555;\">週平均日数</span><span style=\"float:right;text-align:right;\">${weeklyDays.toFixed(2)} 日</span></div>`
-                                          + `<div><span style=\"color:#555;\">週平均時間</span><span style=\"float:right;text-align:right;\">${weeklyHours.toFixed(2)} 時間</span></div>`
-                                          + `</div>`;
+                                            + `<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${classLabel}</span></div>`
+                                            + `<div><span style=\"color:#555;\">年換算</span><span style=\"float:right;text-align:right;\">${annualizedDays} 日</span></div>`
+                                            + `<div><span style=\"color:#555;\">週平均日数</span><span style=\"float:right;text-align:right;\">${weeklyDays.toFixed(2)} 日</span></div>`
+                                            + `<div><span style=\"color:#555;\">週平均時間</span><span style=\"float:right;text-align:right;\">${weeklyHours.toFixed(2)} 時間</span></div>`
+                                            + `</div>`;
                                         let saHoursRow = '';
                                         if (unitSel && unitSel.value === 'hour') {
                                             const perHInput = parseFloat(perDayEl?.value || '0');
@@ -1324,11 +1351,11 @@
                                         const saWrapClose = `</div>`;
                                         html += `<br>${saWrapOpen}${saHeader}${saGrid}${saHoursRow}${saWrapClose}`;
                                         calc.stageA = { days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)) };
-                                    } catch {}
+                                    } catch { }
                                     detailBlock = html;
                                 }
                             }
-                        } catch {}
+                        } catch { }
                     }
                     // Stage B（契約準拠）
                     try {
@@ -1346,7 +1373,7 @@
                             })();
                             const body = { user_id: Number(user.id), grant_date: grantDateEff };
                             if (startDateOverride) body.start_date = startDateOverride;
-                            const r2 = await fetchWithAuth('api/paid_leave_classify.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                            const r2 = await fetchWithAuth('api/paid_leave_classify.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                             if (r2 && r2.ok) {
                                 const c = await r2.json();
                                 const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
@@ -1354,21 +1381,21 @@
                                 const eligible = (c.eligible_by_min_annual !== false) && (c.eligible_by_attendance !== false);
                                 if (!preferStageA && !hireMissing) {
                                     if (!eligible) {
-                                        if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch {} }
-                                        if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch {} }
+                                        if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch { } }
+                                        if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch { } }
                                     } else if (c.default_days != null && !isNaN(c.default_days)) {
-                                        if (unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(c.default_days); try { daysEl.dataset.autofilled = 'stageB'; } catch {} } }
+                                        if (unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(c.default_days); try { daysEl.dataset.autofilled = 'stageB'; } catch { } } }
                                         if (unitSel.value === 'hour' && hoursEl) {
                                             const perHInput = parseFloat(perDayEl?.value || '0');
                                             let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
                                             if (perH > 0) perH = Math.ceil(perH);
-                                            try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageB'; } catch {}
+                                            try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageB'; } catch { }
                                             if (perH > 0) { const hRaw = Number(c.default_days) * perH; const h = Math.ceil(hRaw); if (!hoursEl.value || wasAutoH) { hoursEl.value = String(h); } }
                                         }
                                     }
                                 } else if (hireMissing) {
-                                    if (wasAuto && daysEl) { try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch {} }
-                                    if (wasAutoH && hoursEl) { try { hoursEl.value = ''; hoursEl.dataset.autofilled = ''; } catch {} }
+                                    if (wasAuto && daysEl) { try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch { } }
+                                    if (wasAutoH && hoursEl) { try { hoursEl.value = ''; hoursEl.dataset.autofilled = ''; } catch { } }
                                 }
                                 if (refDetail) {
                                     const rawCls = String(c.classification || '');
@@ -1380,8 +1407,8 @@
                                     const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tableLabel}</span>`;
                                     const sbDays = (preferStageA ? null : (c.default_days != null ? Number(c.default_days) : null));
                                     const sbDaysLabel = (sbDays != null)
-                                      ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${sbDays}日</span> ${tableBadge}`
-                                      : `<span style=\"font-weight:bold;text-decoration:underline;color:#777;font-style:italic;\">算定付与日数: 判定不可</span>`;
+                                        ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${sbDays}日</span> ${tableBadge}`
+                                        : `<span style=\"font-weight:bold;text-decoration:underline;color:#777;font-style:italic;\">算定付与日数: 判定不可</span>`;
                                     const sbHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜契約内容に準拠＞</span>${sbDaysLabel}</div>`;
                                     const sbGridParts = [];
                                     sbGridParts.push(`<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${preferStageA ? '判定不可' : (cls || '不明')}</span></div>`);
@@ -1403,7 +1430,7 @@
                                 }
                             }
                         }
-                    } catch {}
+                    } catch { }
 
                     // サマリー表示と参考情報
                     try {
@@ -1462,8 +1489,8 @@
                         }
                         if (ref) {
                             const src = (unitSel.value === 'day')
-                              ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
-                              : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
+                                ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                                : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
                             const srcLabel = src === 'stageB' ? '契約労働時間準拠' : (src === 'stageA' ? '勤務記録から推定' : (src === 'rules-default' ? '設定既定' : '手入力'));
                             const dVal = (unitSel.value === 'day') ? (parseFloat(daysEl.value || '0') || 0) : 0;
                             if (unitSel.value === 'day') {
@@ -1504,8 +1531,8 @@
                             const merged = [detailBlock, detailBlockB].filter(Boolean).join('');
                             refDetail.innerHTML = merged || '';
                         }
-                    } catch {}
-                } catch {}
+                    } catch { }
+                } catch { }
             }
 
             // イベントバインド（root スコープ）
@@ -1515,7 +1542,7 @@
                     `grantDate-${user.id}`, `avgMode-${user.id}`, `avgStart-${user.id}`, `avgEnd-${user.id}`, `grantHours-${user.id}`
                 ];
                 if (e.target && ids.includes(e.target.id)) {
-                    if (e.target.id === `grantDays-${user.id}` || e.target.id === `grantHours-${user.id}`) { try { e.target.dataset.autofilled = ''; } catch {} }
+                    if (e.target.id === `grantDays-${user.id}` || e.target.id === `grantHours-${user.id}`) { try { e.target.dataset.autofilled = ''; } catch { } }
                     updateGrantReferenceScoped();
                 }
             });
@@ -1557,8 +1584,8 @@
                 };
             }
 
-            // 初期描画
-            (async function initRef() { await updateGrantReferenceScoped(); })();
+            // 初期描画（フォールバック）。上の initDates 内でも呼び出しているが、念のため二重で実行しておく（安全策）
+            (async function initRef() { try { await updateGrantReferenceScoped(); } catch {} })();
         }
 
         window.grantLeave = async function (userId) {
