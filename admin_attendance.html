@@ -48,6 +48,12 @@
             border-radius: 4px;
         }
 
+        input[type="date" i] {
+            font-size: 1.2em;
+            height: 25px;
+            width: 105px;
+        }
+
         input[type="month" i] {
             font-size: 1.5em;
             border: 1px solid #b0bec5;
@@ -166,6 +172,15 @@
             border-bottom-color: #fff;
             font-weight: 600;
         }
+
+        .grantExpireDateWrap {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            grid-template-columns: auto auto auto;
+            gap: 6px;
+            align-self: stretch;
+            min-width: 220px;
+        }
     </style>
 </head>
 
@@ -227,58 +242,72 @@
                     <span id="recalcMsg" style="color:#666;"></span>
                 </div>
                 <div id="leaveGrantPanel" style="display:block;">
-                    <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 1em 0;">
-                        <label>付与日 <input type="date" id="grantDate" style="font-size:1.1em;">
-                        </label>
-                        <div class="inline" style="display:flex;align-items:center;gap:6px;">
-                            <label>単位 <select id="grantUnit" style="margin-left:6px;">
-                                    <option value="day">日</option>
-                                    <option value="hour">時間</option>
-                                </select>
-                            </label>
+                    <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 0.5em 0;">
+                        <div id="grantDateExpireWrap" class="grantExpireDateWrap">
+                            <label for="grantDate" style="grid-row: 1/2; grid-column: 1/2; flex-basis: 100%; text-align-last:justify;">付与日</label>
+                            <input type="date" id="grantDate" style="font-size:1.2em;grid-row: 1/2; grid-column: 2/3;">
+                            <button class="btn" id="grantSubmitBtn" style="grid-row: 1/2; grid-column: 3/4;">付与</button>
+                            <label for="grantExpire" style="margin:0; grid-row: 2/3; grid-column: 1/2;">有効期限</label>
+                            <input type="date" id="grantExpire" style="font-size:1.2em; grid-row: 2/3; grid-column: 2/3;">
+                            <button class="btn" id="grantExpireClear" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2; grid-row: 2/3; grid-column: 3/4;">期限なし</button>
                         </div>
-                        <label id="grantDaysWrap">日数 <input type="number" id="grantDays" min="0.25" step="0.25" style="width:100px;text-align:right;"> 日 </label>
-                        <label id="grantPerDayWrap" style="display:none;">1日= <input type="number" id="grantPerDayHours" min="0.25" step="0.25" style="width:90px;text-align:right;"> 時間</label>
-                        <div id="avgCtrl" style="display:flex;align-items:center;gap:0.5em;flex-wrap:wrap;align-self:baseline;">
-                            <label style="display:flex;align-items:center;gap:0.3em;">参考期間 <select id="avgMode">
-                                    <option value="auto">自動（推奨）</option>
-                                    <option value="6m">過去6ヶ月</option>
-                                    <option value="1y">過去1年</option>
-                                    <option value="custom">カスタム</option>
-                                </select>
-                            </label>
-                            <label id="avgStartWrap" style="display:none;">開始 <input type="date" id="avgStart"></label>
-                            <label id="avgEndWrap" style="display:none;">終了 <input type="date" id="avgEnd"></label>
+                        <div style="display: flex; flex-direction: column; gap: 6px; align-self:auto;">
+                            <div class="inline" style="display:flex;align-items:center;gap:6px; width:313.13px">
+                                <label>付与単位 <select id="grantUnit" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                                        <option value="day">日</option>
+                                        <option value="hour">時間</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div style="display:flex; flex-direction: row;">
+                                <label id="grantHoursWrap" style="display:none; margin-right:160.34px">付与時間 <input type="number" id="grantHours" min="1" step="1" style="width:50px;text-align:right; margin-left:6px; font-size:1em; height:23px;"> h </label>
+                                <label id="grantDaysWrap">付与日数 <input type="number" id="grantDays" min="1" step="1" style="width:50px; margin-left:6px;text-align:right; font-size:1em; height:23px;"> 日 </label>
+                                <label id="grantPerDayWrap" style="display:none; margin-left:26px;">1日= <input type="number" id="grantPerDayHours" min="1" step="1" style="width:50px;text-align:right; font-size:1em; height:23px;"> 時間</label>
+                            </div>
                         </div>
-                        <label id="grantHoursWrap" style="display:none;">時間 <input type="number" id="grantHours" min="0.25" step="0.25" style="width:100px;text-align:right;"> h </label>
+                    </div>
+                    <div id="avgCtrl" style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;align-items:center;align-self:baseline;min-width:360px;justify-content:center;">
+                        <div style="color:#555;">参考期間</div>
+                        <div id="avgStartLabel" style="color:#555;">開始</div>
+                        <div id="avgEndLabel" style="color:#555;">終了</div>
+                        <div>
+                            <select id="avgMode" style="font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                                <option value="auto">自動（推奨）</option>
+                                <option value="6m">過去6ヶ月</option>
+                                <option value="1y">過去1年</option>
+                                <option value="custom">カスタム</option>
+                            </select>
+                        </div>
+                        <div id="avgStartWrap"><input type="date" id="avgStart" style="font-size:1.2em; height:25px;" disabled></div>
+                        <div id="avgEndWrap"><input type="date" id="avgEnd" style="font-size:1.2em; height:25px;" disabled></div>
+                    </div>
+                    <div style="flex-basis:100%;height:0;"></div>
+                    <div id="grantSummaryRow" style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:0.5em;">
                         <div style="display:flex;flex-direction:column;gap:2px;min-width:280px;">
                             <span id="grantRef" style="color:#666;"></span>
-                            <span id="grantRefDetail" style="color:#888;font-size:0.92em; line-height:1.7em"></span>
+                            <span id="grantRefDetail" style="color:#888;font-size:0.92em; line-height:1.7em;"></span>
                         </div>
-                        <label>有効期限 <input type="date" id="grantExpire" style="font-size:1.1em;">
-                        </label>
-                        <button class="btn" id="grantExpireClear" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2;">期限なし</button>
-                        <button class="btn" id="grantSubmitBtn">付与</button>
                         <span id="grantMsg" style="color:#666;"></span>
                     </div>
                 </div>
-                <div id="leaveHistoryPanel" style="display:block;">
-                    <table class="attendance-table" id="leaveHistoryTable">
-                        <thead>
-                            <tr>
-                                <th>発生日</th>
-                                <th>種別</th>
-                                <th>時間</th>
-                                <th>理由</th>
-                                <th>有効期限</th>
-                                <th>残</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+            </div>
+            <div id="leaveHistoryPanel" style="display:block; margin-top:1.5em;">
+                <table class="attendance-table" id="leaveHistoryTable">
+                    <thead>
+                        <tr>
+                            <th>発生日</th>
+                            <th>種別</th>
+                            <th>時間</th>
+                            <th>理由</th>
+                            <th>有効期限</th>
+                            <th>残</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
+    </div>
     </div>
     <script>
         // fetchWithAuth: 401/403時は自動ログアウト
@@ -696,11 +725,15 @@
                         b.textContent = label;
                         b.style.padding = '0.2em 0.6em';
                         if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
-                        b.onclick = () => { const v = roundHoursBySettings(val); hoursEl.value = String((Math.round(v * 100) / 100).toFixed(2)); };
+                        b.onclick = () => {
+                            // 有給使用は時間単位、端数は切り上げて整数時間
+                            const v = Math.ceil(Number(val || 0));
+                            hoursEl.value = String(v);
+                        };
                         return b;
                     }
                     quick.appendChild(mkBtn('1日', baseHours ?? 0, !!baseHours));
-                    quick.appendChild(mkBtn('半日', baseHours ? Math.max(0.25, baseHours / 2) : 0, !!baseHours && allowHalf));
+                    quick.appendChild(mkBtn('半日', baseHours ? Math.max(0.25, Number(baseHours) / 2) : 0, !!baseHours && allowHalf));
                     quick.appendChild(mkBtn('1h', 1, allowHour));
 
                     async function submitLeaveOnly() {
@@ -709,7 +742,7 @@
                         const reason = reasonEl.value.trim();
                         if (!usedDate) { msg.textContent = '日付を選択してください'; msg.style.color = '#d32f2f'; return; }
                         if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
-                        const hours = roundHoursBySettings(parseFloat(hoursStr));
+                        const hours = Math.ceil(parseFloat(hoursStr));
                         if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                         btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
                         const res = await fetchWithAuth('api/paid_leave_use.php', {
@@ -801,7 +834,7 @@
                     const reason = (tr.querySelector('#new-pl-use-reason').value || '').trim();
                     if (!usedDate) { alert('有給の対象日を選択してください'); return; }
                     if (!hoursStr) { alert('有給の使用時間を入力してください'); return; }
-                    const hours = parseFloat(hoursStr);
+                    const hours = Math.ceil(parseFloat(hoursStr));
                     if (!(hours > 0)) { alert('有給の使用時間は0より大きい値にしてください'); return; }
                     const res = await fetchWithAuth('api/paid_leave_use.php', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -981,7 +1014,10 @@
                             const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
                             if (res && res.ok) {
                                 const b = await res.json();
-                                const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
+                                const fmt = (n) => {
+                                    const v = Math.round(Number(n) * 100) / 100;
+                                    return (Math.abs(v - Math.round(v)) < 1e-9) ? String(Math.round(v)) : String(v);
+                                };
                                 bal.textContent = `残高: ${fmt(b.balance_hours)} h（有効付与: ${fmt(b.granted_active_hours)} h / 利用: ${fmt(b.used_total_hours)} h）`;
                             } else {
                                 bal.textContent = '残高: 取得に失敗しました';
@@ -1009,7 +1045,10 @@
                             b.textContent = label;
                             b.style.padding = '0.2em 0.6em';
                             if (!enabled) { b.disabled = true; b.style.opacity = '0.6'; }
-                            b.onclick = () => { const v = roundHoursBySettings(val); hoursEl.value = String((Math.round(v * 100) / 100).toFixed(2)); };
+                            b.onclick = () => {
+                                const v = Math.ceil(Number(val || 0));
+                                hoursEl.value = String(v);
+                            };
                             return b;
                         }
                         quick.appendChild(mkBtn('1日', baseHours ?? 0, !!baseHours));
@@ -1020,7 +1059,7 @@
                             const hoursStr = hoursEl.value.trim();
                             const reason = editTr.querySelector('#pl-use-reason').value.trim();
                             if (!hoursStr) { msg.textContent = '使用時間を入力してください'; msg.style.color = '#d32f2f'; return; }
-                            const hours = roundHoursBySettings(parseFloat(hoursStr));
+                            const hours = Math.ceil(parseFloat(hoursStr));
                             if (!(hours > 0)) { msg.textContent = '使用時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                             btn.disabled = true; msg.textContent = '登録中...'; msg.style.color = '#666';
                             const res = await fetchWithAuth('api/paid_leave_use.php', {
@@ -1238,13 +1277,15 @@
             // 表示は新しい→古い
             rows.sort((a, b) => a.date === b.date ? 0 : (a.date < b.date ? 1 : -1));
             tbody.innerHTML = rows.map(r => {
-                const h = (Math.round(r.hours * 100) / 100).toFixed(2);
+                const hNum = Math.round(Number(r.hours) * 100) / 100;
+                const h = (Math.abs(hNum - Math.round(hNum)) < 1e-9) ? String(Math.round(hNum)) : String(hNum);
                 const timeStr = r.kind === 'grant' ? `+${h}` : `-${h}`;
                 // 有効期限の表示: grant のみ表示し、NULL/9999-xx-xx は『無期限』
                 const exp = (r.kind === 'grant') ? ((!r.expire || String(r.expire).startsWith('9999-')) ? '無期限' : r.expire) : '';
                 const reason = r.reason || (r.kind === 'grant' ? '付与' : '');
                 const kindLabel = r.kind === 'grant' ? '付与' : (r.kind === 'expire' ? '失効' : '取得');
-                const bal = (r.balanceAfter !== undefined ? (Math.round(r.balanceAfter * 100) / 100).toFixed(2) : '');
+                const bNum = (r.balanceAfter !== undefined ? Math.round(Number(r.balanceAfter) * 100) / 100 : null);
+                const bal = (bNum == null) ? '' : ((Math.abs(bNum - Math.round(bNum)) < 1e-9) ? String(Math.round(bNum)) : String(bNum));
                 return `<tr><td>${r.date}</td><td>${kindLabel}</td><td>${timeStr} h</td><td>${reason}</td><td>${exp}</td><td>${bal} h</td></tr>`;
             }).join('');
         }
@@ -1346,6 +1387,8 @@
                 const avgMode = document.getElementById('avgMode');
                 const avgStartWrap = document.getElementById('avgStartWrap');
                 const avgEndWrap = document.getElementById('avgEndWrap');
+                const avgStartLabel = document.getElementById('avgStartLabel');
+                const avgEndLabel = document.getElementById('avgEndLabel');
                 const avgStartEl = document.getElementById('avgStart');
                 const avgEndEl = document.getElementById('avgEnd');
                 // 安全な日付パース（YYYY-MM-DD → ローカルタイムの Date）
@@ -1364,8 +1407,9 @@
                 // 参考期間UIの表示制御
                 const mode = avgMode ? avgMode.value : 'auto';
                 const isCustom = (mode === 'custom');
-                if (avgStartWrap) avgStartWrap.style.display = isCustom ? '' : 'none';
-                if (avgEndWrap) avgEndWrap.style.display = isCustom ? '' : 'none';
+                // ラベル・入力は常時表示。カスタム以外では編集不可にする
+                if (avgStartEl) avgStartEl.disabled = !isCustom;
+                if (avgEndEl) avgEndEl.disabled = !isCustom;
 
                 // 現在のユーザー情報を取得
                 const u = (users || []).find(x => String(x.id) === String(selectedUserId));
@@ -1421,8 +1465,8 @@
                         }
                     }
                 } catch (e) { /* ignore default days errors */ }
-                // 参考平均の取得: 契約時間が無い、または管理者が上書きモードを選択した場合は平均APIを呼び出す
-                if (grantDate && ((baseHours === null || !(baseHours > 0)) || mode !== 'auto')) {
+                // 参考平均の取得: 自動モードでも期間表示のため常時呼び出し（表示目的）
+                if (grantDate) {
                     try {
                         // end_date の決定（デフォルトは付与日前日）
                         function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
@@ -1433,23 +1477,24 @@
                             if (!isNaN(e.getTime())) endDate = e;
                         }
                         const endStr = fmt(endDate);
-                        // start_date の決定
+                        // start_date の決定（6m/1y は自動計算して入力欄にも反映。custom は未入力ならデフォルトで6ヶ月分をセット）
                         let startStr = '';
-                        if (mode === '6m' || mode === '1y' || mode === 'custom') {
-                            if (mode === '6m' || mode === '1y') {
+                        if (mode === '6m' || mode === '1y') {
+                            const s = new Date(endDate);
+                            s.setMonth(s.getMonth() + (mode === '6m' ? -6 : -12));
+                            s.setDate(s.getDate() + 1);
+                            startStr = fmt(s);
+                            if (avgStartEl) avgStartEl.value = startStr;
+                            if (avgEndEl) avgEndEl.value = endStr;
+                        } else if (mode === 'custom') {
+                            if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
+                            if (avgStartEl && !avgStartEl.value) {
                                 const s = new Date(endDate);
-                                s.setMonth(s.getMonth() + (mode === '6m' ? -6 : -12));
+                                s.setMonth(s.getMonth() - 6);
                                 s.setDate(s.getDate() + 1);
-                                startStr = fmt(s);
-                                // カスタム選択直後のデフォルト補助
-                                if (mode === 'custom') {
-                                    if (avgStartEl && !avgStartEl.value) avgStartEl.value = startStr;
-                                    if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
-                                }
-                            } else if (mode === 'custom' && avgStartEl && avgStartEl.value) {
-                                startStr = avgStartEl.value;
-                                if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
+                                avgStartEl.value = fmt(s);
                             }
+                            startStr = (avgStartEl && avgStartEl.value) ? avgStartEl.value : '';
                         }
                         const r = await fetchWithAuth('api/attendance_avg.php', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1457,21 +1502,27 @@
                         });
                         if (r && r.ok) {
                             const j = await r.json();
+                            // 契約時間が未設定のときのみ平均から baseHours を補完
                             if ((baseHours === null || !(baseHours > 0)) && j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
                             // 参考詳細の表示
                             if (refDetail) {
-                                const type = String(settings.rounding_type || 'round');
-                                const unit = Number(settings.rounding_unit || 1);
+                                // 平均の丸めは「1時間単位で切り上げ」に統一（admin_settingsの勤務時間丸め単位は使用しない）
                                 const avg = (j && j.avg_hours_per_day != null) ? Number(j.avg_hours_per_day) : null;
-                                const avgRounded = (avg != null) ? roundHoursBySettings(avg) : null;
+                                const avgRoundedHour = (avg != null) ? Math.ceil(avg) : null;
                                 const wd = j?.work_days ?? 0;
                                 const th = (j?.total_hours != null) ? Number(j.total_hours).toFixed(2) : '0.00';
                                 const ss = j?.start_date || (startStr || '');
                                 const ee = j?.end_date || endStr;
-                                const roundLabel = (type === 'floor' ? '切り捨て' : (type === 'ceil' ? '切り上げ' : '四捨五入')) + `/${unit}分単位`;
+                                const roundLabelHour = '1時間単位で切り上げ';
                                 let html = (avg != null)
-                                    ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRounded.toFixed(2)}時間/日（${roundLabel}）`
+                                    ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRoundedHour.toFixed(2)}時間/日（${roundLabelHour}）`
                                     : `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: データ不足`;
+
+                                // 入力欄にも期間を反映（自動/6m/1y 時は参照表示用として、カスタム時は未入力のみ）
+                                try {
+                                    if (avgStartEl && (mode !== 'custom' || !avgStartEl.value)) avgStartEl.value = ss || avgStartEl.value;
+                                    if (avgEndEl && (mode !== 'custom' || !avgEndEl.value)) avgEndEl.value = ee || avgEndEl.value;
+                                } catch (e) { /* no-op */ }
 
                                 // 段階A: 区分推定と付与日数の自動設定（参考詳細にも表示）
                                 try {
@@ -1480,7 +1531,7 @@
                                     const gdEl = document.getElementById('grantDate');
                                     const grantDate = gdEl && gdEl.value ? gdEl.value : null;
                                     const u = (users || []).find(x => String(x.id) === String(selectedUserId));
-                                    if (unitSel && unitSel.value === 'day' && daysEl && grantDate) {
+                                    if (grantDate) {
                                         // 週平均と年換算
                                         const d1 = new Date(ss), d2 = new Date(ee);
                                         const periodDays = (isNaN(d1) || isNaN(d2)) ? 0 : Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
@@ -1536,19 +1587,35 @@
                                             else if (rules.fulltime) { chosen = rules.fulltime?.[msIdx]; tableSrc = '２'; }
                                         }
 
-                                        // days 自動設定（未入力、または先に自動入力した値は上書き）
-                                        const wasAuto = !!(daysEl.dataset && daysEl.dataset.autofilled);
-                                        if (hireMissing) {
-                                            if (wasAuto) {
-                                                daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* ignore */ }
-                                            }
-                                        } else {
-                                            if (noGrant) {
-                                                if (wasAuto) { daysEl.value = ''; daysEl.dataset.autofilled = ''; }
-                                            } else if (chosen != null && !isNaN(chosen)) {
+                                        // days/hours 自動設定（未入力、または先に自動入力した値は上書き）
+                                        const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
+                                        const wasAutoH = !!(hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled);
+                                        // 採用対象: unit=day → daysEl, unit=hour → hoursEl（days計算は内部保持）
+                                        if (hireMissing || noGrant) {
+                                            if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* ignore */ } }
+                                            if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch (e) { /* ignore */ } }
+                                        } else if (chosen != null && !isNaN(chosen)) {
+                                            // 日単位の自動設定
+                                            if (unitSel && unitSel.value === 'day' && daysEl) {
                                                 if (!daysEl.value || wasAuto) {
                                                     daysEl.value = String(chosen);
                                                     try { daysEl.dataset.autofilled = 'stageA'; } catch (e) { /* ignore */ }
+                                                }
+                                            }
+                                            // 時間単位の自動設定（chosen日 × 1日あたり時間）
+                                            if (unitSel && unitSel.value === 'hour' && hoursEl) {
+                                                const perHInput = parseFloat(perDayEl?.value || '0');
+                                                let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                                // 付与計算では 1時間単位で切り上げ（1日の時間を丸めてから合計）
+                                                if (perH > 0) perH = Math.ceil(perH);
+                                                // perH が未確定でも「採用ソース」は示す（ハイライト/バッジのため）
+                                                try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageA'; } catch (e) { /* ignore */ }
+                                                if (perH > 0) {
+                                                    const hRaw = Number(chosen) * perH;
+                                                    const h = Math.ceil(hRaw);
+                                                    if (!hoursEl.value || wasAutoH) {
+                                                        hoursEl.value = String(h);
+                                                    }
                                                 }
                                             }
                                         }
@@ -1558,7 +1625,9 @@
                                         const classLabel = noGrant ? '付与対象外' : (isPart ? `短時間(${bucket.replace('d', '日')})` : '常勤');
                                         const tblDisplay = String(tableSrc).includes('２－２') ? '表2-2' : '表2';
                                         const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tblDisplay}</span>`;
-                                        const adoptedSrcA = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                                        const adoptedSrcA = (unitSel && unitSel.value === 'day')
+                                            ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                                            : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
                                         const adoptedA = (adoptedSrcA === 'stageA');
                                         const saDays = (noGrant ? null : (typeof chosen === 'number' ? chosen : null));
                                         const saDaysLabel = (saDays != null)
@@ -1573,8 +1642,22 @@
                                             + `</div>`;
                                         const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedA ? 'border-left:4px solid #1976d2;background:#f7fbff;' : ''}\">`;
                                         const saWrapClose = `</div>`;
+                                        // 時間単位選択時は「算定付与時間数」を追記（saDays × 1日あたり時間, 設定丸め適用）
+                                        let saHoursRow = '';
+                                        try {
+                                            if (unitSel && unitSel.value === 'hour') {
+                                                const perHInput = parseFloat(perDayEl?.value || '0');
+                                                let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                                if (perH > 0) perH = Math.ceil(perH);
+                                                if (perH > 0 && saDays != null) {
+                                                    const hRaw = Number(saDays) * perH;
+                                                    const h = Math.ceil(hRaw);
+                                                    saHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
+                                                }
+                                            }
+                                        } catch (e) { /* no-op */ }
                                         // 勤続期間は最上段ヘッダに集約するため、ここでは表示しない
-                                        html += `<br>${saWrapOpen}${saHeader}${saGrid}${saWrapClose}`;
+                                        html += `<br>${saWrapOpen}${saHeader}${saGrid}${saHoursRow}${saWrapClose}`;
 
                                         // Stage A 結果保存
                                         calc.stageA = {
@@ -1596,7 +1679,7 @@
                 // 段階B: 厳密分類API（所定パターン＋8割判定）を呼び出し、推奨日数を反映
                 try {
                     const grantDateEff = gd && gd.value ? gd.value : null;
-                    if (grantDateEff && unit === 'day') {
+                    if (grantDateEff) {
                         // 参考期間がカスタムの場合は開始日を連動
                         let startDateOverride = '';
                         if (avgMode && avgMode.value === 'custom' && avgStartEl && avgStartEl.value) {
@@ -1620,20 +1703,41 @@
                         });
                         if (r2 && r2.ok) {
                             const c = await r2.json();
-                            const wasAuto = !!(daysEl.dataset && daysEl.dataset.autofilled);
+                            const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
+                            const wasAutoH = !!(hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled);
                             const eligible = (c.eligible_by_min_annual !== false) && (c.eligible_by_attendance !== false);
                             if (!preferStageA && !hireMissing) {
                                 if (!eligible) {
-                                    if (wasAuto) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
+                                    if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
+                                    if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
                                 } else if (c.default_days != null && !isNaN(c.default_days)) {
-                                    if (!daysEl.value || wasAuto) {
-                                        daysEl.value = String(c.default_days);
-                                        try { daysEl.dataset.autofilled = 'stageB'; } catch (e) { /* noop */ }
+                                    // 日単位の自動設定
+                                    if (unit === 'day' && daysEl) {
+                                        if (!daysEl.value || wasAuto) {
+                                            daysEl.value = String(c.default_days);
+                                            try { daysEl.dataset.autofilled = 'stageB'; } catch (e) { /* noop */ }
+                                        }
+                                    }
+                                    // 時間単位の自動設定（default_days × 1日あたり時間）
+                                    if (unit === 'hour' && hoursEl) {
+                                        const perHInput = parseFloat(perDayEl?.value || '0');
+                                        let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                        if (perH > 0) perH = Math.ceil(perH);
+                                        // perH が未確定でも「採用ソース」は示す（ハイライト/バッジのため）
+                                        try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageB'; } catch (e) { /* noop */ }
+                                        if (perH > 0) {
+                                            const hRaw = Number(c.default_days) * perH;
+                                            const h = Math.ceil(hRaw);
+                                            if (!hoursEl.value || wasAutoH) {
+                                                hoursEl.value = String(h);
+                                            }
+                                        }
                                     }
                                 }
-                            } else if (hireMissing && wasAuto) {
+                            } else if (hireMissing) {
                                 // 入社日未登録時は自動採用しない
-                                try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ }
+                                if (wasAuto && daysEl) { try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
+                                if (wasAutoH && hoursEl) { try { hoursEl.value = ''; hoursEl.dataset.autofilled = ''; } catch (e) { /* noop */ } }
                             }
                             if (refDetail) {
                                 const rawCls = String(c.classification || '');
@@ -1654,7 +1758,9 @@
                                 // Stage B block（header + grid）
                                 const tableLabel = (cls === '常勤') ? '表2' : '表2-2';
                                 const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tableLabel}</span>`;
-                                const adoptedSrcB = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                                const adoptedSrcB = (unit === 'day')
+                                    ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                                    : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
                                 const adoptedB = (adoptedSrcB === 'stageB');
                                 const sbDays = (preferStageA ? null : (c.default_days != null ? Number(c.default_days) : null));
                                 const sbDaysLabel = (sbDays != null)
@@ -1670,7 +1776,21 @@
                                 const sbGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">${sbGridParts.join('')}<\/div>`;
                                 const sbWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedB ? 'border-left:4px solid #1976d2;background:#f7fbff;' : ''}\">`;
                                 const sbWrapClose = `</div>`;
-                                detailBlockB = `${sbWrapOpen}${sbHeader}${sbGrid}${sbWrapClose}`;
+                                // 時間単位選択時は「算定付与時間数」を追記（sbDays × 1日あたり時間, 設定丸め適用）
+                                let sbHoursRow = '';
+                                try {
+                                    if (unit === 'hour') {
+                                        const perHInput = parseFloat(perDayEl?.value || '0');
+                                        let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                        if (perH > 0) perH = Math.ceil(perH);
+                                        if (perH > 0 && sbDays != null) {
+                                            const hRaw = Number(sbDays) * perH;
+                                            const h = Math.ceil(hRaw);
+                                            sbHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
+                                        }
+                                    }
+                                } catch (e) { /* no-op */ }
+                                detailBlockB = `${sbWrapOpen}${sbHeader}${sbGrid}${sbHoursRow}${sbWrapClose}`;
 
                                 // Stage B 結果保存
                                 calc.stageB = {
@@ -1683,17 +1803,17 @@
                         }
                     }
                 } catch (e) { /* ignore stage B errors */ }
-                // 勤続期間ヘッダ（最上段）を生成
+                // 勤続期間ヘッダ（最上段）を生成（単位に関わらず表示）
                 let headerHtml = '';
                 try {
-                    if (unit === 'day' && (detailBlock || detailBlockB)) {
+                    if ((detailBlock || detailBlockB)) {
                         if (hireMissing) {
-                            headerHtml = `<div style="font-weight:bold; color:#d32f2f;">勤続期間: 判定不可（入社日未登録）</div>`;
+                            headerHtml = `<div style=\"font-weight:bold; color:#d32f2f;\">勤続期間: 判定不可（入社日未登録）</div>`;
                         } else {
                             const msRaw = (calc.stageB && calc.stageB.msLabel) ? calc.stageB.msLabel : (calc.stageA && calc.stageA.msLabel ? calc.stageA.msLabel : '');
                             if (msRaw) {
                                 const ms = String(msRaw).replace(/y/g, '年').replace(/m/g, 'か月');
-                                headerHtml = `<div style="font-weight:bold;">勤続期間: ${ms}</div>`;
+                                headerHtml = `<div style=\"font-weight:bold;\">勤続期間: ${ms}</div>`;
                             }
                         }
                     }
@@ -1710,8 +1830,9 @@
                     if (!perDayEl.value && baseHours && baseHours > 0) {
                         // 契約時間が無い→平均、契約時間がある→契約時間を優先
                         const uHasContract = (u && u.contract_hours_per_day != null && u.contract_hours_per_day > 0);
-                        const val = roundHoursBySettings(Number(baseHours));
-                        if (!uHasContract) perDayEl.value = (Math.round(val * 100) / 100).toFixed(2);
+                        // 平均からの初期値は「1時間単位で切り上げ」。表示は整数（小数点以下なし）。
+                        const val = Math.ceil(Number(baseHours));
+                        if (!uHasContract) perDayEl.value = String(val);
                     }
                 }
                 let info = '';
@@ -1720,9 +1841,21 @@
                     if (perH > 0) {
                         info = `参考: 1日=${perH.toFixed(2)}時間`;
                     } else if (baseHours && baseHours > 0) {
-                        info = `参考: 1日=${(Math.round(baseHours * 100) / 100).toFixed(2)}時間`;
+                        // 平均からの参考表示も1時間単位の切り上げ
+                        info = `参考: 1日=${Math.ceil(Number(baseHours)).toFixed(2)}時間`;
                     } else {
                         info = `参考: 算出対象の勤務実績が不足しています`;
+                    }
+                } else {
+                    // 時間単位でも参考情報を提示（1日=◯時間）
+                    const perH = parseFloat(perDayEl?.value || '0');
+                    if (perH > 0) {
+                        info = `参考: 1日=${perH.toFixed(2)}時間`;
+                    } else if (baseHours && baseHours > 0) {
+                        // 平均からの参考表示も1時間単位の切り上げ
+                        info = `参考: 1日=${Math.ceil(Number(baseHours)).toFixed(2)}時間`;
+                    } else {
+                        info = '';
                     }
                 }
                 // 単位が日なら、日×1日あたり時間→時間へ換算し、送信値（hoursEl）に反映
@@ -1731,9 +1864,10 @@
                     const perH = parseFloat(perDayEl?.value || '0');
                     if (d > 0 && perH > 0) {
                         const hRaw = d * perH;
-                        const h = roundHoursBySettings(hRaw);
-                        hoursEl.value = (Math.round(h * 100) / 100).toFixed(2);
-                        info += ` → ${d}日=${(Math.round(h * 100) / 100).toFixed(2)}時間`;
+                        // 付与の最終時間は 1時間単位へ切り上げ
+                        const h = Math.ceil(hRaw);
+                        hoursEl.value = String(h);
+                        info += ` → ${d}日=${h}時間`;
                     }
                 }
                 // 採用結果サマリー + 詳細の折りたたみ
@@ -1765,7 +1899,9 @@
                         };
 
                         // サマリー（採用結果）
-                        const src = (daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '';
+                        const src = (unit === 'day')
+                            ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                            : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
                         const srcLabel = src === 'stageB' ? '契約労働時間準拠' : (src === 'stageA' ? '勤務記録から推定' : (src === 'rules-default' ? '設定既定' : '手入力'));
                         const dVal = (unit === 'day') ? (parseFloat(daysEl.value || '0') || 0) : 0;
                         // 一致判定
@@ -1774,13 +1910,33 @@
                             agree = (calc.stageA.days === calc.stageB.days);
                         }
                         const agreeBadge = agree
-                            ? ` <span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;">一致</span>`
-                            : ` <span style="background:#eeeeee;color:#555;border:1px solid #ccc;border-radius:3px;padding:0 4px;">不一致</span>`;
-                        const summary = (unit === 'day')
-                            ? `採用結果: <b>${dVal > 0 ? dVal + '日' : '—'}</b>（${srcLabel}）${agreeBadge}`
-                            : info;
-                        // refは従来の参考情報も保持
-                        ref.innerHTML = (unit === 'day') ? (summary + (info ? `　|　${info}` : '')) : info;
+                            ? ` <span style=\"background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;margin-left:20px;\">一致</span>`
+                            : '';
+                        if (unit === 'day') {
+                            const adoptedHtml = `<b>${dVal > 0 ? dVal + '日' : '—'}</b>（${srcLabel}）`;
+                            const refText = String(info || '').replace(/^参考:\s*/, '');
+                            const grid = `
+<div style=\"display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;\">\
+  <div style=\"color:#555; min-width: 280px;\">採用結果 ${agreeBadge}</div>\
+  <div style=\"color:#555; min-width: 240px;\">参考</div>\
+  <div>${adoptedHtml}</div>\
+  <div>${refText}</div>\
+</div>`;
+                            ref.innerHTML = grid;
+                        } else {
+                            // 時間単位のサマリー（採用結果=入力時間, 参考=1日あたり時間情報）
+                            const hVal = parseFloat(hoursEl.value || '0') || 0;
+                            const adoptedHtml = `<b>${hVal > 0 ? Math.ceil(hVal) + '時間' : '—'}</b>（${srcLabel}）`;
+                            const refText = String(info || '').replace(/^参考:\s*/, '');
+                            const grid = `
+<div style=\"display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;\">\
+    <div style=\"color:#555; min-width: 280px;\">採用結果 ${agreeBadge}</div>\
+    <div style=\"color:#555; min-width: 240px;\">参考</div>\
+    <div>${adoptedHtml}</div>\
+    <div>${refText}</div>\
+</div>`;
+                            ref.innerHTML = grid;
+                        }
 
                         // 入社日未登録の警告表示（自動採用抑制を明示）
                         let warn = document.getElementById('grantRefWarn');
@@ -1805,8 +1961,8 @@
         }
         // 単位・日数・付与日の変更で参考値更新
         document.addEventListener('input', (e) => {
-            if (e.target && (e.target.id === 'grantUnit' || e.target.id === 'grantDays' || e.target.id === 'grantPerDayHours' || e.target.id === 'grantDate' || e.target.id === 'avgMode' || e.target.id === 'avgStart' || e.target.id === 'avgEnd')) {
-                if (e.target.id === 'grantDays') { try { e.target.dataset.autofilled = ''; } catch (err) { /* ignore */ } }
+            if (e.target && (e.target.id === 'grantUnit' || e.target.id === 'grantDays' || e.target.id === 'grantPerDayHours' || e.target.id === 'grantDate' || e.target.id === 'avgMode' || e.target.id === 'avgStart' || e.target.id === 'avgEnd' || e.target.id === 'grantHours')) {
+                if (e.target.id === 'grantDays' || e.target.id === 'grantHours') { try { e.target.dataset.autofilled = ''; } catch (err) { /* ignore */ } }
                 updateGrantReference();
             }
         });
@@ -1825,7 +1981,7 @@
                 const grantExpire = document.getElementById('grantExpire').value;
                 if (!grantDate) { msg.textContent = '付与日を入力してください'; msg.style.color = '#d32f2f'; return; }
                 if (!grantHoursStr) { msg.textContent = (unit === 'day' ? '日数を入力してください' : '時間を入力してください'); msg.style.color = '#d32f2f'; return; }
-                const grantHours = parseFloat(grantHoursStr);
+                const grantHours = Math.ceil(parseFloat(grantHoursStr));
                 if (!(grantHours > 0)) { msg.textContent = '時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
                 msg.textContent = '登録中...'; msg.style.color = '#666';
                 const res = await fetchWithAuth('api/paid_leave_grant.php', {
