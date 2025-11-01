@@ -48,11 +48,6 @@
             border-radius: 4px;
         }
 
-        input[type="date" i] {
-            font-size: 1.2em;
-            height: 25px;
-            width: 105px;
-        }
 
         input[type="month" i] {
             font-size: 1.5em;
@@ -173,14 +168,6 @@
             font-weight: 600;
         }
 
-        .grantExpireDateWrap {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            grid-template-columns: auto auto auto;
-            gap: 6px;
-            align-self: stretch;
-            min-width: 220px;
-        }
     </style>
 </head>
 
@@ -240,6 +227,10 @@
                     <button class="btn" id="btnRecalcExpireUser" style="background:#2e7d32;">選択ユーザー 再計算→失効</button>
                     <button class="btn" id="btnRecalcExpireAll" style="background:#2e7d32;">全ユーザー 再計算→失効</button>
                     <span id="recalcMsg" style="color:#666;"></span>
+                    <!-- 開発者向け: 旧付与パネルの一時表示スイッチ -->
+                    <label style="display:flex;align-items:center;gap:6px;margin-left:4px;color:#607d8b;">
+                        <input type="checkbox" id="toggleLegacyGrant" /> 旧付与パネルを表示
+                    </label>
                 </div>
                 <div id="leaveGrantPanel" style="display:block;">
                     <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 0.5em 0;">
@@ -1184,6 +1175,20 @@
         document.getElementById('tab-leave').onclick = () => setMainTab('leave');
 
         // 有給ビュー
+        // 旧付与パネルのテンプレートを保持（初期DOMから取得）
+        const __leaveGrantPanelEl = document.getElementById('leaveGrantPanel');
+        window.__legacyGrantPanelHTML = __leaveGrantPanelEl ? __leaveGrantPanelEl.innerHTML : '';
+        window.__showLegacyGrantPanel = (localStorage.getItem('show_legacy_grant_panel') === '1');
+        const __legacyToggleEl = document.getElementById('toggleLegacyGrant');
+        if (__legacyToggleEl) {
+            __legacyToggleEl.checked = !!window.__showLegacyGrantPanel;
+            __legacyToggleEl.addEventListener('change', () => {
+                window.__showLegacyGrantPanel = !!__legacyToggleEl.checked;
+                localStorage.setItem('show_legacy_grant_panel', window.__showLegacyGrantPanel ? '1' : '0');
+                // 表示切替のため、有給ビューを再描画
+                renderLeaveView();
+            });
+        }
         async function loadLeaveMasters() {
             if (leaveMastersCache) return leaveMastersCache;
             const res = await fetchWithAuth('api/masters_get.php');
@@ -1361,24 +1366,31 @@
                 if (!ge.value) setExpire();
                 if (gc) gc.onclick = () => { ge.value = ''; };
             }
-            // 付与フォームはユーザー管理ページへ移管：ショートカットのみ表示
+            // 付与フォームは通常 Users へ誘導するが、開発者スイッチON時は旧パネルを復元表示
             try {
                 const grantPanel = document.getElementById('leaveGrantPanel');
                 if (grantPanel) {
-                    grantPanel.innerHTML = `
-                        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;padding:10px 8px;border:1px dashed #cfd8dc;border-radius:6px;background:#fafafa;">
-                            <div style="color:#455a64;">有休の付与はユーザー管理ページへ移動しました。</div>
-                            <button class="btn" id="openGrantInUsersBtn">ユーザー管理で付与する</button>
-                            <div style="color:#78909c;font-size:0.9em;">（選択ユーザーに移動します）</div>
-                        </div>
-                    `;
-                    const btn = document.getElementById('openGrantInUsersBtn');
-                    if (btn) {
-                        btn.onclick = () => {
-                            const uid = selectedUserId ? String(selectedUserId) : '';
-                            // ユーザー管理の有給付与タブへディープリンク（アンダースコア表記に統一）
-                            window.location.href = `admin_users.html?user_id=${encodeURIComponent(uid)}#tab=leave_grant`;
-                        };
+                    if (window.__showLegacyGrantPanel) {
+                        // 旧パネルが消えている場合のみ復元（重複再注入を避ける）
+                        if (!grantPanel.querySelector('#grantSubmitBtn')) {
+                            grantPanel.innerHTML = window.__legacyGrantPanelHTML || grantPanel.innerHTML;
+                        }
+                    } else {
+                        // ユーザー管理へのショートカット表示
+                        grantPanel.innerHTML = `
+                            <div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;padding:10px 8px;border:1px dashed #cfd8dc;border-radius:6px;background:#fafafa;">
+                                <div style="color:#455a64;">有休の付与はユーザー管理ページへ移動しました。</div>
+                                <button class="btn" id="openGrantInUsersBtn">ユーザー管理で付与する</button>
+                                <div style="color:#78909c;font-size:0.9em;">（選択ユーザーに移動します）</div>
+                            </div>
+                        `;
+                        const btn = document.getElementById('openGrantInUsersBtn');
+                        if (btn) {
+                            btn.onclick = () => {
+                                const uid = selectedUserId ? String(selectedUserId) : '';
+                                window.location.href = `admin_users.html?user_id=${encodeURIComponent(uid)}#tab=leave_grant`;
+                            };
+                        }
                     }
                 }
             } catch (e) { /* no-op */ }
