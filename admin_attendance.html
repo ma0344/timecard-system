@@ -1361,6 +1361,27 @@
                 if (!ge.value) setExpire();
                 if (gc) gc.onclick = () => { ge.value = ''; };
             }
+            // 付与フォームはユーザー管理ページへ移管：ショートカットのみ表示
+            try {
+                const grantPanel = document.getElementById('leaveGrantPanel');
+                if (grantPanel) {
+                    grantPanel.innerHTML = `
+                        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;padding:10px 8px;border:1px dashed #cfd8dc;border-radius:6px;background:#fafafa;">
+                            <div style="color:#455a64;">有休の付与はユーザー管理ページへ移動しました。</div>
+                            <button class="btn" id="openGrantInUsersBtn">ユーザー管理で付与する</button>
+                            <div style="color:#78909c;font-size:0.9em;">（選択ユーザーに移動します）</div>
+                        </div>
+                    `;
+                    const btn = document.getElementById('openGrantInUsersBtn');
+                    if (btn) {
+                        btn.onclick = () => {
+                            const uid = selectedUserId ? String(selectedUserId) : '';
+                            // ユーザー管理の有給付与タブへディープリンク（アンダースコア表記に統一）
+                            window.location.href = `admin_users.html?user_id=${encodeURIComponent(uid)}#tab=leave_grant`;
+                        };
+                    }
+                }
+            } catch (e) { /* no-op */ }
             // Always show unified history by default
             await renderLeaveHistory();
             // 参考値の初期計算

@@ -1052,58 +1052,513 @@
         function mountLeaveGrant(user, masters, settings) {
             const wrap = document.getElementById(`leave-grant-wrap-${user.id}`);
             if (!wrap) return;
+            // 高機能版の付与フォーム（admin_attendance.html の leaveGrantPanel をスコープ化して移植）
             wrap.innerHTML = `
-                            <div class="grid">
-                                <div>付与日</div>
-                                                <div><input type="date" id="lg-date-${user.id}"></div>
-                                <div>付与時間</div>
-                                <div class="inline"><input type="number" step="0.25" min="0" id="lg-hours-${user.id}" style="width:90px; text-align:right;"> h</div>
-                                <div>有効期限（任意）</div>
-                                                <div><input type="date" id="lg-expire-${user.id}"></div>
-                                <div></div>
-                                <div><button class="btn" onclick="grantLeave(${user.id})">付与する</button></div>
-                            </div>
-                            <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
-                        `;
-            // デフォルト値設定: 今日と（設定に基づく）有効期限
-            const today = new Date();
+                <div id="lg-panel-${user.id}" style="display:block;">
+                  <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 0.5em 0;">
+                    <div id="grantDateExpireWrap-${user.id}" class="grantExpireDateWrap">
+                      <label for="grantDate-${user.id}" style="grid-row: 1/2; grid-column: 1/2; flex-basis: 100%; text-align-last:justify;">付与日</label>
+                      <input type="date" id="grantDate-${user.id}" style="font-size:1.2em;grid-row: 1/2; grid-column: 2/3;">
+                      <button class="btn" id="grantSubmitBtn-${user.id}" style="grid-row: 1/2; grid-column: 3/4;">付与</button>
+                      <label for="grantExpire-${user.id}" style="margin:0; grid-row: 2/3; grid-column: 1/2;">有効期限</label>
+                      <input type="date" id="grantExpire-${user.id}" style="font-size:1.2em; grid-row: 2/3; grid-column: 2/3;">
+                      <button class="btn" id="grantExpireClear-${user.id}" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2; grid-row: 2/3; grid-column: 3/4;">期限なし</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; align-self:auto;">
+                      <div class="inline" style="display:flex;align-items:center;gap:6px; width:313.13px">
+                        <label>付与単位 <select id="grantUnit-${user.id}" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                          <option value="day">日</option>
+                          <option value="hour">時間</option>
+                        </select></label>
+                      </div>
+                      <div style="display:flex; flex-direction: row;">
+                        <label id="grantHoursWrap-${user.id}" style="display:none; margin-right:160.34px">付与時間 <input type="number" id="grantHours-${user.id}" min="1" step="1" style="width:50px;text-align:right; margin-left:6px; font-size:1em; height:23px;"> h </label>
+                        <label id="grantDaysWrap-${user.id}">付与日数 <input type="number" id="grantDays-${user.id}" min="1" step="1" style="width:50px; margin-left:6px;text-align:right; font-size:1em; height:23px;"> 日 </label>
+                        <label id="grantPerDayWrap-${user.id}" style="display:none; margin-left:26px;">1日= <input type="number" id="grantPerDayHours-${user.id}" min="1" step="1" style="width:50px;text-align:right; font-size:1em; height:23px;"> 時間</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="avgCtrl-${user.id}" style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;align-items:center;align-self:baseline;min-width:360px;justify-content:center;">
+                    <div style="color:#555;">参考期間</div>
+                    <div id="avgStartLabel-${user.id}" style="color:#555;">開始</div>
+                    <div id="avgEndLabel-${user.id}" style="color:#555;">終了</div>
+                    <div>
+                      <select id="avgMode-${user.id}" style="font-size:1em; padding-block:1px; padding-inline:2px; height:29px;">
+                        <option value="auto">自動（推奨）</option>
+                        <option value="6m">過去6ヶ月</option>
+                        <option value="1y">過去1年</option>
+                        <option value="custom">カスタム</option>
+                      </select>
+                    </div>
+                    <div id="avgStartWrap-${user.id}"><input type="date" id="avgStart-${user.id}" style="font-size:1.2em; height:25px;" disabled></div>
+                    <div id="avgEndWrap-${user.id}"><input type="date" id="avgEnd-${user.id}" style="font-size:1.2em; height:25px;" disabled></div>
+                  </div>
+                  <div style="flex-basis:100%;height:0;"></div>
+                  <div id="grantSummaryRow-${user.id}" style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:0.5em;">
+                    <div style="display:flex;flex-direction:column;gap:2px;min-width:280px;">
+                      <span id="grantRef-${user.id}" style="color:#666;"></span>
+                      <span id="grantRefDetail-${user.id}" style="color:#888;font-size:0.92em; line-height:1.7em;"></span>
+                    </div>
+                    <span id="grantMsg-${user.id}" style="color:#666;"></span>
+                  </div>
+                </div>
+                <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
+            `;
+
+            // ヘルパー
+            const root = document.getElementById(`lg-panel-${user.id}`);
+            const q = (sel) => root.querySelector(sel);
             const pad = (n) => String(n).padStart(2, '0');
-            const dstr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-            const months = orgSettings ? Number(orgSettings.paid_leave_valid_months || 24) : 24;
-            const addMonths = (date, m) => {
-                const dt = new Date(date.getTime());
-                const d = dt.getDate();
-                dt.setMonth(dt.getMonth() + m);
-                // 月末補正
-                if (dt.getDate() < d) dt.setDate(0);
-                return dt;
-            };
-            const exp = months > 0 ? addMonths(today, months) : null;
-            const expEff = exp ? (function () { const t = new Date(exp.getTime()); t.setDate(t.getDate() - 1); return t; })() : null;
-            const estr = expEff ? `${expEff.getFullYear()}-${pad(expEff.getMonth() + 1)}-${pad(expEff.getDate())}` : '';
-            const dEl = document.getElementById(`lg-date-${user.id}`);
-            const eEl = document.getElementById(`lg-expire-${user.id}`);
-            dEl.value = dstr;
-            if (estr) eEl.value = estr; else eEl.value = '';
-            dEl.addEventListener('change', () => {
-                // 付与日変更時、期限未編集なら設定値（月）に応じて自動更新
-                const val = dEl.value;
-                if (!val) return;
-                const dt = new Date(val);
-                if (isNaN(dt)) return;
-                const ex2 = months > 0 ? addMonths(dt, months) : null;
-                const ex2Eff = ex2 ? (function () { const t = new Date(ex2.getTime()); t.setDate(t.getDate() - 1); return t; })() : null;
-                const ecur = eEl.value;
-                // ユーザーが手動で上書きした可能性を考慮し、空または初期値と同じなら更新
-                if (!ecur || ecur === estr) {
-                    if (ex2Eff) {
-                        const nstr = `${ex2Eff.getFullYear()}-${pad(ex2Eff.getMonth() + 1)}-${pad(ex2Eff.getDate())}`;
-                        eEl.value = nstr;
-                    } else {
-                        eEl.value = '';
+            const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            const addMonthsEndFix = (base, months) => { const d = new Date(base.getTime()); const srcD = d.getDate(); d.setMonth(d.getMonth() + months); if (d.getDate() < srcD) d.setDate(0); return d; };
+            const parseYmdLocal = (s) => { const p = String(s || '').split('-').map((n)=>parseInt(n,10)); return (p.length>=3 && !isNaN(p[0])&&!isNaN(p[1])&&!isNaN(p[2])) ? new Date(p[0],p[1]-1,p[2]) : new Date(NaN); };
+
+            // 要素参照
+            const gd = q(`#grantDate-${user.id}`);
+            const ge = q(`#grantExpire-${user.id}`);
+            const gc = q(`#grantExpireClear-${user.id}`);
+            const unitSel = q(`#grantUnit-${user.id}`);
+            const daysWrap = q(`#grantDaysWrap-${user.id}`);
+            const hoursWrap = q(`#grantHoursWrap-${user.id}`);
+            const daysEl = q(`#grantDays-${user.id}`);
+            const hoursEl = q(`#grantHours-${user.id}`);
+            const perDayWrap = q(`#grantPerDayWrap-${user.id}`);
+            const perDayEl = q(`#grantPerDayHours-${user.id}`);
+            const ref = q(`#grantRef-${user.id}`);
+            const refDetail = q(`#grantRefDetail-${user.id}`);
+            const avgMode = q(`#avgMode-${user.id}`);
+            const avgStartEl = q(`#avgStart-${user.id}`);
+            const avgEndEl = q(`#avgEnd-${user.id}`);
+            const msg = q(`#grantMsg-${user.id}`);
+            const submitBtn = q(`#grantSubmitBtn-${user.id}`);
+
+            // デフォルト付与日と期限
+            (async function initDates() {
+                function setExpireFromGrant() {
+                    const d = parseYmdLocal(gd.value);
+                    if (!isNaN(d.getTime())) {
+                        const months = orgSettings ? Number(orgSettings.paid_leave_valid_months || 24) : 24;
+                        if (months > 0) {
+                            const exp = addMonthsEndFix(d, months);
+                            const expMinus1 = new Date(exp.getTime());
+                            expMinus1.setDate(expMinus1.getDate() - 1);
+                            ge.value = toYmd(expMinus1);
+                        } else {
+                            ge.value = '';
+                        }
                     }
                 }
+                async function computeDefaultGrantDate() {
+                    // 1) 直近付与日 + 1年
+                    try {
+                        const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${user.id}&limit=200`);
+                        if (res && res.ok) {
+                            const hist = await res.json();
+                            const grants = Array.isArray(hist.grants) ? hist.grants : [];
+                            if (grants.length > 0) {
+                                let latest = grants[0].grant_date;
+                                for (const g of grants) { if (g.grant_date > latest) latest = g.grant_date; }
+                                const [y,m,d] = latest.split('-').map(Number);
+                                const dt = new Date(y, m-1, d);
+                                const next = addMonthsEndFix(dt, 12);
+                                return toYmd(next);
+                            }
+                        }
+                    } catch {}
+                    // 2) 入社日 + 6ヶ月
+                    try {
+                        if (user && user.hire_date) {
+                            const [y,m,d] = String(user.hire_date).split('-').map(Number);
+                            const dt = new Date(y, m-1, d);
+                            const next = addMonthsEndFix(dt, 6);
+                            return toYmd(next);
+                        }
+                    } catch {}
+                    // 3) 今日
+                    const today = new Date();
+                    return toYmd(today);
+                }
+                if (gd && !gd.value) { try { gd.value = await computeDefaultGrantDate(); } catch {} }
+                if (gc) gc.onclick = () => { ge.value = ''; };
+                if (gd) {
+                    gd.addEventListener('change', setExpireFromGrant);
+                    if (!ge.value) setExpireFromGrant();
+                }
+            })();
+
+            // 参考更新ロジック（スコープ化）
+            async function updateGrantReferenceScoped() {
+                try {
+                    if (!unitSel || !daysWrap || !hoursWrap || !daysEl || !hoursEl || !ref) return;
+                    const unit = unitSel.value;
+                    daysWrap.style.display = (unit === 'day') ? '' : 'none';
+                    hoursWrap.style.display = (unit === 'hour') ? '' : 'none';
+                    perDayWrap.style.display = (unit === 'day') ? '' : 'none';
+
+                    const hireMissing = !(user && user.hire_date);
+                    const grantDate = gd && gd.value ? gd.value : null;
+                    let baseHours = null;
+                    if (user && user.contract_hours_per_day != null && user.contract_hours_per_day > 0) {
+                        baseHours = Number(user.contract_hours_per_day);
+                    }
+                    // 設定の付与ルール
+                    let rules = null;
+                    if (orgSettings && orgSettings.paid_leave_rules) {
+                        try { rules = JSON.parse(orgSettings.paid_leave_rules); } catch { rules = null; }
+                    }
+                    // 参考平均（attendance_avg）
+                    let detailBlock = '';
+                    let detailBlockB = '';
+                    const calc = { stageA: null, stageB: null };
+                    if (grantDate) {
+                        try {
+                            function fmt(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+                            const gdDate = parseYmdLocal(grantDate);
+                            let endDate = new Date(gdDate); endDate.setDate(endDate.getDate() - 1);
+                            const endStr = fmt(endDate);
+                            let startStr = '';
+                            const mode = avgMode ? avgMode.value : 'auto';
+                            if (mode === '6m' || mode === '1y') {
+                                const s = new Date(endDate);
+                                s.setMonth(s.getMonth() + (mode === '6m' ? -6 : -12));
+                                s.setDate(s.getDate() + 1);
+                                startStr = fmt(s);
+                                if (avgStartEl) avgStartEl.value = startStr;
+                                if (avgEndEl) avgEndEl.value = endStr;
+                                if (avgStartEl) avgStartEl.disabled = true;
+                                if (avgEndEl) avgEndEl.disabled = true;
+                            } else if (mode === 'custom') {
+                                if (avgEndEl && !avgEndEl.value) avgEndEl.value = endStr;
+                                if (avgStartEl && !avgStartEl.value) {
+                                    const s = new Date(endDate); s.setMonth(s.getMonth()-6); s.setDate(s.getDate()+1); avgStartEl.value = fmt(s);
+                                }
+                                if (avgStartEl) avgStartEl.disabled = false;
+                                if (avgEndEl) avgEndEl.disabled = false;
+                                startStr = avgStartEl && avgStartEl.value ? avgStartEl.value : '';
+                            } else {
+                                if (avgStartEl) avgStartEl.disabled = true;
+                                if (avgEndEl) avgEndEl.disabled = true;
+                            }
+                            const r = await fetchWithAuth('api/attendance_avg.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: Number(user.id), end_date: endStr, start_date: startStr || undefined }) });
+                            if (r && r.ok) {
+                                const j = await r.json();
+                                if ((baseHours === null || !(baseHours > 0)) && j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
+                                if (refDetail) {
+                                    const avg = (j && j.avg_hours_per_day != null) ? Number(j.avg_hours_per_day) : null;
+                                    const avgRoundedHour = (avg != null) ? Math.ceil(avg) : null;
+                                    const wd = j?.work_days ?? 0;
+                                    const th = (j?.total_hours != null) ? Number(j.total_hours).toFixed(2) : '0.00';
+                                    const ss = j?.start_date || (startStr || '');
+                                    const ee = j?.end_date || endStr;
+                                    const roundLabelHour = '1時間単位で切り上げ';
+                                    let html = (avg != null)
+                                      ? `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: ${avg.toFixed(2)}時間/日 → 丸め後 ${avgRoundedHour.toFixed(2)}時間/日（${roundLabelHour}）`
+                                      : `期間: ${ss} ～ ${ee}<br>労働日数: ${wd}日　合計: ${th}時間<br>平均: データ不足`;
+
+                                    // Stage A（勤務記録から推定）
+                                    try {
+                                        const u = user;
+                                        // 週/年換算
+                                        const d1 = ss ? parseYmdLocal(ss) : null, d2 = ee ? parseYmdLocal(ee) : null;
+                                        const periodDays = (d1 && d2 && !isNaN(d1) && !isNaN(d2)) ? Math.max(1, Math.round((d2 - d1) / 86400000) + 1) : 0;
+                                        const weeks = periodDays > 0 ? (periodDays / 7) : 0;
+                                        const weeklyDays = (weeks > 0) ? (wd / weeks) : 0;
+                                        const weeklyHours = (weeks > 0) ? ((Number(j.total_hours || 0)) / weeks) : 0;
+                                        const isInitial = (j?.start_source === 'hire_or_6m' || j?.start_source === 'last_6m');
+                                        const annualizedDays = (isInitial ? (wd * 2) : wd);
+                                        const PT_HOURS_LT = 30, PT_DAYS_MAX = 4, PT_ANNUAL_MAX = 216, MIN_ANY_GRANT = 48;
+                                        const buckets = [ { key:'4d', min:169, max:216 }, { key:'3d', min:121, max:168 }, { key:'2d', min:73, max:120 }, { key:'1d', min:48, max:72 } ];
+                                        const isPart = ((weeklyHours < PT_HOURS_LT && weeklyDays <= PT_DAYS_MAX) || (annualizedDays <= PT_ANNUAL_MAX));
+                                        let bucket = '4d'; for (const b of buckets){ if (annualizedDays >= b.min && annualizedDays <= b.max){ bucket = b.key; break; } }
+                                        const milestones = (rules && Array.isArray(rules.milestones) ? rules.milestones : ['6m','1y6m','2y6m','3y6m','4y6m','5y6m','6y6m+']);
+                                        function parseMilestoneToMonths(s){ const m=String(s||'').toLowerCase().replace(/\s+/g,''); const i=m.indexOf('y'); if(i>=0){ const y=parseInt(m.substring(0,i),10)||0; const mm=parseInt(m.substring(i+1).replace(/[^0-9]/g,''),10)||0; return y*12+mm; } return parseInt(m.replace(/[^0-9]/g,'')||'0',10)||0; }
+                                        const mlMonths = milestones.map(parseMilestoneToMonths);
+                                        let msIdx = 0; if (u && u.hire_date && grantDate){ const h=parseYmdLocal(u.hire_date); const g=parseYmdLocal(grantDate); if(!isNaN(h)&&!isNaN(g)){ let months=(g.getFullYear()-h.getFullYear())*12+(g.getMonth()-h.getMonth()); if(g.getDate()<h.getDate()) months-=1; for(let i=0;i<mlMonths.length;i++){ if(months>=mlMonths[i]) msIdx=i; else break; } } }
+                                        let noGrant = (annualizedDays > 0 && annualizedDays < MIN_ANY_GRANT);
+                                        let chosen = null; let tableSrc = '常勤';
+                                        if (!noGrant && rules) {
+                                            if (isPart && rules.parttime && rules.parttime[bucket]) { chosen = rules.parttime[bucket]?.[msIdx]; tableSrc = `２－２ : 週${bucket.replace('d','日')}`; }
+                                            else if (rules.fulltime) { chosen = rules.fulltime?.[msIdx]; tableSrc = '２'; }
+                                        }
+                                        const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
+                                        const wasAutoH = !!(hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled);
+                                        if (hireMissing || noGrant) {
+                                            if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch {} }
+                                            if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch {} }
+                                        } else if (chosen != null && !isNaN(chosen)) {
+                                            if (unitSel && unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(chosen); try { daysEl.dataset.autofilled = 'stageA'; } catch {} } }
+                                            if (unitSel && unitSel.value === 'hour' && hoursEl) {
+                                                const perHInput = parseFloat(perDayEl?.value || '0');
+                                                let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                                if (perH > 0) perH = Math.ceil(perH);
+                                                try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageA'; } catch {}
+                                                if (perH > 0) { const hRaw = Number(chosen) * perH; const h = Math.ceil(hRaw); if (!hoursEl.value || wasAutoH) { hoursEl.value = String(h); } }
+                                            }
+                                        }
+                                        const classLabel = (isPart ? `短時間(${bucket.replace('d','日')})` : '常勤');
+                                        const tblDisplay = String(tableSrc).includes('２－２') ? '表2-2' : '表2';
+                                        const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tblDisplay}</span>`;
+                                        const saDays = (noGrant ? null : (typeof chosen === 'number' ? chosen : null));
+                                        const saDaysLabel = (saDays != null)
+                                          ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${saDays}日</span> ${tableBadge}`
+                                          : `<span style=\"font-weight:bold;text-decoration:underline;${noGrant ? 'color:#d32f2f;' : 'color:#777; font-style:italic;'}\">算定付与日数: ${noGrant ? '判定不可' : '—'}${noGrant ? '（最小基準48日未満）' : ''}</span>`;
+                                        const saHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜勤務記録からの推定＞</span>${saDaysLabel}</div>`;
+                                        const saGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">`
+                                          + `<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${classLabel}</span></div>`
+                                          + `<div><span style=\"color:#555;\">年換算</span><span style=\"float:right;text-align:right;\">${annualizedDays} 日</span></div>`
+                                          + `<div><span style=\"color:#555;\">週平均日数</span><span style=\"float:right;text-align:right;\">${weeklyDays.toFixed(2)} 日</span></div>`
+                                          + `<div><span style=\"color:#555;\">週平均時間</span><span style=\"float:right;text-align:right;\">${weeklyHours.toFixed(2)} 時間</span></div>`
+                                          + `</div>`;
+                                        let saHoursRow = '';
+                                        if (unitSel && unitSel.value === 'hour') {
+                                            const perHInput = parseFloat(perDayEl?.value || '0');
+                                            let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                            if (perH > 0) perH = Math.ceil(perH);
+                                            if (perH > 0 && saDays != null) {
+                                                const hRaw = Number(saDays) * perH;
+                                                const h = Math.ceil(hRaw);
+                                                saHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
+                                            }
+                                        }
+                                        const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;\">`;
+                                        const saWrapClose = `</div>`;
+                                        html += `<br>${saWrapOpen}${saHeader}${saGrid}${saHoursRow}${saWrapClose}`;
+                                        calc.stageA = { days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)) };
+                                    } catch {}
+                                    detailBlock = html;
+                                }
+                            }
+                        } catch {}
+                    }
+                    // Stage B（契約準拠）
+                    try {
+                        const grantDateEff = gd && gd.value ? gd.value : null;
+                        if (grantDateEff) {
+                            let startDateOverride = '';
+                            if (avgMode && avgMode.value === 'custom' && avgStartEl && avgStartEl.value) startDateOverride = avgStartEl.value;
+                            const preferStageA = (function () {
+                                const isFullTime = !!(user && Number(user.full_time) === 1);
+                                const hasContract = !!(user && user.contract_hours_per_day != null && Number(user.contract_hours_per_day) > 0);
+                                const hasSchedWD = !!(user && user.scheduled_weekly_days != null && Number(user.scheduled_weekly_days) > 0);
+                                const hasSchedWH = !!(user && user.scheduled_weekly_hours != null && Number(user.scheduled_weekly_hours) > 0);
+                                const hasSchedAD = !!(user && user.scheduled_annual_days != null && Number(user.scheduled_annual_days) > 0);
+                                return (!isFullTime && !hasContract && !hasSchedWD && !hasSchedWH && !hasSchedAD);
+                            })();
+                            const body = { user_id: Number(user.id), grant_date: grantDateEff };
+                            if (startDateOverride) body.start_date = startDateOverride;
+                            const r2 = await fetchWithAuth('api/paid_leave_classify.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                            if (r2 && r2.ok) {
+                                const c = await r2.json();
+                                const wasAuto = !!(daysEl && daysEl.dataset && daysEl.dataset.autofilled);
+                                const wasAutoH = !!(hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled);
+                                const eligible = (c.eligible_by_min_annual !== false) && (c.eligible_by_attendance !== false);
+                                if (!preferStageA && !hireMissing) {
+                                    if (!eligible) {
+                                        if (wasAuto && daysEl) { daysEl.value = ''; try { daysEl.dataset.autofilled = ''; } catch {} }
+                                        if (wasAutoH && hoursEl) { hoursEl.value = ''; try { hoursEl.dataset.autofilled = ''; } catch {} }
+                                    } else if (c.default_days != null && !isNaN(c.default_days)) {
+                                        if (unitSel.value === 'day' && daysEl) { if (!daysEl.value || wasAuto) { daysEl.value = String(c.default_days); try { daysEl.dataset.autofilled = 'stageB'; } catch {} } }
+                                        if (unitSel.value === 'hour' && hoursEl) {
+                                            const perHInput = parseFloat(perDayEl?.value || '0');
+                                            let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                            if (perH > 0) perH = Math.ceil(perH);
+                                            try { if (!hoursEl.dataset.autofilled || wasAutoH) hoursEl.dataset.autofilled = 'stageB'; } catch {}
+                                            if (perH > 0) { const hRaw = Number(c.default_days) * perH; const h = Math.ceil(hRaw); if (!hoursEl.value || wasAutoH) { hoursEl.value = String(h); } }
+                                        }
+                                    }
+                                } else if (hireMissing) {
+                                    if (wasAuto && daysEl) { try { daysEl.value = ''; daysEl.dataset.autofilled = ''; } catch {} }
+                                    if (wasAutoH && hoursEl) { try { hoursEl.value = ''; hoursEl.dataset.autofilled = ''; } catch {} }
+                                }
+                                if (refDetail) {
+                                    const rawCls = String(c.classification || '');
+                                    const cls = rawCls ? ((rawCls === 'fulltime') ? '常勤' : 'パート') : '';
+                                    const msRaw = String(c.milestone_label || '');
+                                    const exp = (c.expected_days != null) ? Number(c.expected_days) : null;
+                                    const rate = (c.attendance_rate != null) ? Number(c.attendance_rate) : null;
+                                    const tableLabel = (cls === '常勤') ? '表2' : '表2-2';
+                                    const tableBadge = `<span style=\"background:#e3f2fd;color:#1976d2;border:1px solid #90caf9;border-radius:3px;padding:0 4px;\">${tableLabel}</span>`;
+                                    const sbDays = (preferStageA ? null : (c.default_days != null ? Number(c.default_days) : null));
+                                    const sbDaysLabel = (sbDays != null)
+                                      ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${sbDays}日</span> ${tableBadge}`
+                                      : `<span style=\"font-weight:bold;text-decoration:underline;color:#777;font-style:italic;\">算定付与日数: 判定不可</span>`;
+                                    const sbHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜契約内容に準拠＞</span>${sbDaysLabel}</div>`;
+                                    const sbGridParts = [];
+                                    sbGridParts.push(`<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${preferStageA ? '判定不可' : (cls || '不明')}</span></div>`);
+                                    if (!preferStageA && exp != null) sbGridParts.push(`<div><span style=\"color:#555;\">想定出勤日</span><span style=\"float:right;text-align:right;\">${exp.toFixed(1)} 日</span></div>`);
+                                    if (!preferStageA && rate != null) sbGridParts.push(`<div><span style=\"color:#555;\">出勤率</span><span style=\"float:right;text-align:right;\">${(rate * 100).toFixed(1)} %</span></div>`);
+                                    const sbGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">${sbGridParts.join('')}<\/div>`;
+                                    let sbHoursRow = '';
+                                    if (unitSel.value === 'hour') {
+                                        const perHInput = parseFloat(perDayEl?.value || '0');
+                                        let perH = (perHInput > 0) ? perHInput : (baseHours && baseHours > 0 ? Number(baseHours) : 0);
+                                        if (perH > 0) perH = Math.ceil(perH);
+                                        if (perH > 0 && sbDays != null) {
+                                            const hRaw = Number(sbDays) * perH;
+                                            const h = Math.ceil(hRaw);
+                                            sbHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
+                                        }
+                                    }
+                                    detailBlockB = `${sbHeader}${sbGrid}${sbHoursRow}`;
+                                }
+                            }
+                        }
+                    } catch {}
+
+                    // サマリー表示と参考情報
+                    try {
+                        // 単位が日なら 1日あたり時間の初期値（契約 or 平均→切上げ）
+                        if (unitSel.value === 'day' && perDayEl) {
+                            if (!perDayEl.value && baseHours && baseHours > 0) {
+                                const val = Math.ceil(Number(baseHours));
+                                // 契約が無い場合のみ初期値を入れる
+                                const uHasContract = (user && user.contract_hours_per_day != null && user.contract_hours_per_day > 0);
+                                if (!uHasContract) perDayEl.value = String(val);
+                            }
+                        }
+                        let info = '';
+                        if (unitSel.value === 'day') {
+                            const perH = parseFloat(perDayEl?.value || '0');
+                            if (perH > 0) info = `参考: 1日=${perH.toFixed(2)}時間`;
+                            else if (baseHours && baseHours > 0) info = `参考: 1日=${Math.ceil(Number(baseHours)).toFixed(2)}時間`;
+                            else info = `参考: 算出対象の勤務実績が不足しています`;
+                        } else {
+                            const perH = parseFloat(perDayEl?.value || '0');
+                            if (perH > 0) info = `参考: 1日=${perH.toFixed(2)}時間`;
+                            else if (baseHours && baseHours > 0) info = `参考: 1日=${Math.ceil(Number(baseHours)).toFixed(2)}時間`;
+                        }
+                        if (unitSel.value === 'day') {
+                            const d = parseFloat(daysEl.value || '0');
+                            const perH = parseFloat(perDayEl?.value || '0');
+                            if (d > 0 && perH > 0) {
+                                const hRaw = d * perH;
+                                const h = Math.ceil(hRaw);
+                                hoursEl.value = String(h);
+                                info += ` → ${d}日=${h}時間`;
+                            }
+                        }
+                        // 参考詳細の開閉状態
+                        if (refDetail) {
+                            const collapsed = (localStorage.getItem('pl_ref_collapsed') !== '0');
+                            refDetail.style.display = collapsed ? 'none' : '';
+                            let toggle = document.getElementById(`grantRefToggle-${user.id}`);
+                            if (!toggle) {
+                                toggle = document.createElement('button');
+                                toggle.id = `grantRefToggle-${user.id}`;
+                                toggle.className = 'btn btn-secondary';
+                                toggle.style.padding = '0.15em 0.6em';
+                                toggle.style.fontSize = '0.9em';
+                                toggle.style.alignSelf = 'end';
+                                toggle.style.width = 'auto';
+                                if (ref.nextSibling) ref.parentElement.insertBefore(toggle, ref.nextSibling); else ref.parentElement.appendChild(toggle);
+                            }
+                            toggle.textContent = collapsed ? '詳細を表示' : '詳細を隠す';
+                            toggle.onclick = () => {
+                                const isCollapsed = (refDetail.style.display === 'none');
+                                refDetail.style.display = isCollapsed ? '' : 'none';
+                                localStorage.setItem('pl_ref_collapsed', isCollapsed ? '0' : '1');
+                                toggle.textContent = isCollapsed ? '詳細を隠す' : '詳細を表示';
+                            };
+                        }
+                        if (ref) {
+                            const src = (unitSel.value === 'day')
+                              ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                              : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
+                            const srcLabel = src === 'stageB' ? '契約労働時間準拠' : (src === 'stageA' ? '勤務記録から推定' : (src === 'rules-default' ? '設定既定' : '手入力'));
+                            const dVal = (unitSel.value === 'day') ? (parseFloat(daysEl.value || '0') || 0) : 0;
+                            if (unitSel.value === 'day') {
+                                const adoptedHtml = `<b>${dVal > 0 ? dVal + '日' : '—'}</b>（${srcLabel}）`;
+                                const refText = String(info || '').replace(/^参考:\s*/, '');
+                                ref.innerHTML = `
+<div style=\"display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;\">\
+  <div style=\"color:#555; min-width: 280px;\">採用結果</div>\
+  <div style=\"color:#555; min-width: 240px;\">参考</div>\
+  <div>${adoptedHtml}</div>\
+  <div>${refText}</div>\
+</div>`;
+                            } else {
+                                const hVal = parseFloat(hoursEl.value || '0') || 0;
+                                const adoptedHtml = `<b>${hVal > 0 ? Math.ceil(hVal) + '時間' : '—'}</b>（${srcLabel}）`;
+                                const refText = String(info || '').replace(/^参考:\s*/, '');
+                                ref.innerHTML = `
+<div style=\"display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;\">\
+  <div style=\"color:#555; min-width: 280px;\">採用結果</div>\
+  <div style=\"color:#555; min-width: 240px;\">参考</div>\
+  <div>${adoptedHtml}</div>\
+  <div>${refText}</div>\
+</div>`;
+                            }
+                            // 入社日未登録の警告
+                            let warn = document.getElementById(`grantRefWarn-${user.id}`);
+                            if (!warn) {
+                                warn = document.createElement('div');
+                                warn.id = `grantRefWarn-${user.id}`;
+                                warn.style.fontSize = '0.9em';
+                                warn.style.marginTop = '4px';
+                                if (ref.nextSibling) ref.parentElement.insertBefore(warn, ref.nextSibling); else ref.parentElement.appendChild(warn);
+                            }
+                            if (hireMissing) { warn.style.color = '#d32f2f'; warn.textContent = '入社日が未登録のため、勤続期間の算定ができません。自動採用を抑制しています。'; }
+                            else { warn.textContent = ''; }
+                        }
+                        if (refDetail) {
+                            const merged = [detailBlock, detailBlockB].filter(Boolean).join('');
+                            refDetail.innerHTML = merged || '';
+                        }
+                    } catch {}
+                } catch {}
+            }
+
+            // イベントバインド（root スコープ）
+            root.addEventListener('input', (e) => {
+                const ids = [
+                    `grantUnit-${user.id}`, `grantDays-${user.id}`, `grantPerDayHours-${user.id}`,
+                    `grantDate-${user.id}`, `avgMode-${user.id}`, `avgStart-${user.id}`, `avgEnd-${user.id}`, `grantHours-${user.id}`
+                ];
+                if (e.target && ids.includes(e.target.id)) {
+                    if (e.target.id === `grantDays-${user.id}` || e.target.id === `grantHours-${user.id}`) { try { e.target.dataset.autofilled = ''; } catch {} }
+                    updateGrantReferenceScoped();
+                }
             });
+            root.addEventListener('change', (e) => {
+                const ids = [
+                    `grantUnit-${user.id}`, `grantDays-${user.id}`, `grantPerDayHours-${user.id}`,
+                    `grantDate-${user.id}`, `avgMode-${user.id}`, `avgStart-${user.id}`, `avgEnd-${user.id}`
+                ];
+                if (e.target && ids.includes(e.target.id)) {
+                    updateGrantReferenceScoped();
+                }
+            });
+
+            // 送信
+            if (submitBtn) {
+                submitBtn.onclick = async () => {
+                    const grantDate = gd.value;
+                    const unit = unitSel?.value || 'day';
+                    const grantHoursStr = hoursEl.value.trim();
+                    const grantExpire = ge.value;
+                    if (!grantDate) { msg.textContent = '付与日を入力してください'; msg.style.color = '#d32f2f'; return; }
+                    if (!grantHoursStr) { msg.textContent = (unit === 'day' ? '日数を入力してください' : '時間を入力してください'); msg.style.color = '#d32f2f'; return; }
+                    const grantHours = Math.ceil(parseFloat(grantHoursStr));
+                    if (!(grantHours > 0)) { msg.textContent = '時間は0より大きい値にしてください'; msg.style.color = '#d32f2f'; return; }
+                    msg.textContent = '登録中...'; msg.style.color = '#666';
+                    const res = await fetchWithAuth('api/paid_leave_grant.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: user.id, grant_date: grantDate, grant_hours: grantHours, expire_date: grantExpire })
+                    });
+                    if (res && res.ok) {
+                        msg.textContent = '付与を登録しました'; msg.style.color = '#2e7d32';
+                        // 残高・履歴を更新
+                        await mountLeaveBalance(user.id);
+                        await updateGrantReferenceScoped();
+                    } else if (res) {
+                        try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
+                        msg.style.color = '#d32f2f';
+                    }
+                };
+            }
+
+            // 初期描画
+            (async function initRef() { await updateGrantReferenceScoped(); })();
         }
 
         window.grantLeave = async function (userId) {
@@ -1397,9 +1852,74 @@
             }
         }
 
+        // ディープリンク処理: ?user_id=xxx と #tab=leave_grant 等を解釈して自動展開
+        async function applyDeepLink() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const uidParam = params.get('user_id');
+                // ハッシュの解析（#tab=xxx）: ハイフン/アンダースコア両対応
+                const hash = window.location.hash || '';
+                const m = hash.match(/tab=([A-Za-z0-9_-]+)/);
+                let tab = m ? m[1] : '';
+                if (tab) tab = tab.replace('-', '_');
+                const allowed = ['summary', 'details', 'leave_settings', 'leave_grant', 'leave_balance'];
+                if (!allowed.includes(tab)) tab = 'leave_grant';
+                if (!uidParam) return; // user_id がなければ何もしない
+
+                // 現在の users 配列から対象ユーザーのインデックスを探す
+                let idx = users.findIndex(u => String(u.id) === String(uidParam));
+                if (idx === -1) {
+                    // 削除ユーザー表示OFFで見つからない可能性があるので一時的にONにして再描画
+                    const toggle = document.getElementById('showDeletedToggle');
+                    if (toggle && !toggle.checked) {
+                        toggle.checked = true;
+                        await renderTable();
+                        idx = users.findIndex(u => String(u.id) === String(uidParam));
+                    }
+                }
+                if (idx === -1) return; // 見つからない場合は抜ける
+
+                // 対象行を展開し、指定タブをアクティブ化
+                await window.toggleExpand(idx);
+                const userId = users[idx].id;
+                // タブ切替（要素がマウント済みであることを前提に）
+                window.switchTab(userId, tab);
+                // 対象行へスクロール
+                const row = document.getElementById(`row-user-${userId}`);
+                if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (e) {
+                // 無視（ディープリンクはベストエフォート）
+            }
+        }
+
+        // ハッシュからタブ名を抽出（不正値は null）
+        function parseTabFromHash() {
+            const hash = window.location.hash || '';
+            const m = hash.match(/tab=([A-Za-z0-9_-]+)/);
+            let tab = m ? m[1] : '';
+            if (!tab) return null;
+            tab = tab.replace('-', '_');
+            const allowed = ['summary', 'details', 'leave_settings', 'leave_grant', 'leave_balance'];
+            return allowed.includes(tab) ? tab : null;
+        }
+
         (async function init() {
             await loadOrgSettings();
             await renderTable();
+            // ディープリンクによる自動展開（有給付与タブ等）
+            await applyDeepLink();
+            // ハッシュ変更（#tab=...）監視: 展開済みならそのままタブ切替、未展開ならディープリンク処理
+            window.addEventListener('hashchange', async () => {
+                const tab = parseTabFromHash();
+                if (!tab) return;
+                if (expandedUserId !== null) {
+                    window.switchTab(expandedUserId, tab);
+                    const row = document.getElementById(`row-user-${expandedUserId}`);
+                    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    await applyDeepLink();
+                }
+            });
         })();
     </script>
 </body>
