@@ -48,12 +48,20 @@
             border-radius: 4px;
         }
 
-
         input[type="month" i] {
             font-size: 1.5em;
             border: 1px solid #b0bec5;
             border-radius: 4px;
             padding: 2px 0;
+        }
+
+        .grantExpireDateWrap {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            grid-template-columns: auto auto auto;
+            gap: 6px;
+            align-self: stretch;
+            min-width: 220px;
         }
 
         th,
@@ -167,7 +175,6 @@
             border-bottom-color: #fff;
             font-weight: 600;
         }
-
     </style>
 </head>
 
@@ -229,8 +236,7 @@
                     <span id="recalcMsg" style="color:#666;"></span>
                     <!-- 開発者向け: 旧付与パネルの一時表示スイッチ -->
                     <label style="display:flex;align-items:center;gap:6px;margin-left:4px;color:#607d8b;">
-                        <input type="checkbox" id="toggleLegacyGrant" /> 旧付与パネルを表示
-                    </label>
+                        <input type="checkbox" id="toggleLegacyGrant" /> 旧付与パネルを表示 </label>
                 </div>
                 <div id="leaveGrantPanel" style="display:block;">
                     <div style="display:flex;gap:1em;flex-wrap:wrap;align-items:center;justify-content:center;margin:0.5em 0 0.5em 0;">

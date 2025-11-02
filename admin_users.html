@@ -343,6 +343,13 @@
             <button class="btn btn-secondary" id="backBtn">← 管理メニューへ</button>
         </div>
         <h2>ユーザーアカウント管理</h2>
+        <!-- 全体再計算ツールバー -->
+        <div id="global-recalc-bar" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:-0.5rem 0 0.8rem 0;flex-wrap:wrap;">
+            <span class="muted" style="margin-right:auto;">有休サマリの再計算と失効（過去分バックフィル）</span>
+            <button class="btn btn-secondary_2" id="btnRecalcAllUsers">全体を再計算</button>
+            <button class="btn" id="btnRecalcExpireAllUsers" title="全体 再計算→失効（過去分バックフィル）">全体 再計算→失効</button>
+            <span id="globalRecalcMsg" class="muted" style="min-width:240px;"></span>
+        </div>
         <div
             class="search-box"
             style="display: flex; align-items: center; gap: 1em">
@@ -664,6 +671,42 @@
                 s.textContent = `.click-row{cursor:pointer;} .click-row:hover{background:#f2f8ff;}`;
                 document.head.appendChild(s);
             }
+        })();
+        // 全体再計算ツールバーの動作
+        (function bindGlobalRecalcBar() {
+            const btnAll = document.getElementById('btnRecalcAllUsers');
+            const btnAllExpire = document.getElementById('btnRecalcExpireAllUsers');
+            const msg = document.getElementById('globalRecalcMsg');
+            if (!btnAll || !btnAllExpire || !msg) return;
+            btnAll.onclick = async () => {
+                btnAll.disabled = true; btnAllExpire.disabled = true;
+                msg.textContent = '全体再計算中...'; msg.style.color = '#666';
+                const res = await fetchWithAuth('api/paid_leave_recalc_all.php');
+                if (res && res.ok) {
+                    msg.textContent = '全体再計算が完了しました'; msg.style.color = '#2e7d32';
+                    // 展開中ユーザーの残高を最新化
+                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } }
+                } else {
+                    msg.textContent = '全体再計算に失敗しました'; msg.style.color = '#d32f2f';
+                }
+                btnAll.disabled = false; btnAllExpire.disabled = false;
+            };
+            btnAllExpire.onclick = async () => {
+                if (!confirm('全ユーザーの「再計算→失効（過去分一括）」を実行します。時間がかかる場合があります。実行しますか？')) return;
+                btnAll.disabled = true; btnAllExpire.disabled = true;
+                msg.textContent = '全体 再計算→失効 実行中...'; msg.style.color = '#666';
+                const r1 = await fetchWithAuth('api/paid_leave_recalc_all.php');
+                if (!r1 || !r1.ok) { msg.textContent = '全体再計算に失敗しました'; msg.style.color = '#d32f2f'; btnAll.disabled = false; btnAllExpire.disabled = false; return; }
+                const r2 = await fetchWithAuth('api/paid_leave_expire_batch.php?mode=backfill');
+                if (r2 && r2.ok) {
+                    try { const j = await r2.json(); msg.textContent = `全体 再計算→失効 完了（失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; }
+                    catch { msg.textContent = '全体 再計算→失効 完了'; msg.style.color = '#2e7d32'; }
+                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } }
+                } else {
+                    msg.textContent = '全体の失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
+                }
+                btnAll.disabled = false; btnAllExpire.disabled = false;
+            };
         })();
 
         function renderExpandedRow(user) {
@@ -1084,18 +1127,19 @@
                     <div id="grantDateExpireWrap-${user.id}" class="grantExpireDateWrap">
                       <label for="grantDate-${user.id}" style="grid-row: 1/2; grid-column: 1/2; flex-basis: 100%; text-align-last:justify;">付与日</label>
                       <input type="date" id="grantDate-${user.id}" style="font-size:1.2em;grid-row: 1/2; grid-column: 2/3;">
-                      <button class="btn" id="grantSubmitBtn-${user.id}" style="grid-row: 1/2; grid-column: 3/4;">付与</button>
+                      <button class="btn" id="grantSubmitBtn-${user.id}" style="grid-row: 1/2; grid-column: 3/4; margin-left:6px;">付与</button>
                       <label for="grantExpire-${user.id}" style="margin:0; grid-row: 2/3; grid-column: 1/2;">有効期限</label>
                       <input type="date" id="grantExpire-${user.id}" style="font-size:1.2em; grid-row: 2/3; grid-column: 2/3;">
-                      <button class="btn" id="grantExpireClear-${user.id}" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2; grid-row: 2/3; grid-column: 3/4;">期限なし</button>
+                      <button class="btn" id="grantExpireClear-${user.id}" title="期限を空欄にする（期限なし）" style="background:#fff;color:#1976d2;border:1px solid #1976d2; grid-row: 2/3; grid-column: 3/4; margin-left:6px;">期限なし</button>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 6px; align-self:auto;">
-                      <div class="inline" style="display:flex;align-items:center;gap:6px; width:313.13px">
-                        <label>付与単位 <select id="grantUnit-${user.id}" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px; width:60px;">
-                          <option value="day">日</option>
-                          <option value="hour">時間</option>
-                        </select></label>
-                      </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px; align-self:auto;">
+                                            <div class="inline" style="display:flex;align-items:center;gap:6px; width:313.13px; flex-wrap:wrap;">
+                                                <label>付与単位 <select id="grantUnit-${user.id}" style="margin-left:6px; font-size:1em; padding-block:1px; padding-inline:2px; height:29px; width:60px;">
+                                                    <option value="day">日</option>
+                                                    <option value="hour">時間</option>
+                                                </select></label>
+                                                <span id="grantMsg-${user.id}" style="color:#666;"></span>
+                                            </div>
                       <div style="display:flex; flex-direction: row;">
                         <label id="grantHoursWrap-${user.id}" style="display:none; margin-right:160.34px">付与時間 <input type="number" id="grantHours-${user.id}" min="1" step="1" style="text-align:right; margin-left:6px; font-size:1em; height:29px; width:60px;"> h </label>
                         <label id="grantDaysWrap-${user.id}">付与日数 <input type="number" id="grantDays-${user.id}" min="1" step="1" style="margin-left:6px;text-align:right; font-size:1em; height:29px; width:60px;"> 日 </label>
@@ -1119,15 +1163,13 @@
                     <div id="avgEndWrap-${user.id}"><input type="date" id="avgEnd-${user.id}" style="font-size:1.2em;" disabled></div>
                   </div>
                   <div style="flex-basis:100%;height:0;"></div>
-                  <div id="grantSummaryRow-${user.id}" style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:0.5em;">
-                    <div style="display:flex;flex-direction:column;gap:2px;min-width:280px;">
-                      <span id="grantRef-${user.id}" style="color:#666;"></span>
-                      <span id="grantRefDetail-${user.id}" style="color:#888;font-size:0.92em; line-height:1.7em;"></span>
-                    </div>
-                    <span id="grantMsg-${user.id}" style="color:#666;"></span>
-                  </div>
+                                    <div id="grantSummaryRow-${user.id}" style="display:flex;gap:1em;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:0.5em;">
+                                        <div style="display:flex;flex-direction:column;gap:2px;min-width:280px;">
+                                            <span id="grantRef-${user.id}" style="color:#666;"></span>
+                                            <span id="grantRefDetail-${user.id}" style="color:#888;font-size:0.92em; line-height:1.7em;"></span>
+                                        </div>
+                                    </div>
                 </div>
-                <div class="field-note">注: ログへの詳細記録は次フェーズで拡張予定です</div>
             `;
 
             // ヘルパー
@@ -1210,7 +1252,7 @@
                     if (!ge.value) setExpireFromGrant();
                 }
                 // 重要: デフォルト付与日の設定後に初回の参考計算を実行（初期表示でAPIが走らない問題の対策）
-                try { await updateGrantReferenceScoped(); } catch {}
+                try { await updateGrantReferenceScoped(); } catch { }
             })();
 
             // 参考更新ロジック（スコープ化）
@@ -1329,7 +1371,12 @@
                                         const saDaysLabel = (saDays != null)
                                             ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${saDays}日</span> ${tableBadge}`
                                             : `<span style=\"font-weight:bold;text-decoration:underline;${noGrant ? 'color:#d32f2f;' : 'color:#777; font-style:italic;'}\">算定付与日数: ${noGrant ? '判定不可' : '—'}${noGrant ? '（最小基準48日未満）' : ''}</span>`;
-                                        const saHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜勤務記録からの推定＞</span>${saDaysLabel}</div>`;
+                                        // 採用ハイライト（stageAが採用された場合）
+                                        const adoptedSrcA = (unitSel && unitSel.value === 'day')
+                                            ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                                            : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
+                                        const adoptedA = (adoptedSrcA === 'stageA');
+                                        const saHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜勤務記録からの推定＞</span>${saDaysLabel}${adoptedA ? `<span style=\"margin-left:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;\">採用</span>` : ''}</div>`;
                                         const saGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">`
                                             + `<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${classLabel}</span></div>`
                                             + `<div><span style=\"color:#555;\">年換算</span><span style=\"float:right;text-align:right;\">${annualizedDays} 日</span></div>`
@@ -1347,7 +1394,7 @@
                                                 saHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
                                             }
                                         }
-                                        const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;\">`;
+                                        const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedA ? 'border-left:4px solid #1976d2;background:#eef6ff;' : ''}\">`;
                                         const saWrapClose = `</div>`;
                                         html += `<br>${saWrapOpen}${saHeader}${saGrid}${saHoursRow}${saWrapClose}`;
                                         calc.stageA = { days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)) };
@@ -1409,12 +1456,19 @@
                                     const sbDaysLabel = (sbDays != null)
                                         ? `<span style=\"font-weight:bold;text-decoration:underline;\">算定付与日数: ${sbDays}日</span> ${tableBadge}`
                                         : `<span style=\"font-weight:bold;text-decoration:underline;color:#777;font-style:italic;\">算定付与日数: 判定不可</span>`;
-                                    const sbHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜契約内容に準拠＞</span>${sbDaysLabel}</div>`;
+                                    // 採用ハイライト（stageBが採用された場合）
+                                    const adoptedSrcB = (unitSel && unitSel.value === 'day')
+                                        ? ((daysEl && daysEl.dataset && daysEl.dataset.autofilled) ? String(daysEl.dataset.autofilled) : '')
+                                        : ((hoursEl && hoursEl.dataset && hoursEl.dataset.autofilled) ? String(hoursEl.dataset.autofilled) : '');
+                                    const adoptedB = (adoptedSrcB === 'stageB');
+                                    const sbHeader = `<div style=\"font-weight:bold;display:flex;align-items:baseline;gap:8px;\"><span>＜契約内容に準拠＞</span>${sbDaysLabel}${adoptedB ? `<span style=\"margin-left:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 4px;\">採用</span>` : ''}</div>`;
                                     const sbGridParts = [];
                                     sbGridParts.push(`<div><span style=\"color:#555;\">区分</span><span style=\"float:right;text-align:right;\">${preferStageA ? '判定不可' : (cls || '不明')}</span></div>`);
                                     if (!preferStageA && exp != null) sbGridParts.push(`<div><span style=\"color:#555;\">想定出勤日</span><span style=\"float:right;text-align:right;\">${exp.toFixed(1)} 日</span></div>`);
                                     if (!preferStageA && rate != null) sbGridParts.push(`<div><span style=\"color:#555;\">出勤率</span><span style=\"float:right;text-align:right;\">${(rate * 100).toFixed(1)} %</span></div>`);
                                     const sbGrid = `<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\">${sbGridParts.join('')}<\/div>`;
+                                    const sbWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedB ? 'border-left:4px solid #1976d2;background:#eef6ff;' : ''}\">`;
+                                    const sbWrapClose = `</div>`;
                                     let sbHoursRow = '';
                                     if (unitSel.value === 'hour') {
                                         const perHInput = parseFloat(perDayEl?.value || '0');
@@ -1426,7 +1480,7 @@
                                             sbHoursRow = `\n<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px;\"><div><span style=\"color:#555;\">算定付与時間数</span></div><div style=\"text-align:right;\">${h} 時間</div></div>`;
                                         }
                                     }
-                                    detailBlockB = `${sbHeader}${sbGrid}${sbHoursRow}`;
+                                    detailBlockB = `${sbWrapOpen}${sbHeader}${sbGrid}${sbHoursRow}${sbWrapClose}`;
                                 }
                             }
                         }
@@ -1585,7 +1639,7 @@
             }
 
             // 初期描画（フォールバック）。上の initDates 内でも呼び出しているが、念のため二重で実行しておく（安全策）
-            (async function initRef() { try { await updateGrantReferenceScoped(); } catch {} })();
+            (async function initRef() { try { await updateGrantReferenceScoped(); } catch { } })();
         }
 
         window.grantLeave = async function (userId) {
@@ -1646,6 +1700,12 @@
                             <div>合計利用（USEのみ、失効除外）</div><div style="text-align:right;">${fmt(b.used_total_hours)} h</div>
                             <div>残高（現在のサマリ）</div><div style="text-align:right; font-weight:600;">${fmt(b.balance_hours)} h</div>
                             <div>基準日</div><div>${b.as_of}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.6em;margin:4px 0 10px 0;flex-wrap:wrap;">
+                            <span class="muted">このユーザーの再計算</span>
+                            <button class="btn btn-secondary_2" id="lv-recalc-user-${userId}">再計算</button>
+                            <button class="btn" id="lv-recalc-expire-user-${userId}" title="再計算→失効（過去分バックフィル）">再計算→失効</button>
+                            <span id="lv-recalc-msg-${userId}" class="muted" style="min-width:200px;"></span>
                         </div>
                                                 <div style="display:flex;align-items:center;gap:0.8em;margin:6px 0 10px 0;">
                                                     <span class="muted">表示モード</span>
@@ -1745,6 +1805,42 @@
                             localStorage.setItem(MODE_KEY, mode);
                             renderAll();
                         });
+                    }
+
+                    // 再計算（ユーザー単位）ボタン
+                    const recUserBtn = wrap.querySelector(`#lv-recalc-user-${userId}`);
+                    const recExpireUserBtn = wrap.querySelector(`#lv-recalc-expire-user-${userId}`);
+                    const recMsgEl = wrap.querySelector(`#lv-recalc-msg-${userId}`);
+                    if (recUserBtn && recMsgEl) {
+                        recUserBtn.onclick = async () => {
+                            recUserBtn.disabled = true; if (recExpireUserBtn) recExpireUserBtn.disabled = true;
+                            recMsgEl.textContent = '再計算中...'; recMsgEl.style.color = '#666';
+                            const res = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${userId}`);
+                            if (res && res.ok) {
+                                recMsgEl.textContent = '再計算が完了しました'; recMsgEl.style.color = '#2e7d32';
+                                await mountLeaveBalance(userId);
+                            } else {
+                                recMsgEl.textContent = '再計算に失敗しました'; recMsgEl.style.color = '#d32f2f';
+                            }
+                            recUserBtn.disabled = false; if (recExpireUserBtn) recExpireUserBtn.disabled = false;
+                        };
+                    }
+                    if (recExpireUserBtn && recMsgEl) {
+                        recExpireUserBtn.onclick = async () => {
+                            recExpireUserBtn.disabled = true; if (recUserBtn) recUserBtn.disabled = true;
+                            recMsgEl.textContent = '再計算→失効（このユーザー）実行中...'; recMsgEl.style.color = '#666';
+                            const r1 = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${userId}`);
+                            if (!r1 || !r1.ok) { recMsgEl.textContent = '再計算に失敗しました'; recMsgEl.style.color = '#d32f2f'; recExpireUserBtn.disabled = false; if (recUserBtn) recUserBtn.disabled = false; return; }
+                            const r2 = await fetchWithAuth(`api/paid_leave_expire_batch.php?mode=backfill&user=${userId}`);
+                            if (r2 && r2.ok) {
+                                try { const j = await r2.json(); recMsgEl.textContent = `再計算→失効 完了（対象ユーザー: ${userId}, 失効更新ユーザー数: ${j.processed_users ?? 0}）`; recMsgEl.style.color = '#2e7d32'; }
+                                catch { recMsgEl.textContent = '再計算→失効 完了'; recMsgEl.style.color = '#2e7d32'; }
+                                await mountLeaveBalance(userId);
+                            } else {
+                                recMsgEl.textContent = '失効処理に失敗しました（バックフィル）'; recMsgEl.style.color = '#d32f2f';
+                            }
+                            recExpireUserBtn.disabled = false; if (recUserBtn) recUserBtn.disabled = false;
+                        };
                     }
 
                     // 展開編集ハンドラ（委譲）

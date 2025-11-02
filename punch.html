@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイムカード</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            padding: 1rem 2rem;
+        }
+
+        h2 {
+            text-align: start;
+            color: #1976d2;
+            margin: 0.4em 0;
+        }
+
+        .user-name {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #1976d2;
+            font-size: 1.5em;
+            gap: 1em;
+            border-bottom: #1976d2;
+            border-width: thin;
+            border-bottom-style: inset;
+        }
+
+        .clock_ {
+            text-align: center;
+            margin: 1rem 0;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        #clock-year {
+            font-size: 1.3rem;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        #clock-date {
+            font-size: 1.3rem;
+            margin-top: 0.3em;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        #clock-time {
+            display: none;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .clock-group {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+            margin-top: 0.5em;
+            margin-bottom: 2.5em;
+            box-sizing: border-box;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1.6em 1em;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group button {
+            width: 100%;
+            height: 3.5em;
+            font-size: 2rem;
+            border: none;
+            border-radius: 4px;
+            background: #1976d2;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        /* --- ボタン状態表示 --- */
+        .btn-group button.active {
+            background: #1976d2;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .btn-group button.inactive {
+            background: #b0bec5;
+            color: #fff;
+            cursor: not-allowed;
+        }
+
+        .btn-group button.disabled {
+            background: #b0bec536;
+            color: #b0bec5;
+            cursor: not-allowed;
+        }
+
+        .btn-group button:disabled:not(.time-ready) {
+            color: #b0bec588;
+        }
+
+        /* 時刻入力済みで押せるようになるボタン（例: 出勤前の出勤ボタン）は、
+           disabledでも白文字で表示 */
+        #clockInBtn:disabled.time-ready {
+            color: #fff;
+        }
+
+        #clockOutBtn:disabled.time-ready {
+            color: #fff;
+        }
+
+        #breakStartBtn:disabled.time-ready {
+            color: #fff;
+        }
+
+        #breakEndBtn:disabled.time-ready {
+            color: #fff;
+        }
+
+        .expand {
+            margin-top: 0rem;
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .expand.active {
+            display: block;
+            width: 100%;
+        }
+
+        .expand #manualTime {
+            margin: 0 auto;
+            align-items: center;
+            text-align: center;
+        }
+
+        .expand input[type="time"] {
+            width: -webkit-fill-available;
+            /*max-width: 100%;*/
+            min-width: 0;
+            font-size: 4em;
+            border: 0px;
+            border-radius: 0.2em;
+            background: rgba(25, 118, 210, 0.226);
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+            color: #1976d2;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            position: relative;
+            text-indent: 0;
+        }
+
+        .expand input[type="time"]:focus {
+            border: 1.5px solid rgba(25, 118, 210, 0.08);
+            box-shadow: 0 0 0 2px #90caf991;
+            background: #fff;
+        }
+
+        .error,
+        .success {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .error {
+            color: #d32f2f;
+        }
+
+        .success {
+            color: #388e3c;
+        }
+
+        .logoutBtn {
+            background: #fff;
+            color: #1976d2;
+            border: 1.5px solid #1976d2;
+            border-radius: 4px;
+            padding: 0.4em 1.2em;
+            font-size: 14px;
+            cursor: pointer;
+            vertical-align: text-top;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h2>タイムカード</h2>
+            <div>
+                <span id="clock-year"></span>
+                <span id="clock-date"></span>
+            </div>
+        </div>
+        <div class="clock-time-div">
+            <span id="clock-time" />
+        </div>
+        <div style="display:flex;justify-content:space-between; align-items:center; margin-top:0.5em; margin-bottom:1.3em;">
+            <button class="logoutBtn" id="logoutBtn">ログアウト</button>
+            <div class="user-name">
+                <span id="userName"></span>
+            </div>
+        </div>
+        <div class="clock-group">
+            <div style="font-size: 1.5em; display: flex; align-items: center; max-width: 4em; min-width: 4em;">
+                <label for="manualTime">打刻時刻</label>
+            </div>
+            <div class="expand" id="manualInput" style="display: flow; flex-grow: 1; text-align: center;">
+                <input type="time" id="manualTime" />
+            </div>
+        </div>
+        <div class="btn-group">
+            <button id="clockInBtn" style="grid-row:1;grid-column:1;">出勤</button>
+            <button id="clockOutBtn" style="grid-row:1;grid-column:2;" disabled>退勤</button>
+            <button id="breakStartBtn" style="grid-row:2;grid-column:1;" disabled>休憩始</button>
+            <button id="breakEndBtn" style="grid-row:2;grid-column:2;" disabled>休憩終</button>
+        </div>
+        <span id="statusLabel" style="min-width:5.5em;font-weight:bold;color:#1976d2; font-size: 1.7em; text-align: center;"></span>
+        <p style="margin-top:3em">※今日以外の勤務については勤務記録一覧から</p>
+        <div class="error" id="errorMsg"></div>
+        <div class="success" id="successMsg"></div>
+        <div id="buttonContainer" style="display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 0.7em; margin-top: 1.5em;">
+            <span style="display:flex;align-items:center;">
+                <button onclick="location.href='./attendance_list.html'" style="flex:1;padding:0.8em;font-size:1.1em;background:#1976d2;color:#fff;border:none;border-radius:4px;">勤務・有給 管理</button>
+            </span>
+        </div>
+    </div>
+    <script>
+        // ページロード時にmanualTimeへ現在時刻（分単位）をセット
+        window.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const pad = n => n.toString().padStart(2, '0');
+            const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            const manualTime = document.getElementById('manualTime');
+            if (manualTime) manualTime.value = timeStr;
+        });
+        // fetchWithAuth: 401/403時は自動ログアウト
+        async function fetchWithAuth(url, options) {
+            const res = await fetch(url, options);
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return res;
+        }
+
+        // ログインチェック
+        let userId = null;
+        let useVehicle = 1;
+        fetchWithAuth('api/check_login.php')
+            .then(res => res && res.json())
+            .then(data => {
+                if (!data || !data.loggedIn) {
+                    window.location.href = './login.html';
+                } else {
+                    userId = data.user_id;
+                    useVehicle = data.use_vehicle !== undefined ? data.use_vehicle : 1;
+                    if (data.user_name) {
+                        document.getElementById('userName').textContent = `氏名：${data.user_name}`;
+                    }
+                    // 管理者なら管理者メニューボタンを表示
+                    if (data.is_admin) {
+                        document.getElementById('buttonContainer').innerHTML += '<span id="adminMenuBtnArea" style="display:flex;align-items:center;"><button style="flex:1;background:#1976d2;color:#fff;border:none;border-radius:4px;padding:0.8em;font-size:1.1em;cursor:pointer;min-width:120px;" onclick="location.href=\'admin.html\'">管理者メニュー</button></span>';
+                    }
+                    // 追加: 打刻状態を取得してボタン状態に反映
+                    fetchWithAuth('api/timecard_status.php')
+                        .then(res => res && res.json())
+                        .then(status => {
+                            if (!status) return;
+                            state.clockedIn = !!status.clockedIn;
+                            state.clockedOut = !!status.clockedOut;
+                            state.onBreak = !!status.onBreak;
+                            state.clockInTime = status.clockInTime || null;
+                            state.breakStartTime = status.breakStartTime || null;
+                            state.breakEndTime = status.breakEndTime || null;
+                            updateButtons();
+                        });
+                }
+            });
+
+        // 現在時刻表示
+        function updateClock() {
+            const now = new Date();
+            const pad = n => n.toString().padStart(2, '0');
+            const yearStr = `${now.getFullYear()}年`
+            const dateStr = `${pad(now.getMonth() + 1)}月${pad(now.getDate())}日`;
+            const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            document.getElementById('clock-year').textContent = yearStr;
+            document.getElementById('clock-date').textContent = dateStr;
+            document.getElementById('clock-time').textContent = timeStr;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // ボタン状態管理
+        let state = { clockedIn: false, clockedOut: false, onBreak: false };
+        function updateButtons() {
+            const timeVal = document.getElementById('manualTime').value;
+            const hasTime = !!timeVal;
+            // 状態ラベル表示
+            const statusLabel = document.getElementById('statusLabel');
+            if (state.clockedOut) {
+                statusLabel.textContent = '退勤済み';
+            } else if (state.clockedIn && state.onBreak) {
+                statusLabel.textContent = '休憩中';
+            } else if (state.clockedIn) {
+                statusLabel.textContent = '出勤済み';
+            } else {
+                statusLabel.textContent = '';
+            }
+            const btns = [
+                document.getElementById('clockInBtn'),
+                document.getElementById('clockOutBtn'),
+                document.getElementById('breakStartBtn'),
+                document.getElementById('breakEndBtn')
+            ];
+            // まず全ボタンを完全非活性表示に
+            btns.forEach(btn => {
+                btn.classList.remove('active', 'inactive', 'disabled');
+                btn.classList.add('disabled');
+                btn.disabled = true;
+            });
+            // 状態ごとに分岐
+            if (!hasTime) {
+                if (!state.clockedIn && !state.clockedOut) {
+                    // 出勤前
+                    clockInBtn.classList.remove('disabled');
+                    clockInBtn.classList.add('inactive');
+                    clockInBtn.disabled = false;
+                } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
+                    // 勤務中（休憩中でない）
+                    clockOutBtn.classList.remove('disabled');
+                    clockOutBtn.classList.add('inactive');
+                    clockOutBtn.disabled = false;
+                    breakStartBtn.classList.remove('disabled');
+                    breakStartBtn.classList.add('inactive');
+                    breakStartBtn.disabled = false;
+                } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
+                    // 休憩中
+                    breakEndBtn.classList.remove('disabled');
+                    breakEndBtn.classList.add('inactive');
+                    breakEndBtn.disabled = false;
+                }
+                // 退勤後は全て完全非活性表示のまま
+            } else {
+                if (!state.clockedIn && !state.clockedOut) {
+                    // 出勤前
+                    clockInBtn.classList.remove('disabled');
+                    clockInBtn.classList.add('active');
+                    clockInBtn.disabled = false;
+                } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
+                    // 勤務中（休憩中でない）
+                    clockOutBtn.classList.remove('disabled');
+                    clockOutBtn.classList.add('active');
+                    clockOutBtn.disabled = false;
+                    breakStartBtn.classList.remove('disabled');
+                    breakStartBtn.classList.add('active');
+                    breakStartBtn.disabled = false;
+                } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
+                    // 休憩中
+                    breakEndBtn.classList.remove('disabled');
+                    breakEndBtn.classList.add('active');
+                    breakEndBtn.disabled = false;
+                } else if (state.clockedOut) {
+                    // 退勤後
+                    btns.forEach(btn => {
+                        btn.classList.remove('disabled');
+                        btn.classList.add('inactive');
+                        btn.disabled = true;
+                    });
+                }
+            }
+        }
+        // 時刻入力欄のイベントでボタン状態を更新
+        document.getElementById('manualTime').addEventListener('input', updateButtons);
+        updateButtons();
+
+        function toMySQLDatetime(date) {
+            const pad = n => n.toString().padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        }
+        function toMySQLDatetimeFromLocal(localStr) {
+            // localStr: "YYYY-MM-DDTHH:MM"
+            const [date, time] = localStr.split('T');
+            return `${date} ${time}:00`;
+        }
+
+        // API通信
+        async function postAPI(endpoint, vehicleDistance) {
+            // 手入力常時ON
+            const manual = true;
+            let datetime;
+            const timeVal = document.getElementById('manualTime').value;
+            if (!timeVal) {
+                showError('手入力時刻を入力してください');
+                return false;
+            }
+            // 当日の日付＋手入力時刻
+            const now = new Date();
+            const pad = n => n.toString().padStart(2, '0');
+            const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+            datetime = `${dateStr} ${timeVal}:00`;
+            // 整合性チェック: 未来時刻は警告
+            // const inputDate = new Date(`${dateStr}T${timeVal}`);
+            // if (inputDate > now) {
+            //     showError('未来の時刻は指定できません');
+            //     return false;
+            // }
+            // 追加: 前回打刻時刻より早い場合はエラー
+            let prevTime = null;
+            // 退勤時は出勤時刻・休憩開始・休憩終了のいずれかより前はNG
+            if (endpoint === 'clock_out.php') {
+                if (state.clockInTime) prevTime = state.clockInTime;
+                // 休憩開始・終了時刻も比較
+                if (state.breakStartTime) {
+                    const breakStart = new Date(state.breakStartTime.replace(/-/g, '-').replace(' ', 'T'));
+                    if (inputDate < breakStart) {
+                        showError('退勤時刻は休憩開始時刻より前にできません');
+                        return false;
+                    }
+                }
+                if (state.breakEndTime) {
+                    const breakEnd = new Date(state.breakEndTime.replace(/-/g, '-').replace(' ', 'T'));
+                    if (inputDate < breakEnd) {
+                        showError('退勤時刻は休憩終了時刻より前にできません');
+                        return false;
+                    }
+                }
+            } else if (endpoint === 'break_end.php' && state.breakStartTime) {
+                prevTime = state.breakStartTime;
+            } else if (endpoint === 'break_start.php' && state.clockInTime) {
+                prevTime = state.clockInTime;
+            }
+            if (prevTime) {
+                // prevTime: "YYYY-MM-DD HH:MM:SS" → Date
+                const prevDate = new Date(prevTime.replace(/-/g, '-').replace(' ', 'T'));
+                if (inputDate < prevDate) {
+                    showError('開始時刻・終了時刻の順序が正しくありません');
+                    return false;
+                }
+            }
+            const body = { userId, datetime, manual };
+            if (endpoint === 'api/clock_out.php' && vehicleDistance !== undefined) {
+                body.vehicle_distance = vehicleDistance;
+            }
+            const res = await fetchWithAuth(`${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res) return false;
+            const data = await res.json();
+            if (res.ok) {
+                showSuccess(data.message);
+                return true;
+            } else {
+                showError(data.message || 'エラーが発生しました');
+                return false;
+            }
+        }
+
+        // 退勤時の自家用車距離入力モーダル
+        function showVehicleDistanceModal(onSubmit) {
+            // 既存モーダルがあれば削除
+            const old = document.getElementById('vehicleDistanceModal');
+            if (old) old.remove();
+            const modal = document.createElement('div');
+            modal.id = 'vehicleDistanceModal';
+            modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+        <div style="background:#fff;padding:2em 2em 1.5em 2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:260px;max-width:90vw;text-align:center;">
+          <div style='font-size:1.2em;margin-bottom:1em;color:#1976d2;'>自家用車の使用距離を入力してください（km）</div>
+          <input id='vehicleDistanceInput' type='number' min='0' step='1' value='0' style='font-size:1.3em;width:7em;text-align:right;' placeholder='例: 12'> km
+          <div style='margin-top:1.5em;display:flex;gap:1em;justify-content:center;'>
+            <button id='vehicleDistanceOkBtn' style='font-size:1.1em;padding:0.5em 1.5em;background:#1976d2;color:#fff;border:none;border-radius:4px;'>OK</button>
+            <button id='vehicleDistanceCancelBtn' style='font-size:1.1em;padding:0.5em 1.5em;background:#1976d2;color:#fff;border:none;border-radius:4px;'>キャンセル</button>
+          </div>
+        </div>
+      `;
+            document.body.appendChild(modal);
+            const input = document.getElementById('vehicleDistanceInput');
+            input.focus();
+            input.select(); // 追加: 全選択状態にする
+            document.getElementById('vehicleDistanceOkBtn').onclick = () => {
+                const val = input.value;
+                if (val === '' || isNaN(val) || Number(val) < 0) {
+                    alert('0以上の距離を入力してください');
+                    return;
+                }
+                modal.remove();
+                onSubmit(Number(val));
+            };
+            document.getElementById('vehicleDistanceCancelBtn').onclick = () => {
+                modal.remove();
+            };
+        }
+        //テスト
+        // ボタンイベント
+        document.getElementById('clockInBtn').onclick = async () => {
+            if (await postAPI('api/clock_in.php')) {
+                state.clockedIn = true; state.clockedOut = false; state.onBreak = false;
+                updateButtons();
+                document.getElementById('manualTime').value = '';
+                updateButtons();
+            }
+        };
+        document.getElementById('clockOutBtn').onclick = async () => {
+            if (useVehicle == 1) {
+                showVehicleDistanceModal(async (distance) => {
+                    if (await postAPI('api/clock_out.php', distance)) {
+                        state.clockedOut = true; state.onBreak = false;
+                        updateButtons();
+                        document.getElementById('manualTime').value = '';
+                        updateButtons();
+                    }
+                });
+            } else {
+                if (await postAPI('api/clock_out.php')) {
+                    state.clockedOut = true; state.onBreak = false;
+                    updateButtons();
+                    document.getElementById('manualTime').value = '';
+                    updateButtons();
+                }
+            }
+        };
+        document.getElementById('breakStartBtn').onclick = async () => {
+            if (await postAPI('api/break_start.php')) {
+                state.onBreak = true;
+                updateButtons();
+                document.getElementById('manualTime').value = '';
+                updateButtons();
+            }
+        };
+        document.getElementById('breakEndBtn').onclick = async () => {
+            if (await postAPI('api/break_end.php')) {
+                state.onBreak = false;
+                updateButtons();
+                document.getElementById('manualTime').value = '';
+                updateButtons();
+            }
+        };
+
+        // ログアウトボタン処理
+        document.getElementById('logoutBtn').onclick = async function () {
+            await fetchWithAuth('api/logout.php', { method: 'POST' });
+            window.location.href = './login.html';
+        };
+
+        function showError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+            document.getElementById('successMsg').textContent = '';
+        }
+        function showSuccess(msg) {
+            document.getElementById('successMsg').textContent = msg;
+            document.getElementById('errorMsg').textContent = '';
+        }
+    </script>
+</body>
+
+</html>
