@@ -38,6 +38,7 @@
             min-width: 300px;
             border-collapse: collapse;
             margin-bottom: 2em;
+            text-wrap-mode: nowrap;
         }
 
         th,
@@ -334,6 +335,42 @@
             height: 29px;
             min-width: 220px;
         }
+
+        .badge {
+            display: inline-block;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 0.78em;
+            line-height: 1.6em;
+            border: 1px solid transparent;
+        }
+
+        .badge-warn {
+            background: #fff3e0;
+            color: #e65100;
+            border-color: #ffcc80;
+        }
+
+        .badge-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-color: #90caf9;
+        }
+
+        .tiny-btn {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .tiny-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
     </style>
 </head>
 
@@ -365,7 +402,7 @@
                 <option value="">全ユーザー</option>
             </select>
             <button class="btn" id="addUserBtn">＋新規ユーザー</button>
-            <div style="flex: 1; text-align: right">
+            <div style="flex: 1; text-align: right; display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
                 <label class="toggle" for="showDeletedToggle">
                     <input
                         type="checkbox"
@@ -376,25 +413,36 @@
                 <label
                     for="showDeletedToggle"
                     style="cursor: pointer; user-select: none"> 削除したユーザーの表示</label>
+                <span class="muted" style="margin-left:8px;">表示オプション</span>
+                <label style="user-select:none; cursor:pointer;">
+                    <input type="checkbox" id="optShowRole" style="vertical-align:middle;"> 権限 </label>
+                <label style="user-select:none; cursor:pointer;">
+                    <input type="checkbox" id="optShowVehicle" style="vertical-align:middle;"> 自家用車 </label>
             </div>
         </div>
         <table class="user-table" id="userTable">
             <colgroup>
-                <col style="width: 2em;" />
-                <col style="width: 1.5em;" />
-                <col style="width: 6em;" />
-                <col style="width: 3em;" />
-                <col style="width: 3.5em;" />
-                <col style="width: 4.5em;" />
+                <col style="width: 2.2em;" />
+                <col style="width: 3.8em;" />
+                <col style="width: 12.5em;" />
+                <col style="width: 5.5em;" />
+                <col style="width: 7em;" />
+                <col style="width: 9.5em;" />
+                <col style="width: 7.5em;" />
+                <col style="width: 6.5em;" />
+                <col style="width: 9.5em;" />
             </colgroup>
             <thead>
                 <tr>
                     <th></th>
                     <th style="text-align: start;">ID</th>
-                    <th style="text-align: center; text-wrap-mode: nowrap;">ユーザー名</th>
-                    <th style="text-align: start; min-width: 3em;">権限</th>
-                    <th style="text-align: center; text-wrap-mode: nowrap;">自家用車</th>
-                    <th style="text-align: center; text-wrap-mode: nowrap;">契約労働時間</th>
+                    <th style="text-align: start;">ユーザー名</th>
+                    <th style="text-align: start;">区分</th>
+                    <th style="text-align: center;">契約h/日</th>
+                    <th style="text-align: center;">所定(週日/週h)</th>
+                    <th style="text-align: center;">入社日</th>
+                    <th style="text-align: center;">有休残(h)</th>
+                    <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -477,9 +525,28 @@
             const tbody = document.querySelector("#userTable tbody");
             tbody.innerHTML = "";
             const baseHoursDefault = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
+            // 日付ユーティリティ
+            const pad2 = (n) => String(n).padStart(2, '0');
+            const toYmd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+            const addMonthsEndFix = (base, months) => { const d = new Date(base.getTime()); const srcD = d.getDate(); d.setMonth(d.getMonth() + months); if (d.getDate() < srcD) d.setDate(0); return d; };
+
             users.forEach((u, idx) => {
-                const roleLabel = u.role === "admin" ? "管理者" : "一般";
-                const useVehicleLabel = u.use_vehicle == 1 ? "○" : "×";
+                const fullTimeLabel = (Number(u.full_time) === 1) ? '常勤' : '非常勤';
+                const ch = (u.contract_hours_per_day != null && u.contract_hours_per_day !== '') ? `${u.contract_hours_per_day} h/日` : '—';
+                const swd = (u.scheduled_weekly_days != null && u.scheduled_weekly_days !== '') ? `${u.scheduled_weekly_days}` : '—';
+                const swh = (u.scheduled_weekly_hours != null && u.scheduled_weekly_hours !== '') ? `${u.scheduled_weekly_hours}` : '—';
+                const schedStr = `${swd} / ${swh === '—' ? '—' : swh + 'h'}`;
+                const hireStr = (u.hire_date && String(u.hire_date).length >= 8) ? u.hire_date : '—';
+                const today = new Date();
+                function parseYmdLocal(s) { const p = String(s || '').split('-').map(n => parseInt(n, 10)); return (p.length >= 3 && !isNaN(p[0]) && !isNaN(p[1]) && !isNaN(p[2])) ? new Date(p[0], p[1] - 1, p[2]) : new Date(NaN); }
+                const retiredByDate = (u.retire_date ? (function () { const d = parseYmdLocal(u.retire_date); return !isNaN(d) && d <= today; })() : false);
+                const isRetired = (u.visible == 0 || retiredByDate);
+                const optShowRole = (localStorage.getItem('opt_show_role') === '1');
+                const optShowVehicle = (localStorage.getItem('opt_show_vehicle') === '1');
+                const roleBadge = optShowRole ? `<span class="badge badge-info" title="権限">${u.role === 'admin' ? '管理者' : '一般'}</span>` : '';
+                const vehBadge = optShowVehicle ? `<span class="badge badge-info" title="自家用車">車:${u.use_vehicle == 1 ? '○' : '×'}</span>` : '';
+                const subBadges = (roleBadge || vehBadge) ? `<div style="margin-top:2px; display:flex; gap:4px; flex-wrap:wrap;">${roleBadge}${vehBadge}</div>` : '';
+                const statusBadge = isRetired ? `<div style="margin-top:2px;"><span class="badge" style="background:#ffebee;color:#c62828;border-color:#ef9a9a;">退職者</span></div>` : '';
                 if (!selectedId || selectedId == u.id) {
                     const deletedStyle =
                         u.visible == 0 ? "color:#aaa;background:#fbe9e7;" : "";
@@ -489,24 +556,51 @@
                                 ${expandedUserId === u.id ? '∨' : '＞'}
                             </td>
                             <td>
-                                ${u.id}
+                                <div>${u.id}</div>
+                                ${statusBadge}
                             </td>
                             <td style="text-wrap-mode: nowrap;">
-                                ${u.name}
+                                <div>${u.name}</div>
+                                ${subBadges}
                             </td>
-                            <td>
-                                ${roleLabel}
-                            </td>
-                            <td style="padding: 0; width: auto; text-align: center;">
-                                ${useVehicleLabel}
-                            </td>
-                            <td style="text-align:center;">
-                                ${u.contract_hours_per_day ?? baseHoursDefault} h/日
+                            <td>${fullTimeLabel}</td>
+                            <td style="text-align:center;">${ch}</td>
+                            <td style="text-align:center;">${schedStr}</td>
+                            <td class="date-cell" ${(() => {
+                            if (hireStr === '—') return '';
+                            try {
+                                const hd = parseYmdLocal(u.hire_date);
+                                if (isNaN(hd)) return '';
+                                const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                // 勤続期間（月数→年+か月）
+                                let months = (t.getFullYear() - hd.getFullYear()) * 12 + (t.getMonth() - hd.getMonth());
+                                if (t.getDate() < hd.getDate()) months -= 1;
+                                if (months < 0) months = 0;
+                                const years = Math.floor(months / 12);
+                                const rem = months % 12;
+                                const tenure = `${years}年${rem}か月`;
+                                // 算定基準日: 入社日+6ヶ月 を起点に毎年 +12ヶ月
+                                const base = addMonthsEndFix(hd, 6);
+                                // 次回
+                                let next = new Date(base.getTime());
+                                while (next < t) { next = addMonthsEndFix(next, 12); }
+                                const baseLabel = `${base.getMonth() + 1}月${base.getDate()}日`;
+                                const title = `勤続期間: ${tenure}\n算定基準日: 毎年 ${baseLabel}（次回: ${toYmd(next)}）`;
+                                return `title="${title}"`;
+                            } catch { return ''; }
+                        })()}>${hireStr === '—' ? `<span class='badge badge-warn' title='入社日が未設定です'>未設定</span>` : hireStr}</td>
+                            <td id="cell-balance-${u.id}" class="hour-cell">…</td>
+                            <td class="button-cell">
+                                <button class="tiny-btn" onclick="quickOpenGrant(event, ${u.id})" title="このユーザーの有給付与タブを開く">付与</button>
+                                <button class="tiny-btn" onclick="quickOpenBalance(event, ${u.id})" title="このユーザーの残高・履歴タブを開く">履歴</button>
+                                <button class="tiny-btn" onclick="quickRecalcUser(event, ${u.id})" title="このユーザーのサマリを再計算">再計算</button>
                             </td>
                         </tr>`;
                     if (expandedUserId === u.id) {
                         tbody.innerHTML += renderExpandedRow(u);
                     }
+                    // 可視行に対して非同期で残高・失効(最短)を取得
+                    try { refreshUserSummaryRow(u.id); } catch { }
                 }
             });
         }
@@ -514,6 +608,25 @@
         document
             .getElementById("userSearch")
             .addEventListener("change", renderTable);
+        // 表示オプション（ロール/車）
+        (function bindOptionToggles() {
+            const chkRole = document.getElementById('optShowRole');
+            const chkVeh = document.getElementById('optShowVehicle');
+            if (chkRole) {
+                chkRole.checked = (localStorage.getItem('opt_show_role') === '1');
+                chkRole.addEventListener('change', async () => {
+                    localStorage.setItem('opt_show_role', chkRole.checked ? '1' : '0');
+                    await renderTable();
+                });
+            }
+            if (chkVeh) {
+                chkVeh.checked = (localStorage.getItem('opt_show_vehicle') === '1');
+                chkVeh.addEventListener('change', async () => {
+                    localStorage.setItem('opt_show_vehicle', chkVeh.checked ? '1' : '0');
+                    await renderTable();
+                });
+            }
+        })();
         // 新規ユーザーの入力欄を展開方式で表示
         document.getElementById("addUserBtn").onclick = async function () {
             if (newUserOpen) {
@@ -527,7 +640,7 @@
                 await renderTable();
             }
             const tbody = document.querySelector('#userTable tbody');
-            const colSpan = 6; // ヘッダー列数に合わせる
+            const colSpan = 9; // 失効列削除に合わせる
             const baseHoursDefault = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
             const panel = document.createElement('tr');
             panel.className = 'expanded-row';
@@ -685,7 +798,7 @@
                 if (res && res.ok) {
                     msg.textContent = '全体再計算が完了しました'; msg.style.color = '#2e7d32';
                     // 展開中ユーザーの残高を最新化
-                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } }
+                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } try { refreshUserSummaryRow(expandedUserId); } catch { } }
                 } else {
                     msg.textContent = '全体再計算に失敗しました'; msg.style.color = '#d32f2f';
                 }
@@ -701,7 +814,7 @@
                 if (r2 && r2.ok) {
                     try { const j = await r2.json(); msg.textContent = `全体 再計算→失効 完了（失効更新ユーザー数: ${j.processed_users ?? 0}）`; msg.style.color = '#2e7d32'; }
                     catch { msg.textContent = '全体 再計算→失効 完了'; msg.style.color = '#2e7d32'; }
-                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } }
+                    if (expandedUserId !== null) { try { await mountLeaveBalance(expandedUserId); } catch { } try { refreshUserSummaryRow(expandedUserId); } catch { } }
                 } else {
                     msg.textContent = '全体の失効処理に失敗しました（バックフィル）'; msg.style.color = '#d32f2f';
                 }
@@ -710,7 +823,7 @@
         })();
 
         function renderExpandedRow(user) {
-            const colSpan = 6; // 操作列を削除したため総列数を6に調整
+            const colSpan = 9; // 失効列削除に合わせて9
             return `
                         <tr class="expanded-row">
                             <td colspan="${colSpan}">
@@ -1004,118 +1117,21 @@
         function mountLeaveSettings(user, masters, settings) {
             const wrap = document.getElementById(`leave-settings-wrap-${user.id}`);
             if (!wrap) return;
-            const DEFAULT_BASE_HOURS = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
-            const DEFAULT_CARRY_MONTHS = (orgSettings ? Number(orgSettings.paid_leave_valid_months || 24) : 24);
-            const unitOpts = masters.leave_units.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-            const typeOpts = masters.paid_leave_types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            const eff = (settings.base_hours_per_day_override ?? null) !== null
-                ? settings.base_hours_per_day_override
-                : (user.contract_hours_per_day ?? DEFAULT_BASE_HOURS);
+            // 固定（読み取り専用）表示に簡素化
+            const roundPolicy = '付与・利用とも 1時間単位で切り上げ';
             wrap.innerHTML = `
-                            <div class="grid">
-                                <div>デフォルト休暇種別</div>
-                                <div><select id="ls-type-${user.id}" style="height: 35px;">${typeOpts}</select></div>
-                                <div>デフォルト単位</div>
-                                <div><select id="ls-unit-${user.id}" style="height: 35px;">${unitOpts}</select></div>
-                                <div>半日取得</div>
-                                <div class="inline">
-                                    <label class="toggle-s" for="ls-half-${user.id}">
-                                        <input type="checkbox" class="toggle__input-s" id="ls-half-${user.id}">
-                                        <span class="toggle__slider-s"></span>
-                                    </label>
-                                    <label for="ls-half-${user.id}" id="ls-half-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
-                                </div>
-                                <div>時間単位取得</div>
-                                <div class="inline">
-                                    <label class="toggle-s" for="ls-hour-${user.id}">
-                                        <input type="checkbox" class="toggle__input-s" id="ls-hour-${user.id}">
-                                        <span class="toggle__slider-s"></span>
-                                    </label>
-                                    <label for="ls-hour-${user.id}" id="ls-hour-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
-                                </div>
-                                <div>基準時間（上書き）</div>
-                                <div class="inline">
-                                    <input type="number" step="0.25" min="0" id="ls-base-${user.id}" style="width:90px; text-align:right; height: 35px;"> h/日
-                                    <span class="field-note">未入力で ${eff} h/日 が適用</span>
-                                </div>
-                                <div>繰越月数</div>
-                                <div><input type="number" min="0" id="ls-carry-m-${user.id}" style="width:90px; text-align:right; height: 35px;"> ヶ月</div>
-                                <div>繰越上限（分）</div>
-                                <div><input type="number" min="0" id="ls-carry-min-${user.id}" style="width:120px; text-align:right; height: 35px;"></div>
-                                <div>マイナス残高</div>
-                                <div class="inline">
-                                    <label class="toggle-s" for="ls-negative-${user.id}">
-                                        <input type="checkbox" class="toggle__input-s" id="ls-negative-${user.id}">
-                                        <span class="toggle__slider-s"></span>
-                                    </label>
-                                    <label for="ls-negative-${user.id}" id="ls-negative-label-${user.id}" style="cursor:pointer; user-select:none" class="muted">許可しない</label>
-                                </div>
-                                <div></div>
-                                <div>
-                                    <button class="btn" onclick="saveLeaveSettings(${user.id})">設定を保存</button>
-                                </div>
-                            </div>
-                        `;
-            document.getElementById(`ls-type-${user.id}`).value = settings.default_paid_leave_type_id ?? masters.paid_leave_types[0]?.id ?? 1;
-            document.getElementById(`ls-unit-${user.id}`).value = settings.default_unit_id ?? masters.paid_leave_types.find(t => t.id === (settings.default_paid_leave_type_id ?? 0))?.default_unit_id ?? masters.leave_units[0]?.id ?? 1;
-            document.getElementById(`ls-half-${user.id}`).checked = (settings.allow_half_day ?? 1) == 1;
-            document.getElementById(`ls-hour-${user.id}`).checked = (settings.allow_hourly ?? 1) == 1;
-            const baseEl = document.getElementById(`ls-base-${user.id}`);
-            if (settings.base_hours_per_day_override !== null && settings.base_hours_per_day_override !== undefined) {
-                baseEl.value = settings.base_hours_per_day_override;
-            } else {
-                baseEl.value = '';
-                baseEl.placeholder = String(eff);
-            }
-            document.getElementById(`ls-carry-m-${user.id}`).value = (settings.carryover_months ?? DEFAULT_CARRY_MONTHS);
-            document.getElementById(`ls-carry-min-${user.id}`).value = settings.carryover_max_minutes ?? 0;
-            document.getElementById(`ls-negative-${user.id}`).checked = (settings.negative_balance_allowed ?? 0) == 1;
-
-            // トグルの文言と色を同期（ON: 許可する / OFF: 許可しない〈灰色〉）
-            (function () {
-                function bindToggle(idBase) {
-                    const cb = document.getElementById(`${idBase}-${user.id}`);
-                    const lbl = document.getElementById(`${idBase}-label-${user.id}`);
-                    if (!cb || !lbl) return;
-                    const sync = () => {
-                        if (cb.checked) { lbl.textContent = '許可する'; lbl.classList.remove('muted'); }
-                        else { lbl.textContent = '許可しない'; lbl.classList.add('muted'); }
-                    };
-                    sync();
-                    cb.addEventListener('change', sync);
-                }
-                bindToggle('ls-half');
-                bindToggle('ls-hour');
-                bindToggle('ls-negative');
-            })();
+                <div class="grid">
+                    <div>休暇種別</div><div>年次有給（固定）</div>
+                    <div>単位</div><div>日（固定）</div>
+                    <div>半日取得</div><div>許可（固定）</div>
+                    <div>時間単位取得</div><div>許可（固定）</div>
+                    <div>丸め</div><div>${roundPolicy}</div>
+                    <div class="field-note">このタブの項目は制度として固定されています。編集は不要です。</div>
+                    <div></div>
+                </div>
+            `;
         }
-
-        window.saveLeaveSettings = async function (userId) {
-            const body = {
-                user_id: userId,
-                default_paid_leave_type_id: parseInt(document.getElementById(`ls-type-${userId}`).value),
-                default_unit_id: parseInt(document.getElementById(`ls-unit-${userId}`).value),
-                allow_half_day: document.getElementById(`ls-half-${userId}`).checked ? 1 : 0,
-                allow_hourly: document.getElementById(`ls-hour-${userId}`).checked ? 1 : 0,
-                base_hours_per_day_override: (function (v) { return v === '' ? null : parseFloat(v); })(document.getElementById(`ls-base-${userId}`).value),
-                carryover_months: parseInt(document.getElementById(`ls-carry-m-${userId}`).value || '0'),
-                carryover_max_minutes: parseInt(document.getElementById(`ls-carry-min-${userId}`).value || '0'),
-                negative_balance_allowed: document.getElementById(`ls-negative-${userId}`).checked ? 1 : 0,
-            };
-            const btn = document.querySelector(`#leave-settings-wrap-${userId} .btn`);
-            if (btn) btn.disabled = true;
-            const res = await fetchWithAuth('api/admin_user_leave_settings_update.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (btn) btn.disabled = false;
-            if (res && res.ok) {
-                alert('設定を保存しました');
-            } else if (res) {
-                alert('保存に失敗しました');
-            }
-        }
+        // 保存機能は不要（固定のため）
 
         function mountLeaveGrant(user, masters, settings) {
             const wrap = document.getElementById(`leave-grant-wrap-${user.id}`);
@@ -1397,7 +1413,11 @@
                                         const saWrapOpen = `<div style=\"margin-top:6px;padding:6px 8px;${adoptedA ? 'border-left:4px solid #1976d2;background:#eef6ff;' : ''}\">`;
                                         const saWrapClose = `</div>`;
                                         html += `<br>${saWrapOpen}${saHeader}${saGrid}${saHoursRow}${saWrapClose}`;
-                                        calc.stageA = { days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)) };
+                                        const msLabel = (milestones && milestones.length ? (milestones[msIdx] || '') : '');
+                                        calc.stageA = {
+                                            days: (noGrant ? null : (typeof chosen === 'number' ? chosen : null)),
+                                            msLabel
+                                        };
                                     } catch { }
                                     detailBlock = html;
                                 }
@@ -1481,6 +1501,10 @@
                                         }
                                     }
                                     detailBlockB = `${sbWrapOpen}${sbHeader}${sbGrid}${sbHoursRow}${sbWrapClose}`;
+                                    // Stage B 結果の一部を保存（勤続期間ヘッダで使用）
+                                    calc.stageB = {
+                                        msLabel: msRaw || ''
+                                    };
                                 }
                             }
                         }
@@ -1582,7 +1606,22 @@
                             else { warn.textContent = ''; }
                         }
                         if (refDetail) {
-                            const merged = [detailBlock, detailBlockB].filter(Boolean).join('');
+                            // 勤続期間ヘッダ（最上段）
+                            let headerHtml = '';
+                            try {
+                                if ((detailBlock || detailBlockB)) {
+                                    if (hireMissing) {
+                                        headerHtml = `<div style="font-weight:bold; color:#d32f2f;">勤続期間: 判定不可（入社日未登録）</div>`;
+                                    } else {
+                                        const msRaw = (calc.stageB && calc.stageB.msLabel) ? calc.stageB.msLabel : (calc.stageA && calc.stageA.msLabel ? calc.stageA.msLabel : '');
+                                        if (msRaw) {
+                                            const ms = String(msRaw).replace(/y/g, '年').replace(/m/g, 'か月');
+                                            headerHtml = `<div style="font-weight:bold;">勤続期間: ${ms}</div>`;
+                                        }
+                                    }
+                                }
+                            } catch { }
+                            const merged = [headerHtml, detailBlock, detailBlockB].filter(Boolean).join('');
                             refDetail.innerHTML = merged || '';
                         }
                     } catch { }
@@ -1631,6 +1670,8 @@
                         // 残高・履歴を更新
                         await mountLeaveBalance(user.id);
                         await updateGrantReferenceScoped();
+                        // 一覧の残高/失効(最短)も即時更新
+                        try { if (typeof refreshUserSummaryRow === 'function') refreshUserSummaryRow(user.id); } catch { }
                     } else if (res) {
                         try { const j = await res.json(); msg.textContent = j.error || '登録に失敗しました'; } catch { msg.textContent = '登録に失敗しました'; }
                         msg.style.color = '#d32f2f';
@@ -1675,6 +1716,92 @@
             const res = await fetchWithAuth(`api/paid_leave_history.php?user_id=${userId}&limit=50`);
             if (!res || !res.ok) throw new Error('history');
             return await res.json();
+        }
+        // 非同期でテーブルの残高hを更新（最短失効はツールチップ＆バッジ）
+        async function refreshUserSummaryRow(userId) {
+            let balCell = document.getElementById(`cell-balance-${userId}`);
+            if (balCell) balCell.textContent = '…';
+            try {
+                const res = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${userId}`);
+                if (!res || !res.ok) throw new Error('recalc');
+                const j = await res.json();
+                const bh = (j && typeof j.balance_hours === 'number') ? Math.round(j.balance_hours * 100) / 100 : null;
+                // 再描画で参照が無効になっている可能性があるため、直前に取り直す
+                balCell = document.getElementById(`cell-balance-${userId}`);
+                if (balCell) {
+                    const nd = j && j.next_expire_date ? String(j.next_expire_date) : '';
+                    const noExpire = (!nd || nd.startsWith('9999-'));
+                    // ツールチップ
+                    if (noExpire) {
+                        balCell.title = '失効期限なし';
+                    } else {
+                        // 日数差分（今日→期限）
+                        const parseYmdLocal = (s) => { const p = String(s || '').split('-').map(n => parseInt(n, 10)); return (p.length >= 3 && !isNaN(p[0]) && !isNaN(p[1]) && !isNaN(p[2])) ? new Date(p[0], p[1] - 1, p[2]) : new Date(NaN); };
+                        const today = new Date(); const exp = parseYmdLocal(nd);
+                        const msPerDay = 24 * 60 * 60 * 1000;
+                        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const diff = (!isNaN(exp)) ? Math.round((exp - start) / msPerDay) : null;
+                        const leftStr = (diff != null) ? `（あと${diff}日）` : '';
+                        balCell.title = `失効(最短): ${nd}${leftStr}`;
+                    }
+                    // 本文とバッジ
+                    const base = (bh != null) ? bh.toFixed(2) : '—';
+                    let badge = '';
+                    if (!noExpire) {
+                        const parseYmdLocal = (s) => { const p = String(s || '').split('-').map(n => parseInt(n, 10)); return (p.length >= 3 && !isNaN(p[0]) && !isNaN(p[1]) && !isNaN(p[2])) ? new Date(p[0], p[1] - 1, p[2]) : new Date(NaN); };
+                        const today = new Date(); const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const exp = parseYmdLocal(nd);
+                        if (!isNaN(exp)) {
+                            const msPerDay = 24 * 60 * 60 * 1000;
+                            const diff = Math.round((exp - start) / msPerDay);
+                            // 30日以内かつ残高が正（目安）
+                            if (diff >= 0 && diff <= 30 && (bh != null && bh > 0)) {
+                                badge = `<span class="badge badge-warn" style="margin-left:6px;" title="まもなく失効: ${nd}（あと${diff}日）">失効間近</span>`;
+                            }
+                        }
+                    }
+                    balCell.innerHTML = `${base}${badge}`;
+                }
+            } catch (e) {
+                // 失敗時も再取得してから表示を更新（描画の揺れ対策）
+                const el = document.getElementById(`cell-balance-${userId}`);
+                if (el) el.textContent = '—';
+                try { console.warn('refreshUserSummaryRow failed', { userId, error: (e && e.message) || String(e) }); } catch { }
+            }
+        }
+        // クイックアクション
+        window.quickOpenGrant = async function (ev, userId) {
+            if (ev && ev.stopPropagation) ev.stopPropagation();
+            // users配列からインデックスを取得して展開→有給付与タブへ
+            const idx = users.findIndex(u => String(u.id) === String(userId));
+            if (idx === -1) return;
+            await window.toggleExpand(idx);
+            window.switchTab(userId, 'leave_grant');
+            const row = document.getElementById(`row-user-${userId}`);
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        window.quickOpenBalance = async function (ev, userId) {
+            if (ev && ev.stopPropagation) ev.stopPropagation();
+            const idx = users.findIndex(u => String(u.id) === String(userId));
+            if (idx === -1) return;
+            await window.toggleExpand(idx);
+            window.switchTab(userId, 'leave_balance');
+            const row = document.getElementById(`row-user-${userId}`);
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        window.quickRecalcUser = async function (ev, userId) {
+            if (ev && ev.stopPropagation) ev.stopPropagation();
+            const btn = ev && ev.currentTarget ? ev.currentTarget : null;
+            if (btn) { btn.disabled = true; btn.textContent = '再計算中…'; }
+            try {
+                const r = await fetchWithAuth(`api/paid_leave_recalc_summary.php?user_id=${userId}`);
+                if (r && r.ok) {
+                    try { await refreshUserSummaryRow(userId); } catch { }
+                    if (expandedUserId === userId) { try { await mountLeaveBalance(userId); } catch { } }
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '再計算'; }
+            }
         }
         async function mountLeaveBalance(userId) {
             const wrap = document.getElementById(`leave-balance-wrap-${userId}`);
@@ -1819,6 +1946,7 @@
                             if (res && res.ok) {
                                 recMsgEl.textContent = '再計算が完了しました'; recMsgEl.style.color = '#2e7d32';
                                 await mountLeaveBalance(userId);
+                                try { refreshUserSummaryRow(userId); } catch { }
                             } else {
                                 recMsgEl.textContent = '再計算に失敗しました'; recMsgEl.style.color = '#d32f2f';
                             }
@@ -1836,6 +1964,7 @@
                                 try { const j = await r2.json(); recMsgEl.textContent = `再計算→失効 完了（対象ユーザー: ${userId}, 失効更新ユーザー数: ${j.processed_users ?? 0}）`; recMsgEl.style.color = '#2e7d32'; }
                                 catch { recMsgEl.textContent = '再計算→失効 完了'; recMsgEl.style.color = '#2e7d32'; }
                                 await mountLeaveBalance(userId);
+                                try { refreshUserSummaryRow(userId); } catch { }
                             } else {
                                 recMsgEl.textContent = '失効処理に失敗しました（バックフィル）'; recMsgEl.style.color = '#d32f2f';
                             }
