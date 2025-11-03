@@ -83,8 +83,8 @@ try {
             $subject = '【有休申請】承認のお願い: ' . $userName . ' ' . $used_date . ' ' . number_format($hours, 1) . 'h';
             $body = "次の有休申請が作成されました。\r\n\r\n"
                 . "申請者: {$userName}\r\n"
-                . "日付: {$used_date}\r\n"
-                . "時間: " . number_format($hours, 1) . "h\r\n"
+                . "取得希望日: {$used_date}\r\n"
+                . "取得時間: " . number_format($hours, 1) . "h\r\n"
                 . ($reason !== '' ? "理由: {$reason}\r\n" : "")
                 . "\r\n承認フォーム: {$link}\r\n\r\n"
                 . "このリンクは72時間有効です。";

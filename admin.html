@@ -103,6 +103,17 @@
             margin: 0.2rem 0;
         }
 
+        .mini-list li.clickable {
+            cursor: pointer;
+            user-select: none;
+            border-radius: 6px;
+            padding: 2px 4px;
+        }
+
+        .mini-list li.clickable:hover {
+            background: #f6faff;
+        }
+
         .small-btn {
             display: inline-block;
             font-size: 0.9rem;
@@ -252,14 +263,15 @@
                             const li = document.createElement('li');
                             const h = (typeof it.hours === 'number') ? it.hours.toFixed(1) : String(it.hours ?? '');
                             const created = it.created_at ? new Date(it.created_at.replace(' ', 'T')) : null;
-                            const createdStr = created ? created.toLocaleDateString() : '';
+                            const createdStr = created ? formatDateMD(created.toLocaleDateString()) : '';
                             const token = it.token || '';
-                            const formLink = token ? `<a class="small-btn" style="margin-left:0.5em;" href="approval.html?token=${encodeURIComponent(token)}" target="_blank" title="承認フォームを開く">フォーム</a>` : '';
+                            const reason = it.reason ? '(' + escapeHtml(it.reason) + ')' : '';
                             const actions = token ? `
                                 <button class="small-btn js-approve" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;">承認</button>
                                 <button class="small-btn js-reject" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;border-color:#e53935;color:#e53935;">却下</button>
                             ` : '';
-                            li.innerHTML = `<a href="admin_users.html#user-${it.user_id}" title="ユーザー詳細へ">${escapeHtml(it.name)}</a> — ${it.used_date} ${h}h 申請 (${escapeHtml(it.reason || '')}) <span style="color:#666;">${createdStr}</span>${formLink}${actions}`;
+                            li.innerHTML = `<a href="admin_users.html#user-${it.user_id}" title="ユーザー詳細へ">${escapeHtml(it.name)}</a> / 申請  ${createdStr}<br> ${formatDateMD(it.used_date)} ${h}h ${reason} <span style="color:#666;"></span>${actions}`;
+                            if (token) { li.dataset.token = token; li.classList.add('clickable'); }
                             pListEl.appendChild(li);
                         }
                         if (items.length === 0) {
@@ -277,6 +289,16 @@
             }
         }
 
+        function formatDateMD(dateStr) {
+            // "YYYY-MM-DD" → "MM月DD日(A)"
+            if (!dateStr) return "";
+            const days = ["日", "月", "火", "水", "木", "金", "土",];
+            const parts = dateStr.replace(/-/g, "/").split("/");
+            if (parts.length !== 3) return dateStr;
+            const date = new Date(dateStr);
+            return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日(${days[date.getDay()]})`;
+        }
+
         function escapeHtml(s) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
             return String(s).replace(/[&<>"']/g, c => map[c]);
@@ -289,6 +311,19 @@
             }
             if (t && t.id === 'refreshPendingBtn') {
                 loadDashboard();
+            }
+            // 行クリックで承認フォームを新規タブで開く（承認/却下ボタンやリンククリックは除外）
+            const li = t.closest && t.closest('#pendingList li.clickable');
+            if (li) {
+                if (t.closest('button') || t.closest('a')) {
+                    // ボタンやリンク自体の操作は既存動作を優先
+                } else {
+                    const token = li.getAttribute('data-token');
+                    if (token) {
+                        window.open('approval.html?token=' + encodeURIComponent(token), '_blank');
+                        return; // 他のハンドラは不要
+                    }
+                }
             }
             if (t && t.classList && (t.classList.contains('js-approve') || t.classList.contains('js-reject'))) {
                 const token = t.getAttribute('data-token');
