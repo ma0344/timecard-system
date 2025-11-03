@@ -21,7 +21,7 @@ Dependencies: SEC-001（完了）
 チェックリスト
 
 - [x] レート制御の実装（`request_rate_limit` テーブル、IP× エンドポイント）
-- [ ] 閾値/期間の設定値化（現状はコード定数：decide=10/60s, approve_link=30/300s, admin_decide=30/300s）
+- [x] 閾値/期間の設定値化（app_settings.rate_limit で上書き可能）
 - [x] decide のメソッド/ヘッダ検査（POST 強制、Referer 同一ホスト時のみ許可）
 - [ ] 負荷/誤判定の簡易テスト（ToDo）
 

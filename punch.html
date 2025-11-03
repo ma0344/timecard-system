@@ -55,7 +55,6 @@
 
         #clock-date {
             font-size: 1.3rem;
-            margin-top: 0.3em;
             color: #1976d2;
             font-weight: bold;
         }
@@ -200,6 +199,139 @@
             cursor: pointer;
             vertical-align: text-top;
         }
+
+        /* --- Hamburger Menu --- */
+        .hamburger {
+            background: rgba(25, 118, 210, 0.06);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            transition: background .15s ease-in-out;
+        }
+
+        .hamburger:focus {
+            outline: 2px solid #90caf9;
+            background: rgba(25, 118, 210, 0.08);
+        }
+
+        .hamburger:hover {
+            background: rgba(25, 118, 210, 0.14);
+        }
+
+        .hamburger .bar {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            background: #1976d2;
+            transition: transform .2s ease, opacity .2s ease;
+        }
+
+        .hamburger .bar:nth-child(1) {
+            top: 12px;
+        }
+
+        .hamburger .bar:nth-child(2) {
+            top: 19px;
+        }
+
+        .hamburger .bar:nth-child(3) {
+            top: 26px;
+        }
+
+        .hamburger[aria-expanded="true"] .bar:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        .hamburger[aria-expanded="true"] .bar:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger[aria-expanded="true"] .bar:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        .notif-badge {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 2px;
+            background: #e53935;
+            color: #fff;
+            min-width: 18px;
+            height: 18px;
+            padding: 0;
+            border-radius: 9px;
+            font-size: 12px;
+            line-height: 18px;
+            text-align: center;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .25);
+            display: none;
+            z-index: 9998;
+        }
+
+        .menu-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 78vw;
+            max-width: 320px;
+            background: #fff;
+            box-shadow: -2px 0 16px rgba(0, 0, 0, .15);
+            transform: translateX(100%);
+            transition: transform .2s ease;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-drawer.open {
+            transform: translateX(0);
+        }
+
+        .menu-header {
+            padding: 1rem;
+            font-weight: bold;
+            color: #1976d2;
+            border-bottom: 1px solid #eee;
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-list li {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .menu-list a,
+        .menu-list button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            padding: 0.9rem 1rem;
+            font-size: 1rem;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .menu-list a:hover,
+        .menu-list button:hover {
+            background: #f7f9fc;
+        }
     </style>
 </head>
 
@@ -207,16 +339,18 @@
     <div class="container">
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <h2>タイムカード</h2>
-            <div>
-                <span id="clock-year"></span>
-                <span id="clock-date"></span>
-            </div>
+            <button id="menuToggle" class="hamburger" aria-label="メニュー" aria-expanded="false" aria-controls="sideMenu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span id="menuNotifBadge" class="notif-badge"></span>
+            </button>
         </div>
         <div class="clock-time-div">
             <span id="clock-time" />
         </div>
         <div style="display:flex;justify-content:space-between; align-items:center; margin-top:0.5em; margin-bottom:1.3em;">
-            <button class="logoutBtn" id="logoutBtn">ログアウト</button>
+            <button class="logoutBtn" id="logoutBtn" style="display:none;">ログアウト</button>
             <div class="user-name">
                 <span id="userName"></span>
             </div>
@@ -226,6 +360,10 @@
                 <label for="manualTime">打刻時刻</label>
             </div>
             <div class="expand" id="manualInput" style="display: flow; flex-grow: 1; text-align: center;">
+                <div style="display:flex;align-items:center;justify-content:end;gap:6px;">
+                    <span id="clock-year"></span>
+                    <span id="clock-date"></span>
+                </div>
                 <input type="time" id="manualTime" />
             </div>
         </div>
@@ -240,14 +378,24 @@
         <div class="error" id="errorMsg"></div>
         <div class="success" id="successMsg"></div>
         <div id="buttonContainer" style="display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 0.7em; margin-top: 1.5em;">
-            <span style="display:flex;align-items:center;">
+            <span style="display:flex;align-items:center; grid-row:1/2;grid-column:1/2;">
                 <button onclick="location.href='./attendance_list.html'" style="flex:1;padding:0.8em;font-size:1.1em;background:#1976d2;color:#fff;border:none;border-radius:4px;">勤務・有給 管理</button>
             </span>
-            <span style="display:flex;align-items:center;">
-                <button id="openPaidLeave" onclick="showPaidLeaveModal()" style="flex:1;padding:0.8em;font-size:1.1em;background:#1976d2;color:#fff;border:none;border-radius:4px;">有給申請</button>
+            <span style="display:flex;align-items:center; grid-row:1/2;grid-column:2/3;">
+                <button id="openPaidLeave" onclick="showPaidLeaveModal()" style="flex:1;padding:0.8em;font-size:1.1em;background:#1976d2;color:#fff;border:none;border-radius:4px; height: 100%;">有給申請</button>
             </span>
         </div>
     </div>
+    <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
+    <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
+        <div class="menu-header">メニュー</div>
+        <ul class="menu-list">
+            <li><button type="button" id="menuOpenNotif">お知らせを開く</button></li>
+            <li><a href="attendance_list.html">勤務・有給 管理</a></li>
+            <li><a href="admin.html" id="menuAdmin" style="display:none;">管理者メニュー</a></li>
+            <li><button type="button" id="menuLogout">ログアウト</button></li>
+        </ul>
+    </nav>
     <script>
         // ページロード時にmanualTimeへ現在時刻（分単位）をセット
         window.addEventListener('DOMContentLoaded', () => {
@@ -270,6 +418,7 @@
         // ログインチェック
         let userId = null;
         let useVehicle = 1;
+        let isAdmin = false;
         fetchWithAuth('api/check_login.php')
             .then(res => res && res.json())
             .then(data => {
@@ -278,13 +427,13 @@
                 } else {
                     userId = data.user_id;
                     useVehicle = data.use_vehicle !== undefined ? data.use_vehicle : 1;
+                    isAdmin = !!data.is_admin;
                     if (data.user_name) {
                         document.getElementById('userName').textContent = `氏名：${data.user_name}`;
                     }
-                    // 管理者なら管理者メニューボタンを表示
-                    if (data.is_admin) {
-                        document.getElementById('buttonContainer').innerHTML += '<span id="adminMenuBtnArea" style="display:flex;align-items:center;"><button style="flex:1;background:#1976d2;color:#fff;border:none;border-radius:4px;padding:0.8em;font-size:1.1em;cursor:pointer;min-width:120px;" onclick="location.href=\'admin.html\'">管理者メニュー</button></span>';
-                    }
+                    // 管理者メニュー項目の表示
+                    const menuAdmin = document.getElementById('menuAdmin');
+                    if (menuAdmin) menuAdmin.style.display = isAdmin ? 'block' : 'none';
                     // 追加: 打刻状態を取得してボタン状態に反映
                     fetchWithAuth('api/timecard_status.php')
                         .then(res => res && res.json())
@@ -423,7 +572,7 @@
             const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
             datetime = `${dateStr} ${timeVal}:00`;
             // 整合性チェック: 未来時刻は警告
-            // const inputDate = new Date(`${dateStr}T${timeVal}`);
+            const inputDate = new Date(`${dateStr}T${timeVal}`);
             // if (inputDate > now) {
             //     showError('未来の時刻は指定できません');
             //     return false;
@@ -567,6 +716,10 @@
             await fetchWithAuth('api/logout.php', { method: 'POST' });
             window.location.href = './login.html';
         };
+        document.getElementById('menuLogout').onclick = async function () {
+            await fetchWithAuth('api/logout.php', { method: 'POST' });
+            window.location.href = './login.html';
+        };
 
         function showError(msg) {
             document.getElementById('errorMsg').textContent = msg;
@@ -644,6 +797,181 @@
         }
 
         document.getElementById('openPaidLeave').addEventListener('click', showPaidLeaveModal);
+
+        // --- アプリ内通知（ハンバーガーバッジ） ---
+        async function refreshNotifCount() {
+            try {
+                const res = await fetchWithAuth('api/notifications_get.php?only_unread=1');
+                if (!res) return;
+                const data = await res.json();
+                if (data && data.ok) {
+                    const unread = Number(data.unread || 0);
+                    const badge = document.getElementById('menuNotifBadge');
+                    if (badge) {
+                        if (unread > 0) {
+                            badge.style.display = 'inline-block';
+                            badge.textContent = unread > 99 ? '99+' : String(unread);
+                        } else {
+                            badge.style.display = 'none';
+                            badge.textContent = '';
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+        async function openNotifModal() {
+            const old = document.getElementById('notifModal'); if (old) old.remove();
+            const wrap = document.createElement('div');
+            wrap.id = 'notifModal';
+            wrap.style = 'position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;';
+            wrap.innerHTML = `
+            <div style='background:#fff;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:90vw;max-height:80vh;overflow:auto;'>
+              <div style='padding:0.8em 1em;border-bottom:1px solid #eee;color:#1976d2;font-weight:bold;'>お知らせ</div>
+              <div id='notifList' style='padding:0.6em 1em;min-width:260px;'></div>
+              <div style='padding:0.6em 1em;display:flex;gap:0.6em;justify-content:flex-end;'>
+                <button id='markRead' class='logoutBtn' style='background:#1976d2;color:#fff;border:none;'>すべて既読</button>
+                <button id='closeNotif' class='logoutBtn' style='background:#b0bec5;color:#fff;border:none;'>閉じる</button>
+              </div>
+            </div>`;
+            document.body.appendChild(wrap);
+            document.getElementById('closeNotif').onclick = () => wrap.remove();
+            document.getElementById('markRead').onclick = async () => { await fetchWithAuth('api/notifications_read.php', { method: 'POST' }); await refreshNotifCount(); wrap.remove(); };
+            try {
+                const res = await fetchWithAuth('api/notifications_get.php');
+                const data = await res.json();
+                const list = document.getElementById('notifList');
+                list.innerHTML = '';
+                (data.items || []).forEach(it => {
+                    const div = document.createElement('div');
+                    div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
+                    const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
+                    const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body)}</div>` : '';
+                    const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
+                    const readBtn = it.status === 'unread'
+                        ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class="state" style="font-size:0.85em;color:#e53935;">未読</span></div>`
+                        : `<div style="margin-top:6px;"><span class="state" style="font-size:0.85em;color:#777;">既読</span></div>`;
+                    div.innerHTML = title + body + link + `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ''}</div>` + readBtn;
+                    list.appendChild(div);
+                });
+                if (!list.innerHTML) { list.textContent = '通知はありません'; }
+
+                // 個別既読ハンドラ
+                list.querySelectorAll('.mark-one').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = Number(btn.getAttribute('data-id'));
+                        btn.disabled = true;
+                        try {
+                            const res2 = await fetchWithAuth('api/notifications_read.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ids: [id] })
+                            });
+                            if (!res2) throw new Error('auth');
+                            const data2 = await res2.json().catch(() => ({}));
+                            if (!res2.ok || !data2 || data2.error) throw new Error('failed');
+                            // 表示更新: 未読→既読
+                            const container = btn.closest('div');
+                            if (container) {
+                                const state = container.querySelector('.state');
+                                if (state) { state.textContent = '既読'; state.style.color = '#777'; }
+                            }
+                            btn.remove();
+                            await refreshNotifCount();
+                        } catch (err) {
+                            btn.disabled = false;
+                            alert('既読にできませんでした');
+                        }
+                    });
+                });
+            } catch (e) { }
+        }
+        function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
+
+        // 通知カウントのポーリング開始
+        (function startNotif() { refreshNotifCount(); setInterval(refreshNotifCount, 60000); })();
+
+        // --- ハンバーガーメニュー動作 ---
+        const menuToggle = document.getElementById('menuToggle');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const menuOpenNotif = document.getElementById('menuOpenNotif');
+
+        // --- フォーカストラップ用ユーティリティ ---
+        let previousFocusedElement = null;
+        function getFocusableElements(container) {
+            const selectors = [
+                'a[href]',
+                'button:not([disabled])',
+                'input:not([disabled])',
+                'select:not([disabled])',
+                'textarea:not([disabled])',
+                '[tabindex]:not([tabindex="-1"])'
+            ].join(',');
+            return Array.from(container.querySelectorAll(selectors))
+                .filter(el => el.offsetParent !== null || el === document.activeElement);
+        }
+        function focusFirstInMenu() {
+            const focusables = getFocusableElements(sideMenu);
+            if (focusables.length > 0) {
+                focusables[0].focus();
+            } else {
+                sideMenu.focus();
+            }
+        }
+        function trapFocusKeydown(e) {
+            if (!sideMenu.classList.contains('open')) return;
+            if (e.key !== 'Tab') return;
+            const focusables = getFocusableElements(sideMenu);
+            if (focusables.length === 0) { e.preventDefault(); sideMenu.focus(); return; }
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            const active = document.activeElement;
+            if (e.shiftKey) {
+                if (active === first || !sideMenu.contains(active)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else {
+                if (active === last || !sideMenu.contains(active)) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        }
+        function openMenu() {
+            sideMenu.classList.add('open');
+            menuOverlay.style.display = 'block';
+            menuToggle.setAttribute('aria-expanded', 'true');
+            sideMenu.setAttribute('aria-hidden', 'false');
+            // A11y: 初期フォーカスとトラップ
+            previousFocusedElement = document.activeElement;
+            sideMenu.setAttribute('role', 'dialog');
+            sideMenu.setAttribute('aria-modal', 'true');
+            focusFirstInMenu();
+            document.addEventListener('keydown', trapFocusKeydown, true);
+        }
+        function closeMenu() {
+            sideMenu.classList.remove('open');
+            menuOverlay.style.display = 'none';
+            menuToggle.setAttribute('aria-expanded', 'false');
+            sideMenu.setAttribute('aria-hidden', 'true');
+            sideMenu.removeAttribute('aria-modal');
+            sideMenu.removeAttribute('role');
+            document.removeEventListener('keydown', trapFocusKeydown, true);
+            // 直前のフォーカスへ戻す
+            if (previousFocusedElement && document.contains(previousFocusedElement)) {
+                previousFocusedElement.focus();
+            } else {
+                menuToggle.focus();
+            }
+        }
+        menuToggle.addEventListener('click', () => {
+            const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
+            expanded ? closeMenu() : openMenu();
+        });
+        menuOverlay.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+        if (menuOpenNotif) menuOpenNotif.onclick = () => { closeMenu(); openNotifModal(); };
     </script>
 </body>
 

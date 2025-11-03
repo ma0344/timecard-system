@@ -362,6 +362,34 @@
                 <span class="msg" id="notifyMsg"></span>
             </div>
         </div>
+        <div class="section">
+            <h3>セキュリティ（レート制限）</h3>
+            <div class="form-group">
+                <label>承認リンク表示（メール内リンクを開く時）</label>
+                <div class="form-row">
+                    <span>回数/ウィンドウ：</span>
+                    <input type="number" id="rl_approve_link_limit" min="1" style="width:100px;"> 回 / <input type="number" id="rl_approve_link_window" min="10" style="width:120px;"> 秒
+                </div>
+            </div>
+            <div class="form-group">
+                <label>決裁（トークン利用・承認/却下）</label>
+                <div class="form-row">
+                    <span>回数/ウィンドウ：</span>
+                    <input type="number" id="rl_decide_limit" min="1" style="width:100px;"> 回 / <input type="number" id="rl_decide_window" min="10" style="width:120px;"> 秒
+                </div>
+            </div>
+            <div class="form-group">
+                <label>決裁（管理者・ID ベース）</label>
+                <div class="form-row">
+                    <span>回数/ウィンドウ：</span>
+                    <input type="number" id="rl_decide_admin_limit" min="1" style="width:100px;"> 回 / <input type="number" id="rl_decide_admin_window" min="10" style="width:120px;"> 秒
+                </div>
+            </div>
+            <div style="margin-top: 0.8rem;">
+                <button type="button" class="btn" id="rateSaveBtn">レート制限を保存</button>
+                <span class="msg" id="rateMsg"></span>
+            </div>
+        </div>
     </div>
     <script>
         // fetchWithAuth: 401/403時は自動ログアウト
@@ -689,6 +717,61 @@
             } else if (res) {
                 const err = await res.json().catch(() => ({}));
                 msgEl.textContent = '送信に失敗: ' + (err.detail || err.error || 'エラー');
+                msgEl.classList.add('show', 'error');
+            }
+        };
+
+        // レート制限設定のロード
+        async function loadRateLimit() {
+            const res = await fetchWithAuth('api/rate_limit_settings_get.php');
+            if (!res || !res.ok) return;
+            const data = await res.json();
+            const s = (data && data.settings) || {};
+            const ap = s.leave_requests_approve_link || { limit: 30, window: 300 };
+            const de = s.leave_requests_decide || { limit: 10, window: 60 };
+            const da = s.leave_requests_decide_admin || { limit: 30, window: 300 };
+            document.getElementById('rl_approve_link_limit').value = ap.limit;
+            document.getElementById('rl_approve_link_window').value = ap.window;
+            document.getElementById('rl_decide_limit').value = de.limit;
+            document.getElementById('rl_decide_window').value = de.window;
+            document.getElementById('rl_decide_admin_limit').value = da.limit;
+            document.getElementById('rl_decide_admin_window').value = da.window;
+        }
+        loadRateLimit();
+
+        // レート制限設定の保存
+        document.getElementById('rateSaveBtn').onclick = async () => {
+            const msgEl = document.getElementById('rateMsg');
+            msgEl.textContent = '';
+            msgEl.className = 'msg';
+            const val = id => Number(document.getElementById(id).value);
+            const payload = {
+                settings: {
+                    leave_requests_approve_link: { limit: val('rl_approve_link_limit'), window: val('rl_approve_link_window') },
+                    leave_requests_decide: { limit: val('rl_decide_limit'), window: val('rl_decide_window') },
+                    leave_requests_decide_admin: { limit: val('rl_decide_admin_limit'), window: val('rl_decide_admin_window') }
+                }
+            };
+            // 簡易バリデーション
+            for (const k of Object.keys(payload.settings)) {
+                const x = payload.settings[k];
+                if (!(Number.isFinite(x.limit) && x.limit > 0) || !(Number.isFinite(x.window) && x.window > 0)) {
+                    msgEl.textContent = '数値は正の値を入力してください';
+                    msgEl.classList.add('show', 'error');
+                    return;
+                }
+            }
+            const res = await fetchWithAuth('api/rate_limit_settings_save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res && res.ok) {
+                msgEl.textContent = '保存しました';
+                msgEl.classList.add('show', 'success');
+            } else if (res) {
+                const err = await res.json().catch(() => ({}));
+                msgEl.textContent = '保存に失敗: ' + (err.error || 'エラー');
                 msgEl.classList.add('show', 'error');
             }
         };

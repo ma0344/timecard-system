@@ -23,6 +23,23 @@ if ($ref !== '') {
     }
 }
 
+// 設定からレート制限の値を取得
+function rate_cfg($pdo, $endpoint, $defL, $defW) {
+    try {
+        $st = $pdo->prepare('SELECT value FROM app_settings WHERE `key`=? LIMIT 1');
+        $st->execute(['rate_limit']);
+        $val = $st->fetchColumn();
+        $j = $val ? json_decode($val, true) : null;
+        if (is_array($j) && isset($j[$endpoint])) {
+            $l = isset($j[$endpoint]['limit']) ? (int)$j[$endpoint]['limit'] : $defL;
+            $w = isset($j[$endpoint]['window']) ? (int)$j[$endpoint]['window'] : $defW;
+            if ($l > 0 && $w > 0) return [$l, $w];
+        }
+    } catch (Throwable $e) {
+    }
+    return [$defL, $defW];
+}
+
 // レート制限（IP単位）
 function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     $pdo->exec('CREATE TABLE IF NOT EXISTS request_rate_limit (
@@ -55,7 +72,8 @@ function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     return true;
 }
 
-if (!rate_limit($pdo, 'leave_requests_decide', 10, 60)) {
+list($lim, $win) = rate_cfg($pdo, 'leave_requests_decide', 10, 60);
+if (!rate_limit($pdo, 'leave_requests_decide', $lim, $win)) {
     usleep(random_int(100000, 300000));
     http_response_code(429);
     echo json_encode(['error' => 'too many requests']);
@@ -98,7 +116,7 @@ try {
 
     // 有効なトークンか確認
     $tokenHash = hash('sha256', $token);
-    $stmt = $pdo->prepare('SELECT id, status, approve_token_expires_at FROM leave_requests WHERE (approve_token = ? OR approve_token_hash = ?) LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, user_id, used_date, hours, status, approve_token_expires_at FROM leave_requests WHERE (approve_token = ? OR approve_token_hash = ?) LIMIT 1');
     $stmt->execute([$token, $tokenHash]);
     $req = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$req) {
@@ -137,6 +155,30 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
     $al = $pdo->prepare('INSERT INTO leave_request_audit (request_id, action, actor_type, actor_id, ip, user_agent) VALUES (?,?,?,?,?,?)');
     $al->execute([(int)$req['id'], $action, 'token', null, $ip, $ua]);
+
+    // 通知を作成（申請者へ）
+    try {
+        $pdo->exec('CREATE TABLE IF NOT EXISTS notifications (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            type VARCHAR(50) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            body TEXT NULL,
+            link VARCHAR(255) NULL,
+            status ENUM("unread","read") NOT NULL DEFAULT "unread",
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            read_at DATETIME NULL,
+            INDEX(user_id), INDEX(status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+        $title = ($newStatus === 'approved') ? '有給申請が承認されました' : '有給申請が却下されました';
+        $ud = $req['used_date'] ?? '';
+        $hrs = isset($req['hours']) ? number_format((float)$req['hours'], 1) : '';
+        $body = ($ud ? ($ud . ' ') : '') . ($hrs !== '' ? ($hrs . 'h ') : '') . '申請の決裁結果です。';
+        $link = '../attendance_list.html';
+        $ins = $pdo->prepare('INSERT INTO notifications (user_id, type, title, body, link) VALUES (?,?,?,?,?)');
+        $ins->execute([(int)$req['user_id'], 'leave_request_result', $title, $body, $link]);
+    } catch (Throwable $e) {
+    }
 
     echo json_encode(['ok' => true, 'status' => $newStatus]);
 } catch (Throwable $e) {

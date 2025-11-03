@@ -5,6 +5,23 @@ header('Content-Type: application/json');
 require_once '../db_config.php';
 
 $ref = isset($_SERVER['HTTP_REFERER']) ? trim((string)$_SERVER['HTTP_REFERER']) : '';
+// 設定からレート制限の値を取得
+function rate_cfg($pdo, $endpoint, $defL, $defW) {
+    try {
+        $st = $pdo->prepare('SELECT value FROM app_settings WHERE `key`=? LIMIT 1');
+        $st->execute(['rate_limit']);
+        $val = $st->fetchColumn();
+        $j = $val ? json_decode($val, true) : null;
+        if (is_array($j) && isset($j[$endpoint])) {
+            $l = isset($j[$endpoint]['limit']) ? (int)$j[$endpoint]['limit'] : $defL;
+            $w = isset($j[$endpoint]['window']) ? (int)$j[$endpoint]['window'] : $defW;
+            if ($l > 0 && $w > 0) return [$l, $w];
+        }
+    } catch (Throwable $e) {
+    }
+    return [$defL, $defW];
+}
+
 // GETだが、総当たり対策として軽いレート制限を適用
 function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     $pdo->exec('CREATE TABLE IF NOT EXISTS request_rate_limit (
@@ -37,7 +54,8 @@ function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     return true;
 }
 
-if (!rate_limit($pdo, 'leave_requests_approve_link', 30, 300)) {
+list($lim, $win) = rate_cfg($pdo, 'leave_requests_approve_link', 30, 300);
+if (!rate_limit($pdo, 'leave_requests_approve_link', $lim, $win)) {
     usleep(random_int(100000, 300000));
     http_response_code(429);
     echo json_encode(['error' => 'too many requests']);

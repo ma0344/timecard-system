@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>監査ログとレート制限</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 1rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px #00000014;
+            padding: 1rem;
+        }
+
+        h1 {
+            color: #1976d2;
+            font-size: 1.4rem;
+            margin: 0 0 0.6rem;
+        }
+
+        h2 {
+            color: #1976d2;
+            font-size: 1.2rem;
+            margin: 1.2rem 0 0.6rem;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 0.8rem;
+            margin-top: 0.6rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .row label {
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        input,
+        select,
+        button {
+            font-size: 0.95rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #eee;
+            padding: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: #f7f9fc;
+            text-align: left;
+            color: #1976d2;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .primary {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+        }
+
+        .ghost {
+            background: #fff;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+            border-radius: 4px;
+            padding: 0.35rem 0.8rem;
+            cursor: pointer;
+        }
+
+        .muted {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .warn {
+            color: #e53935;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.92rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>監査ログとレート制限（管理者）</h1>
+        <section class="card" aria-labelledby="audit-title">
+            <h2 id="audit-title">監査ログ</h2>
+            <div class="row" style="gap:0.8rem; margin-bottom:0.6rem;">
+                <label>期間: <input type="date" id="auditStart"> 〜 <input type="date" id="auditEnd"></label>
+                <label>種類: <select id="auditType">
+                        <option value="all">すべて</option>
+                        <option value="leave">有給申請（承認フロー）</option>
+                        <option value="paid">一般監査（有給操作など）</option>
+                    </select>
+                </label>
+                <label>アクション: <input id="auditAction" placeholder="approve/reject/create/open 等" style="width:16em;">
+                </label>
+                <div class="actions">
+                    <button class="primary" id="auditSearch">検索</button>
+                    <button class="ghost" id="auditCsv">CSVダウンロード</button>
+                </div>
+                <span id="auditCount" class="muted"></span>
+            </div>
+            <div style="overflow:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日時</th>
+                            <th>種別</th>
+                            <th>アクション</th>
+                            <th>主体</th>
+                            <th>主体ID</th>
+                            <th class="mono">Ref</th>
+                            <th>IP</th>
+                            <th>UA</th>
+                            <th>詳細</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditBody"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="card" aria-labelledby="rl-title">
+            <h2 id="rl-title">レート制限の可視化</h2>
+            <div class="row" style="gap:0.8rem; margin-bottom:0.6rem;">
+                <label>エンドポイント: <input id="rlEndpoint" placeholder="例: leave_requests_decide">
+                </label>
+                <label>並び順: <select id="rlSort">
+                        <option value="count_desc">回数の多い順</option>
+                        <option value="time_desc">更新が新しい順</option>
+                        <option value="ip">IP</option>
+                        <option value="endpoint">エンドポイント</option>
+                    </select>
+                </label>
+                <div class="actions">
+                    <button class="primary" id="rlRefresh">更新</button>
+                </div>
+            </div>
+            <div style="overflow:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP</th>
+                            <th>エンドポイント</th>
+                            <th class="right">カウント</th>
+                            <th>開始</th>
+                            <th>経過(秒)</th>
+                            <th>更新</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rlBody"></tbody>
+                </table>
+            </div>
+            <div class="muted">注意: これは現在のスナップショットです。`request_rate_limit` は期間内のカウントをIP×エンドポイントで集計するテーブルで、履歴ではありません。</div>
+        </section>
+    </div>
+    <script>
+        async function fetchWithAuth(url, opts) {
+            const res = await fetch(url, opts);
+            if (res.status === 401) { location.href = 'login.html'; return null; }
+            if (res.status === 403) { alert('権限がありません'); return null; }
+            return res;
+        }
+
+        // 管理者チェック
+        (async () => {
+            const r = await fetchWithAuth('api/check_login.php');
+            if (!r) return; const j = await r.json();
+            if (!j || !j.is_admin) { alert('管理者のみ閲覧可能です'); location.href = 'index.php'; }
+        })();
+
+        // 監査: 検索
+        async function loadAudit() {
+            const params = new URLSearchParams();
+            const s = document.getElementById('auditStart').value;
+            const e = document.getElementById('auditEnd').value;
+            const t = document.getElementById('auditType').value;
+            const a = document.getElementById('auditAction').value.trim();
+            if (s) params.set('start', s); if (e) params.set('end', e);
+            if (t) params.set('type', t); if (a) params.set('action', a);
+            params.set('limit', '100');
+            const res = await fetchWithAuth('api/audit_list.php?' + params.toString());
+            if (!res) return; const data = await res.json();
+            const tbody = document.getElementById('auditBody');
+            tbody.innerHTML = '';
+            (data.items || []).forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${escapeHtml(r.created_at || '')}</td>
+          <td>${escapeHtml(r.source || '')}</td>
+          <td>${escapeHtml(r.action || '')}</td>
+          <td>${escapeHtml(r.actor_type || '')}</td>
+          <td class="right">${r.actor_id != null ? r.actor_id : ''}</td>
+          <td class="mono">${r.ref_id != null ? r.ref_id : ''}</td>
+          <td>${escapeHtml(r.ip || '')}</td>
+          <td>${escapeHtml(r.user_agent || '')}</td>
+          <td class="mono">${escapeHtml(typeof r.details_json === 'string' ? r.details_json : (r.details_json ? JSON.stringify(r.details_json) : ''))}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('auditCount').textContent = `件数: ${(data.total || 0)}（表示 ${Math.min((data.items || []).length, 100)} 件）`;
+        }
+
+        // 監査: CSV
+        function downloadAuditCsv() {
+            const params = new URLSearchParams();
+            const s = document.getElementById('auditStart').value;
+            const e = document.getElementById('auditEnd').value;
+            const t = document.getElementById('auditType').value;
+            const a = document.getElementById('auditAction').value.trim();
+            if (s) params.set('start', s); if (e) params.set('end', e);
+            if (t) params.set('type', t); if (a) params.set('action', a);
+            params.set('limit', '500');
+            params.set('format', 'csv');
+            const url = 'api/audit_list.php?' + params.toString();
+            const aLink = document.createElement('a');
+            aLink.href = url; aLink.download = 'audit_export.csv';
+            document.body.appendChild(aLink); aLink.click(); aLink.remove();
+        }
+
+        // Rate Limit: 読み込み
+        async function loadRateLimit() {
+            const params = new URLSearchParams();
+            const ep = document.getElementById('rlEndpoint').value.trim();
+            const sort = document.getElementById('rlSort').value;
+            if (ep) params.set('endpoint', ep);
+            if (sort) params.set('sort', sort);
+            params.set('limit', '200');
+            const res = await fetchWithAuth('api/rate_limit_stats.php?' + params.toString());
+            if (!res) return; const data = await res.json();
+            const tbody = document.getElementById('rlBody');
+            tbody.innerHTML = '';
+            (data.items || []).forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td class="mono">${escapeHtml(r.ip || '')}</td>
+          <td>${escapeHtml(r.endpoint || '')}</td>
+          <td class="right">${Number(r.count || 0)}</td>
+          <td>${escapeHtml(r.period_start || '')}</td>
+          <td>${Number(r.seconds_elapsed || 0)}</td>
+          <td>${escapeHtml(r.updated_at || '')}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(s) { const m = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
+
+        // Bindings
+        document.getElementById('auditSearch').addEventListener('click', loadAudit);
+        document.getElementById('auditCsv').addEventListener('click', downloadAuditCsv);
+        document.getElementById('rlRefresh').addEventListener('click', loadRateLimit);
+
+        // 初期ロード
+        loadAudit();
+        loadRateLimit();
+    </script>
+</body>
+
+</html>
