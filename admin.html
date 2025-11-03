@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理者メニュー</title>
+    <title>管理ダッシュボード</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -13,7 +13,7 @@
         }
 
         .container {
-            max-width: 560px;
+            max-width: 960px;
             margin: 2rem auto;
             background: #fff;
             border-radius: 8px;
@@ -25,6 +25,13 @@
             text-align: center;
             color: #1976d2;
             margin-bottom: 2.5rem;
+        }
+
+        h3.section-title {
+            color: #333;
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .admin-grid {
@@ -54,6 +61,68 @@
             background: #1565c0;
         }
 
+        /* Dashboard */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e6e8f0;
+            border-radius: 10px;
+            padding: 1rem 1rem 0.75rem 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            min-height: 140px;
+        }
+
+        .card-title {
+            color: #444;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+        }
+
+        .metric {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1976d2;
+            margin: 0.2rem 0 0.6rem 0;
+        }
+
+        .mini-list {
+            margin: 0.2rem 0 0.6rem 0;
+            padding-left: 1.1rem;
+            color: #333;
+            max-height: 180px;
+            overflow: auto;
+        }
+
+        .mini-list li {
+            margin: 0.2rem 0;
+        }
+
+        .small-btn {
+            display: inline-block;
+            font-size: 0.9rem;
+            padding: 0.25rem 0.6rem;
+            border: 1px solid #1976d2;
+            color: #1976d2;
+            background: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .small-btn:hover {
+            background: #f0f6ff;
+        }
+
+        .muted {
+            opacity: 0.7;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 1rem 0.2rem;
@@ -68,13 +137,37 @@
                 height: 60px;
                 font-size: 1em;
             }
+
+            .dash-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h2>管理者メニュー</h2>
+        <h2>管理ダッシュボード</h2>
+        <div class="dash-grid">
+            <div class="card">
+                <div class="card-title">有休 失効間近（30日以内）</div>
+                <div class="metric" id="expiringCount">-</div>
+                <button class="small-btn" id="refreshBtn" title="再読み込み">再読み込み</button>
+                <ul class="mini-list" id="expiringList"></ul>
+            </div>
+            <div class="card">
+                <div class="card-title">保留中の申請</div>
+                <div class="metric" id="pendingCount">-</div>
+                <button class="small-btn" id="refreshPendingBtn" title="再読み込み">再読み込み</button>
+                <ul class="mini-list" id="pendingList"></ul>
+            </div>
+            <div class="card muted">
+                <div class="card-title">打刻アラート</div>
+                <div class="metric">準備中</div>
+                <div style="color:#666;font-size:0.9rem;">打刻漏れ・残業偏差などは今後の拡張で集計。</div>
+            </div>
+        </div>
+        <h3 class="section-title">メニュー</h3>
         <div class="admin-grid">
             <button class="admin-btn" onclick="location.href='./admin_users.html'">ユーザー管理</button>
             <button class="admin-btn" onclick="location.href='./admin_attendance.html'">勤怠管理</button>
@@ -102,8 +195,125 @@
                 } else if (!data.is_admin) {
                     alert('管理者権限がありません');
                     window.location.href = './punch.html';
+                } else {
+                    // ダッシュボード読み込み
+                    loadDashboard();
                 }
             });
+
+        async function loadDashboard() {
+            const countEl = document.getElementById('expiringCount');
+            const listEl = document.getElementById('expiringList');
+            if (!countEl || !listEl) return;
+            countEl.textContent = '…';
+            listEl.innerHTML = '';
+            const res = await fetchWithAuth('api/dashboard_summary.php');
+            if (!res) return;
+            try {
+                const data = await res.json();
+                if (!data || data.error) throw new Error('API error');
+                const exp = data.expiring_30d || { count: 0, top: [] };
+                countEl.textContent = String(exp.count);
+                const items = (exp.top || []).slice(0, 8);
+                for (const it of items) {
+                    const li = document.createElement('li');
+                    const days = it.days_left;
+                    const dateStr = it.next_expire_date;
+                    const bal = (typeof it.balance_hours === 'number') ? it.balance_hours.toFixed(1) : String(it.balance_hours);
+                    li.innerHTML = `<a href="admin_users.html#user-${it.user_id}" title="ユーザー詳細へ">${escapeHtml(it.name)}</a> — ${dateStr}（あと${days}日） 残${bal}h`;
+                    listEl.appendChild(li);
+                }
+                if (items.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = '対象なし';
+                    listEl.appendChild(li);
+                }
+            } catch (e) {
+                countEl.textContent = '-';
+                const li = document.createElement('li');
+                li.textContent = '読み込みに失敗しました';
+                listEl.appendChild(li);
+            }
+
+            // 保留中申請
+            const pCountEl = document.getElementById('pendingCount');
+            const pListEl = document.getElementById('pendingList');
+            if (pCountEl && pListEl) {
+                pCountEl.textContent = '…';
+                pListEl.innerHTML = '';
+                const res2 = await fetchWithAuth('api/leave_requests_pending.php');
+                if (res2) {
+                    try {
+                        const data2 = await res2.json();
+                        const count = data2 && data2.ok ? (data2.count || 0) : 0;
+                        pCountEl.textContent = String(count);
+                        const items = (data2.items || []).slice(0, 8);
+                        for (const it of items) {
+                            const li = document.createElement('li');
+                            const h = (typeof it.hours === 'number') ? it.hours.toFixed(1) : String(it.hours ?? '');
+                            const created = it.created_at ? new Date(it.created_at.replace(' ', 'T')) : null;
+                            const createdStr = created ? created.toLocaleDateString() : '';
+                            const token = it.token || '';
+                            const formLink = token ? `<a class="small-btn" style="margin-left:0.5em;" href="approval.html?token=${encodeURIComponent(token)}" target="_blank" title="承認フォームを開く">フォーム</a>` : '';
+                            const actions = token ? `
+                                <button class="small-btn js-approve" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;">承認</button>
+                                <button class="small-btn js-reject" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;border-color:#e53935;color:#e53935;">却下</button>
+                            ` : '';
+                            li.innerHTML = `<a href="admin_users.html#user-${it.user_id}" title="ユーザー詳細へ">${escapeHtml(it.name)}</a> — ${it.used_date} ${h}h 申請 (${escapeHtml(it.reason || '')}) <span style="color:#666;">${createdStr}</span>${formLink}${actions}`;
+                            pListEl.appendChild(li);
+                        }
+                        if (items.length === 0) {
+                            const li = document.createElement('li');
+                            li.textContent = '対象なし';
+                            pListEl.appendChild(li);
+                        }
+                    } catch (e) {
+                        pCountEl.textContent = '-';
+                        const li = document.createElement('li');
+                        li.textContent = '読み込みに失敗しました';
+                        pListEl.appendChild(li);
+                    }
+                }
+            }
+        }
+
+        function escapeHtml(s) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(s).replace(/[&<>"']/g, c => map[c]);
+        }
+
+        document.addEventListener('click', async (e) => {
+            const t = e.target;
+            if (t && t.id === 'refreshBtn') {
+                loadDashboard();
+            }
+            if (t && t.id === 'refreshPendingBtn') {
+                loadDashboard();
+            }
+            if (t && t.classList && (t.classList.contains('js-approve') || t.classList.contains('js-reject'))) {
+                const token = t.getAttribute('data-token');
+                const action = t.classList.contains('js-approve') ? 'approve' : 'reject';
+                if (!token) return;
+                const btn = t;
+                const oldText = btn.textContent;
+                btn.textContent = '処理中…';
+                btn.disabled = true;
+                try {
+                    const res = await fetch('api/leave_requests_decide.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, action })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || data.error) throw new Error(data.error || 'failed');
+                    loadDashboard();
+                } catch (err) {
+                    alert('処理に失敗しました: ' + (err && err.message ? err.message : 'unknown'));
+                    btn.textContent = oldText;
+                    btn.disabled = false;
+                }
+            }
+        });
     </script>
 </body>
 

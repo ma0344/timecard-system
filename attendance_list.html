@@ -1245,6 +1245,80 @@
                         document.getElementById('header-btns').innerHTML += '<span id="adminMenuBtnArea" class="admin-only" style="display:flex;align-items:center;"><button class="footer-btn" style="flex:1;min-width:11em;" onclick="location.href=\'admin.html\'">管理者メニュー</button></span>';
                     }
                 });
+
+            // 有給申請モーダル（最小実装）
+            function showPaidLeaveModal() {
+                const old = document.getElementById('paidLeaveModal');
+                if (old) old.remove();
+
+                const monthVal = document.getElementById('monthSelect').value; // YYYY-MM
+                const now = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                const defaultDate = todayStr.startsWith(monthVal) ? todayStr : `${monthVal}-01`;
+                const defaultHours = (Number(settings.work_hours || 0) + Number(settings.work_minutes || 0) / 60) || 8;
+
+                const modal = document.createElement('div');
+                modal.id = 'paidLeaveModal';
+                modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;';
+                modal.innerHTML = `
+        <div style="background:#fff;padding:1.2em 1.2em 1em 1.2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:92vw;">
+          <div style='font-size:1.2em;margin-bottom:0.8em;color:#1976d2;font-weight:bold;'>有給申請</div>
+          <div style='display:grid;row-gap:0.6em;'>
+            <label>日付 <input id='plDate' type='date' value='${defaultDate}' style='font-size:1.2em;'></label>
+            <label>時間（h） <input id='plHours' type='number' min='0.25' step='0.25' value='${defaultHours}' style='font-size:1.2em;width:6.5em;text-align:right;'> h</label>
+            <label>理由（任意）<textarea id='plReason' rows='3' style='width:100%;font-size:1em;'></textarea></label>
+            <div id='plMsg' style='min-height:1.2em;color:#e53935;'></div>
+          </div>
+          <div style='margin-top:0.8em;display:flex;gap:0.8em;justify-content:flex-end;'>
+            <button id='plCancelBtn' class='footer-btn' style='background:#b0bec5;'>キャンセル</button>
+            <button id='plSubmitBtn' class='footer-btn'>申請する</button>
+          </div>
+        </div>`;
+                document.body.appendChild(modal);
+
+                const plDate = document.getElementById('plDate');
+                const plHours = document.getElementById('plHours');
+                const plReason = document.getElementById('plReason');
+                const plMsg = document.getElementById('plMsg');
+                const plSubmitBtn = document.getElementById('plSubmitBtn');
+                const plCancelBtn = document.getElementById('plCancelBtn');
+
+                plCancelBtn.onclick = () => modal.remove();
+                plSubmitBtn.onclick = async () => {
+                    plMsg.style.color = '#e53935';
+                    plMsg.textContent = '';
+                    const used_date = plDate.value;
+                    const hours = Number(plHours.value);
+                    const reason = plReason.value.trim();
+                    if (!used_date) { plMsg.textContent = '日付を入力してください'; return; }
+                    if (!(hours > 0)) { plMsg.textContent = '時間は0より大きい数で入力してください'; return; }
+                    // 送信
+                    plSubmitBtn.disabled = true; plCancelBtn.disabled = true;
+                    plMsg.style.color = '#1976d2';
+                    plMsg.textContent = '送信中…';
+                    try {
+                        const res = await fetchWithAuth('api/leave_requests_create.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ used_date, hours, reason })
+                        });
+                        if (!res) { throw new Error('未ログインまたはアクセス権限がありません'); }
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data || data.error) { throw new Error((data && data.error) || '申請に失敗しました'); }
+                        plMsg.style.color = '#2e7d32';
+                        plMsg.textContent = data.notified ? '申請を送信しました（承認者へ通知しました）。' : '申請を送信しました。';
+                        setTimeout(() => modal.remove(), 1200);
+                    } catch (err) {
+                        plMsg.style.color = '#e53935';
+                        plMsg.textContent = err && err.message ? err.message : 'エラーが発生しました';
+                        plSubmitBtn.disabled = false; plCancelBtn.disabled = false;
+                    }
+                };
+            }
+
+            const paidLeaveBtn = document.getElementById('paidLeaveBtn');
+            if (paidLeaveBtn) paidLeaveBtn.addEventListener('click', showPaidLeaveModal);
         </script>
 </body>
 

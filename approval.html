@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有休申請 承認フォーム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 1.6rem auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+            padding: 1.4rem;
+        }
+
+        h2 {
+            color: #1976d2;
+            font-size: 1.2rem;
+            margin: 0 0 .8rem 0;
+        }
+
+        .card {
+            border: 1px solid #e6e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .row {
+            margin: .4rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: .6rem 1.2rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #e53935;
+            color: #fff;
+        }
+
+        .muted {
+            color: #666;
+            font-size: .92rem;
+        }
+    </style>
+    <script>
+        function qs(name) { const u = new URL(location.href); return u.searchParams.get(name); }
+        async function init() {
+            const token = qs('token');
+            const infoEl = document.getElementById('info');
+            const actEl = document.getElementById('actions');
+            if (!token) { infoEl.textContent = 'トークンが見つかりません。メール内のリンクからアクセスしてください。'; return; }
+            infoEl.textContent = '承認リンクの確認中…';
+            try {
+                const res = await fetch('api/leave_requests_approve_link.php?token=' + encodeURIComponent(token));
+                if (!res.ok) { infoEl.textContent = 'リンクが無効か期限切れです。'; return; }
+                const data = await res.json();
+                if (!data || data.error) { infoEl.textContent = 'リンクが無効か期限切れです。'; return; }
+                if (data.warning && data.status) {
+                    infoEl.textContent = data.status === 'approved' ? 'この申請は既に承認済みです。' : 'この申請は既に却下されています。';
+                    return;
+                }
+                infoEl.innerHTML = '申請者: ' + escapeHtml(data.name || '') + '<br>日付: ' + (data.used_date || '') + '<br>時間: ' + (data.hours || '') + 'h';
+                actEl.style.display = 'block';
+                const btnApprove = document.getElementById('btnApprove');
+                const btnReject = document.getElementById('btnReject');
+                btnApprove.disabled = false;
+                btnReject.disabled = false;
+                btnApprove.addEventListener('click', () => decide(token, 'approve'));
+                btnReject.addEventListener('click', () => decide(token, 'reject'));
+            } catch (e) { infoEl.textContent = '通信に失敗しました。時間をおいて再度お試しください。'; }
+        }
+        function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return String(s).replace(/[&<>"']/g, c => m[c]); }
+        window.addEventListener('DOMContentLoaded', init);
+
+        async function decide(token, action) {
+            const infoEl = document.getElementById('info');
+            const msgEl = document.getElementById('decisionMsg');
+            const btnApprove = document.getElementById('btnApprove');
+            const btnReject = document.getElementById('btnReject');
+            btnApprove.disabled = true; btnReject.disabled = true;
+            msgEl.style.color = '#1976d2';
+            msgEl.textContent = '処理中…';
+            try {
+                const res = await fetch('api/leave_requests_decide.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, action })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data || data.error) {
+                    throw new Error((data && data.error) || '処理に失敗しました');
+                }
+                infoEl.textContent = action === 'approve' ? 'この申請は承認されました。' : 'この申請は却下されました。';
+                msgEl.style.color = '#2e7d32';
+                msgEl.textContent = '完了しました。';
+            } catch (err) {
+                msgEl.style.color = '#e53935';
+                msgEl.textContent = err && err.message ? err.message : 'エラーが発生しました';
+                btnApprove.disabled = false; btnReject.disabled = false;
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h2>有休申請 承認フォーム</h2>
+        <div class="card">
+            <div class="row muted">このフォームはモバイルでも扱いやすい最小版です。リンク確認と承認／却下が可能です。</div>
+            <div id="info" class="row">初期化中…</div>
+            <div id="actions" class="row" style="display:none;">
+                <button id="btnApprove" class="btn btn-primary" disabled>承認する</button>
+                <button id="btnReject" class="btn btn-danger" disabled>却下する</button>
+                <div id="decisionMsg" class="row"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
