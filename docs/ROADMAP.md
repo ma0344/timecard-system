@@ -10,30 +10,40 @@
 
 ---
 
-## 現在の状態（2025-11-03 時点）
+## 現在の状態（2025-11-03 時点・更新）
 
 - 完了
 
   - 管理ダッシュボード（基本）
     - 有休 失効間近（30 日以内）カード（件数＋上位表示、再読み込みボタン）
     - 保留中の申請カード（最大 50 件）
-      - 各行クリックで承認フォーム（approval.html?token=…）を新規タブで開く
-      - 各行に「承認」「却下」ボタンを配置し、ダッシュボード上でワンクリック決裁
+      - 各行クリックで管理者用詳細（`admin_request.html?id=…`）を新規タブで開く（トークン非露出）
+      - 各行に「承認」「却下」ボタンを配置し、ID ベースの管理者 API でワンクリック決裁
   - 承認フロー（最小構成／Option A）
     - 申請作成 API: `api/leave_requests_create.php`（ワンタイムトークン生成・72h 有効・通知先にメール送信）
     - 承認フォーム: `approval.html`（トークン検証・承認/却下 UI）
     - 承認リンク照会 API: `api/leave_requests_approve_link.php`
-    - 決裁 API: `api/leave_requests_decide.php`（承認/却下・単回使用・期限検証）
+    - 決裁 API（トークン）: `api/leave_requests_decide.php`（承認/却下・単回使用・期限検証）
+    - 決裁 API（管理者/ID ベース）: `api/leave_requests_decide_admin.php`
+    - 申請詳細（管理者）: `admin_request.html` + `api/leave_requests_get.php`
   - 通知/SMTP
     - 通知設定 API: `api/notify_settings_get.php`, `api/notify_settings_save.php`（enabled, recipients CSV）
     - SMTP 設定・テスト: `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`（DNS/secure 対応）, `api/smtp_test_send_mail.php`（実送）
   - ユーザー向けエントリ
+
     - 勤務記録一覧（`attendance_list.html`）に有給申請モーダルを追加（`#paidLeaveBtn`）
     - 打刻画面（`punch.html`）に「有給申請」ボタン＋モーダルを追加
 
+  - セキュリティ/監査（第一段 完了）
+    - トークン平文の保存停止（DB は `approve_token_hash` のみ保持、メールにはトークンを含める）
+    - 互換照合（平文 or ハッシュ）での承認リンク維持
+    - ダッシュボード/管理者決裁は ID ベースに移行（`approve_token` 非露出）
+    - 監査ログ（`leave_request_audit`）に open/approve/reject を記録、決裁時の IP/UA 記録、管理者決裁では `approver_user_id` を保存
+    - MySQL 8.0 互換マイグレーション（INFORMATION_SCHEMA + PREPARE 方式）
+
 - 進行中/保留（次段）
 
-  - セキュリティ/監査の強化: トークンのハッシュ保存、決裁者情報・監査ログ、リクエストレート制御
+  - セキュリティ/監査の強化: リクエストレート制御（残件）
   - 決裁結果の申請者通知メール（承認/却下）
   - ダッシュボードの打刻アラート実装
   - CSV/PDF 出力（残高・最短失効・期限間近）
@@ -41,7 +51,7 @@
 
 - 主な API（実装済み）
   - ダッシュボード: `api/dashboard_summary.php`, `api/leave_requests_pending.php`
-  - 申請/承認: `api/leave_requests_create.php`, `api/leave_requests_approve_link.php`, `api/leave_requests_decide.php`
+  - 申請/承認: `api/leave_requests_create.php`, `api/leave_requests_approve_link.php`, `api/leave_requests_decide.php`, `api/leave_requests_decide_admin.php`, `api/leave_requests_get.php`
   - 通知/SMTP: `api/notify_settings_get.php`, `api/notify_settings_save.php`, `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`, `api/smtp_test_send_mail.php`
 
 ## フェーズ 3（短期・小粒から着手）
@@ -90,7 +100,7 @@
 
 ## フェーズ 4（中期）
 
-6. 有給の取得申請・承認（最小構成）【最小版完了／監査・整合は後続】
+6. 有給の取得申請・承認（最小構成）【最小版完了／残高整合・RateLimit は後続】
 
 - DB: `leave_requests` (id, user_id, used_date, hours, reason, status(pending/approved/rejected), approver_user_id, decided_at, created_at)
 - API:
@@ -100,7 +110,9 @@
 - 振る舞い: 承認時に `paid_leave_use_event` とログを生成、残高整合
 - 受け入れ基準: 二重承認防止、重複申請警告、監査ログ
 - 概算: 5〜8 日
-- 現状: トークン承認〜決裁は実装済み（`approval.html` / `api/leave_requests_*`）。監査ログ・重複申請警告・残高整合は次段で対応
+- 現状: トークン承認〜決裁は実装済み（`approval.html` / `api/leave_requests_*`）。
+  - 監査ログ（open/approve/reject）と管理者決裁（approver_user_id 記録）は実装済み
+  - 残高整合・重複申請警告・RateLimit は次段で対応
 
 7. 打刻画面の情報再設計（給与算定期間の状況表示）
 
@@ -126,10 +138,10 @@
   - GET `/api/leave_requests/approve_link?token=...`（フォーム表示用の署名付きリンク）
   - POST `/api/leave_requests/{id}/approve|reject`（フォーム送信用）
 - DB（案）: `mail_queue`（id, to_email, subject, body, status, try_count, last_error, created_at, sent_at, token(optional)）
-- セキュリティ: トークンはハッシュ保存/単回/期限切れ、CSRF 対策、承認権限チェック（メールリンク経由でも権限者のみ）
+- セキュリティ: トークンはハッシュ保存/単回/期限切れ。ダッシュボード決裁は ID ベース。監査（open/approve/reject, IP/UA, approver_user_id）対応。
 - 受け入れ基準: 申請作成時に管理者へ通知が届く／リンクから承認・却下が完了／監査ログが残る／テスト送信が成功
 - 概算: 3〜5 日（設定・テンプレ・リンク承認・監査まで）
-- 現状: 通知送信・リンク承認・決裁は完了（`notify_*`, `smtp_*`, `leave_requests_*`）。監査ログは次段で対応
+- 現状: 通知送信・リンク承認・決裁は完了（`notify_*`, `smtp_*`, `leave_requests_*`）。監査ログ対応済み。
 
 ---
 

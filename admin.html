@@ -264,14 +264,16 @@
                             const h = (typeof it.hours === 'number') ? it.hours.toFixed(1) : String(it.hours ?? '');
                             const created = it.created_at ? new Date(it.created_at.replace(' ', 'T')) : null;
                             const createdStr = created ? formatDateMD(created.toLocaleDateString()) : '';
-                            const token = it.token || '';
+                            const token = null; // tokenはAPIから除去済み
+                            const reqId = it.id;
                             const reason = it.reason ? '(' + escapeHtml(it.reason) + ')' : '';
-                            const actions = token ? `
-                                <button class="small-btn js-approve" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;">承認</button>
-                                <button class="small-btn js-reject" data-token="${encodeURIComponent(token)}" style="margin-left:0.5em;border-color:#e53935;color:#e53935;">却下</button>
-                            ` : '';
+                            const actions = `
+                                <button class="small-btn js-approve" data-id="${reqId}" style="margin-left:0.5em;">承認</button>
+                                <button class="small-btn js-reject" data-id="${reqId}" style="margin-left:0.5em;border-color:#e53935;color:#e53935;">却下</button>
+                            `;
                             li.innerHTML = `<a href="admin_users.html#user-${it.user_id}" title="ユーザー詳細へ">${escapeHtml(it.name)}</a> / 申請  ${createdStr}<br> ${formatDateMD(it.used_date)} ${h}h ${reason} <span style="color:#666;"></span>${actions}`;
-                            if (token) { li.dataset.token = token; li.classList.add('clickable'); }
+                            // 行クリックで管理者用の詳細ページを開く
+                            if (reqId) { li.dataset.requestId = String(reqId); li.classList.add('clickable'); }
                             pListEl.appendChild(li);
                         }
                         if (items.length === 0) {
@@ -312,32 +314,32 @@
             if (t && t.id === 'refreshPendingBtn') {
                 loadDashboard();
             }
-            // 行クリックで承認フォームを新規タブで開く（承認/却下ボタンやリンククリックは除外）
+            // 行クリックで管理者の詳細ページを新規タブで開く（承認/却下ボタンやリンククリックは除外）
             const li = t.closest && t.closest('#pendingList li.clickable');
             if (li) {
                 if (t.closest('button') || t.closest('a')) {
                     // ボタンやリンク自体の操作は既存動作を優先
                 } else {
-                    const token = li.getAttribute('data-token');
-                    if (token) {
-                        window.open('approval.html?token=' + encodeURIComponent(token), '_blank');
-                        return; // 他のハンドラは不要
+                    const reqId = li.getAttribute('data-request-id') || li.dataset.requestId;
+                    if (reqId) {
+                        window.open('admin_request.html?id=' + encodeURIComponent(reqId), '_blank');
+                        return;
                     }
                 }
             }
             if (t && t.classList && (t.classList.contains('js-approve') || t.classList.contains('js-reject'))) {
-                const token = t.getAttribute('data-token');
+                const id = parseInt(t.getAttribute('data-id'), 10);
                 const action = t.classList.contains('js-approve') ? 'approve' : 'reject';
-                if (!token) return;
+                if (!id) return;
                 const btn = t;
                 const oldText = btn.textContent;
                 btn.textContent = '処理中…';
                 btn.disabled = true;
                 try {
-                    const res = await fetch('api/leave_requests_decide.php', {
+                    const res = await fetch('api/leave_requests_decide_admin.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token, action })
+                        body: JSON.stringify({ id, action })
                     });
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok || data.error) throw new Error(data.error || 'failed');

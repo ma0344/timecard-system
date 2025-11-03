@@ -2,18 +2,9 @@
 
 Meta
 
-- Milestone: Approval hardening
-- Project: v1.1 Approval & Security
-- Priority: P0
-- Labels: area/backend, security, priority/P0
-- Dependencies: SEC-001（順不同可だが併せて進めると良い）
-- Estimate: 0.5〜1 日
-- Assignees: （未割当）
+Dependencies: SEC-001（完了）
 
 背景
-
-- 承認リンクの総当りや多重叩きを抑制したい。
-- 正常利用者に影響を与えない範囲で、簡易レート制御と失敗時遅延を入れる。
 
 やること
 
@@ -26,12 +17,19 @@ Meta
 
 受け入れ基準
 
-- 短時間で多数試行すると 429 または遅延
-- 正常操作では体感差なし
-
+チェックリスト
 チェックリスト
 
-- [ ] レート制御の実装
-- [ ] 閾値/期間の設定値化
-- [ ] decide のメソッド/ヘッダ検査
+- [x] レート制御の実装（`request_rate_limit` テーブル、IP× エンドポイント）
+- [ ] 閾値/期間の設定値化（現状はコード定数：decide=10/60s, approve_link=30/300s, admin_decide=30/300s）
+- [x] decide のメソッド/ヘッダ検査（POST 強制、Referer 同一ホスト時のみ許可）
+- [ ] 負荷/誤判定の簡易テスト（ToDo）
+
+備考
+
+- 実装箇所:
+  - `api/leave_requests_decide.php`: POST 強制、Referer 同一ホスト（ヘッダ存在時）、IP レート制限（10/60s）
+  - `api/leave_requests_approve_link.php`: IP レート制限（30/300s）
+  - `api/leave_requests_decide_admin.php`: POST 強制、Referer 同一ホスト（ヘッダ存在時）、IP レート制限（30/300s）
+  - 過負荷や総当り対策としてエラー時に 100〜300ms の遅延を付与
 - [ ] 負荷/誤判定の簡易テスト

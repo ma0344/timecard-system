@@ -37,17 +37,42 @@ try {
         status ENUM("pending","approved","rejected") NOT NULL DEFAULT "pending",
         approver_user_id INT NULL,
         decided_at DATETIME NULL,
+        decided_ip VARCHAR(45) NULL,
+        decided_user_agent VARCHAR(255) NULL,
         approve_token VARCHAR(128) UNIQUE,
+        approve_token_hash CHAR(64) NULL,
         approve_token_expires_at DATETIME NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        INDEX (status), INDEX (approve_token)
+        INDEX (status), INDEX (approve_token), INDEX (approve_token_hash)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
     $token = rand_token(32);
+    $tokenHash = hash('sha256', $token);
     $expires = date('Y-m-d H:i:s', time() + 72 * 3600);
-    $stmt = $pdo->prepare('INSERT INTO leave_requests (user_id, used_date, hours, reason, status, approve_token, approve_token_expires_at) VALUES (?,?,?,?,"pending",?,?)');
-    $stmt->execute([$userId, $used_date, $hours, $reason, $token, $expires]);
+    // 平文の approve_token は保存しない（NULL）
+    $stmt = $pdo->prepare('INSERT INTO leave_requests (user_id, used_date, hours, reason, status, approve_token, approve_token_hash, approve_token_expires_at) VALUES (?,?,?,?,"pending",NULL,?,?)');
+    $stmt->execute([$userId, $used_date, $hours, $reason, $tokenHash, $expires]);
     $id = (int)$pdo->lastInsertId();
+
+    // 監査テーブル（存在しない場合は作成）
+    $pdo->exec('CREATE TABLE IF NOT EXISTS leave_request_audit (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        request_id INT NOT NULL,
+        action ENUM("create","open","approve","reject") NOT NULL,
+        actor_type ENUM("user","admin","token","system") NOT NULL,
+        actor_id INT NULL,
+        ip VARCHAR(45) NULL,
+        user_agent VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX (request_id), INDEX (action), INDEX (actor_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+    // 申請作成の監査ログ
+    $actorType = isset($_SESSION['user_id']) ? 'user' : 'system';
+    $actorId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
+    $al = $pdo->prepare('INSERT INTO leave_request_audit (request_id, action, actor_type, actor_id, ip, user_agent) VALUES (?,?,?,?,?,?)');
+    $al->execute([$id, 'create', $actorType, $actorId, $ip, $ua]);
 
     // 申請者名取得
     $un = $pdo->prepare('SELECT name FROM users WHERE id = ?');

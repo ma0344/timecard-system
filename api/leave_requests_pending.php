@@ -24,7 +24,7 @@ if (!$row || $row['role'] !== 'admin') {
 try {
     // leave_requests テーブルが未作成でも落ちないようにクエリを分離
     $sql = "
-        SELECT lr.id, lr.user_id, u.name, lr.used_date, lr.hours, lr.reason, lr.status, lr.created_at, lr.approve_token
+        SELECT lr.id, lr.user_id, u.name, lr.used_date, lr.hours, lr.reason, lr.status, lr.created_at
         FROM leave_requests lr
         JOIN users u ON u.id = lr.user_id
         WHERE lr.status = 'pending'
@@ -44,8 +44,7 @@ try {
                 'used_date' => $r['used_date'],
                 'hours' => isset($r['hours']) ? (float)$r['hours'] : null,
                 'reason' => $r['reason'],
-                'created_at' => $r['created_at'],
-                'token' => $r['approve_token'] ?? null
+                'created_at' => $r['created_at']
             ];
         }, $rows)
     ]);

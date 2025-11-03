@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>申請詳細（管理）</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 10em 1fr;
+            gap: .5rem 1rem;
+            margin-bottom: .25rem;
+        }
+
+        .label {
+            color: #555;
+        }
+
+        .value {
+            color: #111;
+        }
+
+        .actions {
+            margin-top: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            font-size: 1rem;
+            padding: .5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid #1976d2;
+            color: #1976d2;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .btn.primary {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        .btn.danger {
+            border-color: #e53935;
+            color: #e53935;
+        }
+
+        .muted {
+            color: #666;
+            font-size: .9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>申請詳細（管理）</h2>
+        <div id="content" class="muted">読み込み中…</div>
+        <div class="actions" id="actions" style="display:none;">
+            <button class="btn primary" id="approveBtn">承認</button>
+            <button class="btn danger" id="rejectBtn" style="margin-left:.5rem;">却下</button>
+            <button class="btn" id="backBtn" style="margin-left:.5rem;" onclick="window.close();">閉じる</button>
+        </div>
+    </div>
+    <script>
+        function getParam(name) {
+            const u = new URL(location.href);
+            return u.searchParams.get(name);
+        }
+        function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
+        function formatDateMD(dateStr) { if (!dateStr) return ''; const d = new Date(dateStr.replace(/-/g, '/')); const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]; const [y, m, dd] = dateStr.split('-'); return `${parseInt(m, 10)}月${parseInt(dd, 10)}日(${w})`; }
+
+        const id = parseInt(getParam('id'), 10);
+        const content = document.getElementById('content');
+        const actions = document.getElementById('actions');
+
+        async function ensureAdmin() {
+            const res = await fetch('api/check_login.php');
+            if (!res.ok) { location.href = 'login.html'; return false; }
+            const data = await res.json();
+            if (!data.loggedIn) { location.href = 'login.html'; return false; }
+            if (!data.is_admin) { alert('管理者権限がありません'); location.href = 'punch.html'; return false; }
+            return true;
+        }
+
+        async function load() {
+            if (!await ensureAdmin()) return;
+            if (!id) { content.textContent = 'パラメータが不正です'; return; }
+            try {
+                const res = await fetch('api/leave_requests_get.php?id=' + encodeURIComponent(id));
+                const data = await res.json();
+                if (!res.ok || !data || data.error) throw new Error(data.error || 'failed');
+                const html = `
+          <div class="row"><div class="label">申請ID</div><div class="value">${id}</div></div>
+          <div class="row"><div class="label">氏名</div><div class="value">${escapeHtml(data.name)}</div></div>
+          <div class="row"><div class="label">取得希望日</div><div class="value">${formatDateMD(data.used_date)} (${data.used_date})</div></div>
+          <div class="row"><div class="label">時間</div><div class="value">${(data.hours ?? '').toFixed ? data.hours.toFixed(1) : data.hours}h</div></div>
+          <div class="row"><div class="label">理由</div><div class="value">${escapeHtml(data.reason || '')}</div></div>
+          <div class="row"><div class="label">状態</div><div class="value">${escapeHtml(data.status)}</div></div>
+          <div class="row"><div class="label">作成日時</div><div class="value">${escapeHtml(data.created_at || '')}</div></div>
+          ${data.decided_at ? `<div class=\"row\"><div class=\"label\">決裁日時</div><div class=\"value\">${escapeHtml(data.decided_at)}</div></div>` : ''}
+        `;
+                content.classList.remove('muted');
+                content.innerHTML = html;
+                actions.style.display = data.status === 'pending' ? '' : 'none';
+            } catch (e) {
+                content.textContent = '読み込みに失敗しました';
+            }
+        }
+
+        async function decide(action) {
+            try {
+                const btn = action === 'approve' ? document.getElementById('approveBtn') : document.getElementById('rejectBtn');
+                const old = btn.textContent; btn.textContent = '処理中…'; btn.disabled = true;
+                const res = await fetch('api/leave_requests_decide_admin.php', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, action })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.error) throw new Error(data.error || 'failed');
+                await load();
+            } catch (e) {
+                alert('処理に失敗しました');
+            } finally {
+                const a = document.getElementById('approveBtn'); const r = document.getElementById('rejectBtn');
+                a.textContent = '承認'; r.textContent = '却下'; a.disabled = false; r.disabled = false;
+            }
+        }
+
+        document.getElementById('approveBtn').addEventListener('click', () => decide('approve'));
+        document.getElementById('rejectBtn').addEventListener('click', () => decide('reject'));
+
+        load();
+    </script>
+</body>
+
+</html>

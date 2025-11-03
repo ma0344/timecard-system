@@ -1,11 +1,30 @@
 <?php
-// api/leave_requests_approve_link.php
-// 承認フォーム表示用の情報取得（トークン検証）
+// api/leave_requests_decide_admin.php
+// 管理者の承認/却下（IDベース、セッション必須）
+session_start();
 header('Content-Type: application/json');
 require_once '../db_config.php';
 
+// メソッド強制
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'method not allowed']);
+    exit;
+}
+
+// Referer がある場合は同一ホストを要求
 $ref = isset($_SERVER['HTTP_REFERER']) ? trim((string)$_SERVER['HTTP_REFERER']) : '';
-// GETだが、総当たり対策として軽いレート制限を適用
+if ($ref !== '') {
+    $refHost = parse_url($ref, PHP_URL_HOST);
+    $srvHost = $_SERVER['HTTP_HOST'] ?? '';
+    if ($refHost && $srvHost && !preg_match('/^' . preg_quote($refHost, '/') . '(?:\:\d+)?$/', $srvHost)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'forbidden']);
+        exit;
+    }
+}
+
+// レート制限（IP単位・管理操作向けに緩め）
 function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     $pdo->exec('CREATE TABLE IF NOT EXISTS request_rate_limit (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -37,22 +56,46 @@ function rate_limit($pdo, $endpoint, $limit, $windowSec) {
     return true;
 }
 
-if (!rate_limit($pdo, 'leave_requests_approve_link', 30, 300)) {
+if (!rate_limit($pdo, 'leave_requests_decide_admin', 30, 300)) {
     usleep(random_int(100000, 300000));
     http_response_code(429);
     echo json_encode(['error' => 'too many requests']);
     exit;
 }
 
-$token = isset($_GET['token']) ? trim((string)$_GET['token']) : '';
-if ($token === '') {
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['error' => 'not logged in']);
+    exit;
+}
+$adminId = (int)$_SESSION['user_id'];
+
+// 管理者チェック
+$stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+$stmt->execute([$adminId]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$row || $row['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'forbidden']);
+    exit;
+}
+
+$data = $_POST;
+if (empty($data)) {
+    $raw = json_decode(file_get_contents('php://input'), true);
+    if (is_array($raw)) $data = $raw;
+}
+
+$id = isset($data['id']) ? (int)$data['id'] : 0;
+$action = isset($data['action']) ? trim((string)$data['action']) : '';
+if ($id <= 0 || !in_array($action, ['approve', 'reject'], true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'token required']);
+    echo json_encode(['error' => 'invalid params']);
     exit;
 }
 
 try {
-    // テーブル存在しない場合に備えつつ問い合わせ
+    // テーブルの最低限のスキーマ（初期化用）
     $pdo->exec('CREATE TABLE IF NOT EXISTS leave_requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -71,25 +114,26 @@ try {
         INDEX (status), INDEX (approve_token), INDEX (approve_token_hash)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
-    $tokenHash = hash('sha256', $token);
-    $stmt = $pdo->prepare('SELECT lr.*, u.name FROM leave_requests lr JOIN users u ON u.id = lr.user_id WHERE (lr.approve_token = ? OR lr.approve_token_hash = ?) LIMIT 1');
-    $stmt->execute([$token, $tokenHash]);
+    $stmt = $pdo->prepare('SELECT id, status FROM leave_requests WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
     $req = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$req) {
         http_response_code(404);
         echo json_encode(['error' => 'not found']);
         exit;
     }
-    if ($req['approve_token_expires_at'] && strtotime($req['approve_token_expires_at']) < time()) {
-        http_response_code(410);
-        echo json_encode(['error' => 'token expired']);
-        exit;
-    }
     if ($req['status'] !== 'pending') {
         echo json_encode(['warning' => 'already decided', 'status' => $req['status']]);
         exit;
     }
-    // 監査テーブル（存在しない場合は作成）
+
+    $newStatus = $action === 'approve' ? 'approved' : 'rejected';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
+    $upd = $pdo->prepare('UPDATE leave_requests SET status = ?, approver_user_id = ?, decided_at = NOW(), decided_ip = ?, decided_user_agent = ?, approve_token = NULL, approve_token_expires_at = NULL WHERE id = ?');
+    $upd->execute([$newStatus, $adminId, $ip, $ua, $id]);
+
+    // 監査テーブル
     $pdo->exec('CREATE TABLE IF NOT EXISTS leave_request_audit (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         request_id INT NOT NULL,
@@ -101,21 +145,10 @@ try {
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX (request_id), INDEX (action), INDEX (actor_type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-    // フォーム表示（トークン経由）の監査ログ
-    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
     $al = $pdo->prepare('INSERT INTO leave_request_audit (request_id, action, actor_type, actor_id, ip, user_agent) VALUES (?,?,?,?,?,?)');
-    $al->execute([(int)$req['id'], 'open', 'token', null, $ip, $ua]);
+    $al->execute([$id, $action, 'admin', $adminId, $ip, $ua]);
 
-    echo json_encode([
-        'ok' => true,
-        'request_id' => (int)$req['id'],
-        'name' => $req['name'],
-        'used_date' => $req['used_date'],
-        'hours' => (float)$req['hours'],
-        'reason' => $req['reason'],
-        'status' => $req['status']
-    ]);
+    echo json_encode(['ok' => true, 'status' => $newStatus]);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'db error']);

@@ -27,6 +27,10 @@ Meta
 
 チェックリスト
 
-- [ ] decide のセッション確認と保存処理
-- [ ] 監査項目の実装（SEC-001 のテーブルを利用）
-- [ ] 回帰（承認/却下/期限切れ/既決済）
+- [x] decide のセッション確認と保存処理（`leave_requests_decide_admin.php` で `approver_user_id` を保存）
+- [x] 監査項目の実装（SEC-001 のテーブルを利用、IP/UA 記録）
+- [x] 回帰（承認/却下/期限切れ/既決済）
+
+備考
+
+- メールリンク経由（未ログイン）の決裁は `approver_user_id` は NULL のまま。actor_type=token として IP/UA を監査に記録。
