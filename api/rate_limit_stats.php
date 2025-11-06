@@ -64,5 +64,7 @@ try {
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: application/json');
+    // 管理者専用API: 例外をサーバーログに記録
+    error_log('api/rate_limit_stats.php error: ' . $e->getMessage());
     echo json_encode(['error' => 'db error']);
 }

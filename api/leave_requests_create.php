@@ -105,8 +105,8 @@ try {
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
             $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
             $link = $scheme . '://' . $host . $basePath . '/../approval.html?token=' . urlencode($token);
-            $subject = '【有休申請】承認のお願い: ' . $userName . ' ' . $used_date . ' ' . number_format($hours, 1) . 'h';
-            $body = "次の有休申請が作成されました。\r\n\r\n"
+            $subject = '【有休申請】' . $userName . ' さんの有給休暇申請: ' . ' ' . $used_date . ' ' . number_format($hours, 1) . 'h';
+            $body = "以下の有休休暇が申請されました。\r\n\r\n"
                 . "申請者: {$userName}\r\n"
                 . "取得希望日: {$used_date}\r\n"
                 . "取得時間: " . number_format($hours, 1) . "h\r\n"

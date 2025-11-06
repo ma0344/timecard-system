@@ -175,6 +175,34 @@
             border-bottom-color: #fff;
             font-weight: 600;
         }
+
+        /* Deep-link arrival highlight for expanded edit/new panel */
+        @keyframes flashRowBg {
+            0% {
+                background-color: #fff3cd;
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        /* Animate background on cells and add an accent left bar (more reliable for tables) */
+        tr.expand-panel.hl-flash>td {
+            position: relative;
+            animation: flashRowBg 2.5s ease-out 1;
+        }
+
+        tr.expand-panel.hl-flash>td::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #ffd54f;
+            border-radius: 2px 0 0 2px;
+        }
     </style>
 </head>
 
@@ -419,11 +447,23 @@
             }
         }
         function formatDateHM(dateStr) {
-            // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+            // Accepts: "YYYY-MM-DD HH:MM:SS" | "YYYY-MM-DDTHH:MM:SS" | "HH:MM:SS" | "HH:MM"
+            // Returns: "HH:MM" or ""
             if (!dateStr) return "";
-            const parts = dateStr.split(" ");
-            if (parts.length !== 2) return dateStr;
-            return parts[1].substring(0, 5);
+            const s = String(dateStr);
+            // ISO-like separator
+            if (s.includes('T')) {
+                const t = s.split('T')[1] || '';
+                return t.substring(0, 5);
+            }
+            // Space-separated
+            const parts = s.split(" ");
+            if (parts.length === 2) {
+                return (parts[1] || '').substring(0, 5);
+            }
+            // Time-only
+            if (/^\d{2}:\d{2}/.test(s)) return s.substring(0, 5);
+            return "";
         }
 
         function formatDateMD(dateStr) {
@@ -515,6 +555,8 @@
             const monthVal = document.getElementById("monthSelect").value;
             const { start, end } = calcPeriodRange(monthVal);
             const attendance = await loadAttendance(userId, start, end);
+            // 最終取得データをグローバルに保持（ディープリンク用）
+            try { window.__lastAttendance = Array.isArray(attendance) ? attendance.slice() : []; } catch (e) { /* noop */ }
             // 統計情報の計算
             let workDays = 0;
             let totalWorkMin = 0;
@@ -703,9 +745,12 @@
 
                     async function refreshBalance() {
                         const res = await fetchWithAuth(`api/paid_leave_balance.php?user_id=${userId}`);
-                        if (r && r.ok) {
-                            const j = await r.json();
-                            if (j && j.avg_hours_per_day != null) baseHours = Number(j.avg_hours_per_day);
+                        if (res && res.ok) {
+                            const b = await res.json();
+                            const fmt = (n) => {
+                                const v = Math.round(Number(n) * 100) / 100;
+                                return (Math.abs(v - Math.round(v)) < 1e-9) ? String(Math.round(v)) : String(v);
+                            };
                             balEl.textContent = `残高: ${fmt(b.balance_hours)} h（有効付与: ${fmt(b.granted_active_hours)} h / 利用: ${fmt(b.used_total_hours)} h）`;
                         } else {
                             balEl.textContent = '残高: 取得に失敗しました';
@@ -886,8 +931,8 @@
                 const tr = document.createElement("tr");
                 tr.style.cursor = "pointer";
                 tr.innerHTML = `<td>${formatDateMD(rec.date)}</td><td class='${rec.clockInManual ? "manual-cell" : ""
-                    }'>${formatDateHM(rec.clockIn) || ""}</td><td class='${rec.clockOutManual ? "manual-cell" : ""
-                    }'>${formatDateHM(rec.clockOut) || ""
+                    }' ${rec.clockInManual ? `title="手入力"` : ""}>${formatDateHM(rec.clockIn) || ""}</td><td class='${rec.clockOutManual ? "manual-cell" : ""
+                    }' ${rec.clockOutManual ? `title="手入力"` : ""}>${formatDateHM(rec.clockOut) || ""
                     }</td><td>${breakStr}</td><td class='${workClass}'>${workStr}${overStr}</td><td>${rec.vehicleDistance ?? 0}km</td>`;
                 tr.onclick = () => {
                     // 新規追加中ならキャンセルし、クリック行を編集状態に
@@ -925,9 +970,12 @@
                 <div style="width:100%; display:contents;">
                   <div style="font-weight:bold;margin-bottom:0.3em; text-align:left">休憩:</div>
                   <div id="breakEditList" style="display:flex;flex-direction:column;gap:0.5em;"></div>
-                  <button type="button" class="btn" id="addBreakBtn" style="margin-top:0.5em;">＋休憩追加</button>
+                  <div style="display:flex;justify-content:space-between;width:100%;">
+                      <button type="button" class="btn" id="addBreakBtn" style="margin-top:0.5em;">＋休憩追加</button>
+                      <button type="button" class="btn" id="showLeaveSectionBtn" style="margin-top:0.5em;">有給休暇</button>
+                  </div>
                 </div>
-                <div style=\"width:100%; border-top:1px dashed #e0e0e0; margin-top:0.8em; padding-top:0.8em;\">
+                <div id=\"leave-section\" style=\"display:none;width:100%; border-top:1px dashed #e0e0e0; margin-top:0.8em; padding-top:0.8em;\">
                   <div style=\"font-weight:bold;margin-bottom:0.3em; text-align:left; color:#1976d2\">有給使用の登録</div>
                   <div id=\"pl-balance\" class=\"muted\" style=\"margin-bottom:0.4em;\">残高: 取得中...</div>
                   <div style=\"display:flex;gap:1em;align-items:center;flex-wrap:wrap;\">
@@ -998,6 +1046,17 @@
                         rec.breaks.push({ start: "", end: "" });
                         renderBreaks();
                     };
+                    // 有給パネル表示切替
+                    const leaveSection = editTr.querySelector('#leave-section');
+                    editTr.querySelector('#showLeaveSectionBtn').onclick = () => {
+                        if (leaveSection.style.display === 'none') {
+                            leaveSection.style.display = '';
+                        } else {
+                            leaveSection.style.display = 'none';
+                        }
+                    };
+
+
                     // 有給使用の追加 + 残高/クイックボタン
                     (async function () {
                         const msg = editTr.querySelector('#pl-use-msg');
@@ -2104,10 +2163,97 @@
             }
         };
         // 初期化
+        async function applyDeepLinkAttendance() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const uid = params.get('user_id');
+                const date = params.get('date'); // YYYY-MM-DD
+                if (!uid && !date) return;
+                // ユーザー選択
+                if (uid) {
+                    selectedUserId = String(uid);
+                    await renderUserList();
+                }
+                // 月を対象日を含む「表示期間」に合わせる
+                if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    const ms = document.getElementById('monthSelect');
+                    if (ms) {
+                        // 与えられた日付が含まれる monthVal を探索（候補: 自月/翌月/前月）
+                        function addMonth(ym, delta) {
+                            let [y, m] = ym.split('-').map(Number);
+                            m += delta;
+                            while (m <= 0) { m += 12; y -= 1; }
+                            while (m > 12) { m -= 12; y += 1; }
+                            return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}`;
+                        }
+                        function contains(rangeMonthVal, d) {
+                            const { start, end } = calcPeriodRange(rangeMonthVal);
+                            return (d >= start && d <= end);
+                        }
+                        const ym0 = date.slice(0, 7);
+                        const cands = [ym0, addMonth(ym0, 1), addMonth(ym0, -1)];
+                        let chosen = ym0;
+                        for (const c of cands) { if (contains(c, date)) { chosen = c; break; } }
+                        ms.value = chosen;
+                    }
+                }
+                // 勤怠タブへ
+                setMainTab('attendance');
+                // 表を描画
+                window.addingAttendance = false; window.editingIdx = null;
+                await renderTable();
+
+                // 対象日の行を編集展開 or 新規追加パネルを開いて日付をプリセット
+                if (date && Array.isArray(window.__lastAttendance)) {
+                    // 小さなユーティリティ: 展開パネルを数秒ハイライト
+                    const flashExpandPanel = () => {
+                        setTimeout(() => {
+                            try {
+                                const panel = document.querySelector('#attendanceTable tbody tr.expand-panel');
+                                if (panel) {
+                                    panel.classList.add('hl-flash');
+                                    // 可視範囲中央へスクロール（既存スクロールに追従）
+                                    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    setTimeout(() => { panel.classList.remove('hl-flash'); }, 2600);
+                                }
+                            } catch (e) { /* noop */ }
+                        }, 50);
+                    };
+                    const idx = window.__lastAttendance.findIndex(r => String(r.date) === String(date));
+                    if (idx >= 0) {
+                        window.editingIdx = idx;
+                        await renderTable();
+                        // 編集行へスクロール
+                        try {
+                            const rows = document.querySelectorAll('#attendanceTable tbody tr');
+                            if (rows && rows[idx]) rows[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        } catch (e) { /* noop */ }
+                        // 展開パネルを強調表示
+                        flashExpandPanel();
+                    } else {
+                        window.addingAttendance = true;
+                        await renderTable();
+                        setTimeout(() => {
+                            try {
+                                const d = document.getElementById('newDate');
+                                if (d) d.value = date;
+                                const lbl = document.getElementById('new-pl-date-label');
+                                if (lbl) lbl.textContent = date;
+                            } catch (e) { /* noop */ }
+                        }, 0);
+                        // 新規追加パネルを強調表示
+                        flashExpandPanel();
+                    }
+                }
+            } catch (e) { /* noop */ }
+        }
+
         (async function () {
             await loadSettings();
             await renderUserList();
             await renderTable();
+            // ディープリンクを解釈（?user_id=...&date=YYYY-MM-DD）
+            await applyDeepLinkAttendance();
         })();
         // 月変更のリスナーは上部で設定済み
         document.getElementById("backBtn").onclick = function () {
