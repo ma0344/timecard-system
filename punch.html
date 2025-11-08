@@ -846,7 +846,7 @@
                     const div = document.createElement('div');
                     div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
                     const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
-                    const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body)}</div>` : '';
+                    const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body).replace(/\n/g, '<br>')}</div>` : '';
                     const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
                     const readBtn = it.status === 'unread'
                         ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class="state" style="font-size:0.85em;color:#e53935;">未読</span></div>`

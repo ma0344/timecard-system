@@ -732,7 +732,7 @@
                             <button class="small-btn js-override-alert" id="override-${it.user_id}-${it.date}" style="padding: 1px;font-size: 0;" data-user-id="${it.user_id}" data-user-name="${escapeHtml(it.user_name)}" data-date="${it.date || ""}" data-range-start="${it.range_start || ""}" data-range-end="${it.range_end || ""}" data-missing-dates="${encodeURIComponent(JSON.stringify(it.missing_dates || []))}">
                                 <i class="material-icons material-symbols-outlined" style="pointer-events: none;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">edit</i>
                             </button>
-                            <button class="small-btn js-override-alert" id="message-${it.user_id}-${it.date}" style="padding: 1px;font-size: 0;" data-user-id="${it.user_id}" data-user-name="${escapeHtml(it.user_name)}" data-date="${it.date || ""}" data-range-start="${it.range_start || ""}" data-range-end="${it.range_end || ""}" data-missing-dates="${encodeURIComponent(JSON.stringify(it.missing_dates || []))}">
+                            <button class="small-btn js-notify-missing" id="message-${it.user_id}-${it.date}" style="padding: 1px;font-size: 0;" data-user-id="${it.user_id}" data-user-name="${escapeHtml(it.user_name)}" data-date="${it.date || ""}" data-range-start="${it.range_start || ""}" data-range-end="${it.range_end || ""}" data-missing-dates="${encodeURIComponent(JSON.stringify(it.missing_dates || []))}">
                                 <i class="material-icons material-symbols-outlined" style="pointer-events: none;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">chat_add_on</i>
                             </button>
                         </div>`
@@ -1241,9 +1241,9 @@
             return String(s).replace(/[&<>"']/g, (c) => map[c]);
         }
 
-        // アラート行の「上書き…」ボタンから開くモーダル
-        function showOverrideModal(opts) {
-            // opts: { userId, userName, date, rangeStart, rangeEnd, missingDates? }
+        // 勤怠状態上書きモーダル（休暇/無視設定専用）
+        function showStatusOverrideModal(opts) {
+            // opts: { userId, userName, date, rangeStart, rangeEnd }
             const existing = document.getElementById("ovrOverlay");
             if (existing) existing.remove();
             const overlay = document.createElement("div");
@@ -1271,29 +1271,12 @@
             const name = escapeHtml(opts.userName || "");
             const min = opts.rangeStart || "";
             const max = opts.rangeEnd || "";
-            const missing = Array.isArray(opts.missingDates) ? opts.missingDates : [];
-            const latestMissing = missing.length ? String(missing[0]) : "";
-            const defDate = opts.date || latestMissing || max || min || new Date().toISOString().slice(0, 10);
-            const showNotify = missing.length > 0;
+            const defDate = opts.date || max || min || new Date().toISOString().slice(0, 10);
 
             modal.innerHTML = `
-          <div style="font-weight:bold;color:#1976d2;margin-bottom:8px;">未打刻修正（${name}）</div>
+          <div style="font-weight:bold;color:#1976d2;margin-bottom:8px;">勤務状態の上書き（${name}）</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-              ${showNotify ? `
-              <div id="ovrMissingWrap" style="border:1px solid #e0e3e7;border-radius:6px;padding:8px;margin-top:4px;background:#fafcff;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <div class="muted">未打刻日から選択して通知（複数可）</div>
-                        <div>
-                            <button class="small-btn" id="ovrSelectAll" type="button">全選択</button>
-                            <button class="small-btn" id="ovrClearAll" type="button">解除</button>
-                            ${showNotify ? '<button class="small-btn" id="ovrNotifyBtn" style="margin-left:4px;color:#fff;background:#1976d2;border-color:#1976d2;">通知</button>' : ''}
-                        </div>
-                    </div>
-                    <div id="ovrMissingDates" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
-                    </div>
-                </div>
-                ` : ``}
-                <label>対象日 <input id="ovrDate" type="date" style="font-size: 1.5rem;" value="${defDate}" ${min ? `min="${min}"` : ""} ${max ? `max="${max}"` : ""}></label>
+                <label>対象日 <input id="ovrDate" type="date" style="font-size: 1.3rem;" value="${defDate}" ${min ? `min="${min}"` : ""} ${max ? `max="${max}"` : ""}></label>
                 <label>状態
                     <select id="ovrStatus">
                         <option value="off_full">全休</option>
@@ -1319,49 +1302,10 @@
 
             const cancelBtn = modal.querySelector("#ovrCancelBtn");
             const saveBtn = modal.querySelector("#ovrSaveBtn");
-            const notifyBtn = modal.querySelector("#ovrNotifyBtn");
-            const missingWrap = modal.querySelector('#ovrMissingWrap');
-            const missingDatesEl = modal.querySelector('#ovrMissingDates');
-            const btnSelectAll = modal.querySelector('#ovrSelectAll');
-            const btnClearAll = modal.querySelector('#ovrClearAll');
             const dateEl = modal.querySelector("#ovrDate");
             const statusEl = modal.querySelector("#ovrStatus");
             const noteEl = modal.querySelector("#ovrNote");
             const msgEl = modal.querySelector("#ovrMsg");
-
-            // 未打刻日一覧の描画
-            if (missingWrap && missingDatesEl) {
-                const frag = document.createDocumentFragment();
-                missing.forEach((d) => {
-                    const label = document.createElement('label');
-                    label.style.display = 'inline-flex';
-                    label.style.alignItems = 'center';
-                    label.style.gap = '4px';
-                    label.style.padding = '2px 6px';
-                    label.style.border = '1px solid #e0e3e7';
-                    label.style.borderRadius = '999px';
-                    label.style.background = '#fff';
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.className = 'ovrDateCb';
-                    cb.value = d;
-                    cb.checked = true;
-                    const span = document.createElement('span');
-                    span.textContent = (function (dateStr) {
-                        try { return formatDateMD(dateStr).replace(/\([^)]*\)/g, ''); } catch { return dateStr; }
-                    })(d);
-                    label.appendChild(cb);
-                    label.appendChild(span);
-                    frag.appendChild(label);
-                });
-                missingDatesEl.appendChild(frag);
-                if (btnSelectAll) btnSelectAll.onclick = () => {
-                    modal.querySelectorAll('.ovrDateCb').forEach((el) => { el.checked = true; });
-                };
-                if (btnClearAll) btnClearAll.onclick = () => {
-                    modal.querySelectorAll('.ovrDateCb').forEach((el) => { el.checked = false; });
-                };
-            }
 
             cancelBtn.onclick = () => {
                 modal.remove();
@@ -1407,47 +1351,133 @@
                 }
             };
 
-            if (notifyBtn) {
-                notifyBtn.onclick = async () => {
-                    // 選択された複数日を取得（なければ date input を単一で）
-                    const selected = Array.from(modal.querySelectorAll('.ovrDateCb'))
-                        .filter((el) => el.checked)
-                        .map((el) => String(el.value));
-                    const fallback = (dateEl.value || '').trim();
-                    const dates = selected.length ? selected : (fallback ? [fallback] : []);
-                    if (dates.length === 0) {
-                        msgEl.textContent = '対象日を選択してください';
-                        return;
-                    }
-                    notifyBtn.disabled = true;
-                    msgEl.textContent = `送信中… (0/${dates.length})`;
-                    const failed = [];
-                    try {
-                        for (let i = 0; i < dates.length; i++) {
-                            const d = dates[i];
-                            const res = await fetchWithAuth('api/attendance_notify_missing.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: Number(opts.userId), date: d })
-                            });
-                            if (!(res && res.ok)) {
-                                failed.push(d);
-                            }
-                            msgEl.textContent = `送信中… (${i + 1}/${dates.length})`;
-                        }
-                        if (failed.length === 0) {
-                            msgEl.textContent = '通知しました';
-                            setTimeout(() => { modal.remove(); overlay.remove(); }, 250);
-                        } else {
-                            msgEl.textContent = '一部失敗: ' + failed.join(', ');
-                            notifyBtn.disabled = false;
-                        }
-                    } catch {
-                        msgEl.textContent = 'エラーが発生しました';
-                        notifyBtn.disabled = false;
-                    }
-                };
+        }
+
+        // 未打刻通知モーダル（複数日通知専用）
+        function showNotifyMissingModal(opts) {
+            // opts: { userId, userName, missingDates? }
+            const existing = document.getElementById('notifyOverlay');
+            if (existing) existing.remove();
+            const overlay = document.createElement('div');
+            overlay.id = 'notifyOverlay';
+            overlay.style.position = 'fixed';
+            overlay.style.inset = '0';
+            overlay.style.background = 'rgba(0,0,0,.35)';
+            overlay.style.zIndex = '9998';
+            const modal = document.createElement('div');
+            modal.setAttribute('role', 'dialog');
+            modal.style.position = 'fixed';
+            modal.style.top = '50%';
+            modal.style.left = '50%';
+            modal.style.transform = 'translate(-50%, -50%)';
+            modal.style.background = '#fff';
+            modal.style.borderRadius = '8px';
+            modal.style.boxShadow = '0 6px 32px rgba(0,0,0,.25)';
+            modal.style.padding = '14px 16px 12px 16px';
+            modal.style.minWidth = '300px';
+            modal.style.maxWidth = '92vw';
+            modal.style.zIndex = '9999';
+            const name = escapeHtml(opts.userName || '');
+            const missing = Array.isArray(opts.missingDates) ? opts.missingDates : [];
+            modal.innerHTML = `
+              <div style="font-weight:bold;color:#1976d2;margin-bottom:6px;">勤務記録未入力の通知（${name}）</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                                <div class="muted" style="font-size:0.85rem;">対象日を選択し、ユーザーへ入力依頼の通知を送信します。必要に応じてコメント（最大 500 文字）を追加できます。</div>
+                                <div id="notifyDates" style="display:flex;flex-wrap:wrap;gap:8px;min-height:32px;"></div>
+                                                <label style="display:flex;flex-direction:column;gap:4px;font-size:0.85rem;">コメント（任意）
+                                                    <textarea id="notifyComment" rows="3" maxlength="500" placeholder="追加メッセージ（例: 締め処理前に入力をお願いします）" style="resize:vertical;padding:6px;font-family:inherit;border:1px solid #e0e3e7;border-radius:6px;"></textarea>
+                                                    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#666;margin-top:2px;">
+                                                        <span>改行可・最大500文字</span><span id="notifyCommentCount">0/500</span>
+                                                    </div>
+                                                </label>
+                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                  <button class="small-btn" id="notifySelectAll">全選択</button>
+                  <button class="small-btn" id="notifyClearAll">解除</button>
+                  <button class="small-btn" id="notifySendBtn" style="background:#1976d2;color:#fff;border-color:#1976d2;">通知</button>
+                  <button class="small-btn" id="notifyCancelBtn" style="border-color:#999;color:#555;">閉じる</button>
+                </div>
+                <div id="notifyMsg" class="muted" style="min-height:1.2em;font-size:0.85rem;"></div>
+              </div>
+            `;
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) { modal.remove(); overlay.remove(); } });
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+            const datesWrap = modal.querySelector('#notifyDates');
+            const btnAll = modal.querySelector('#notifySelectAll');
+            const btnClr = modal.querySelector('#notifyClearAll');
+            const btnSend = modal.querySelector('#notifySendBtn');
+            const btnCancel = modal.querySelector('#notifyCancelBtn');
+            const msgEl = modal.querySelector('#notifyMsg');
+            const commentEl = modal.querySelector('#notifyComment');
+            const countEl = modal.querySelector('#notifyCommentCount');
+            if (commentEl && countEl) {
+                commentEl.addEventListener('input', () => {
+                    const len = commentEl.value.length;
+                    countEl.textContent = `${len}/500`;
+                });
             }
+            // 日付一覧
+            if (datesWrap) {
+                const frag = document.createDocumentFragment();
+                missing.forEach(d => {
+                    const label = document.createElement('label');
+                    label.style.display = 'inline-flex';
+                    label.style.alignItems = 'center';
+                    label.style.gap = '4px';
+                    label.style.padding = '2px 6px';
+                    label.style.border = '1px solid #e0e3e7';
+                    label.style.borderRadius = '999px';
+                    label.style.background = '#fff';
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'notifyDateCb';
+                    cb.value = d;
+                    cb.checked = true;
+                    const span = document.createElement('span');
+                    span.textContent = (function (dateStr) {
+                        try { return formatDateMD(dateStr).replace(/\([^)]*\)/g, ''); } catch { return dateStr; }
+                    })(d);
+                    label.appendChild(cb);
+                    label.appendChild(span);
+                    frag.appendChild(label);
+                });
+                datesWrap.appendChild(frag);
+            }
+            if (btnAll) btnAll.onclick = () => { modal.querySelectorAll('.notifyDateCb').forEach(el => { el.checked = true; }); };
+            if (btnClr) btnClr.onclick = () => { modal.querySelectorAll('.notifyDateCb').forEach(el => { el.checked = false; }); };
+            btnCancel.onclick = () => { modal.remove(); overlay.remove(); };
+            btnSend.onclick = async () => {
+                const selected = Array.from(modal.querySelectorAll('.notifyDateCb')).filter(el => el.checked).map(el => String(el.value));
+                if (!selected.length) { msgEl.textContent = '対象日を選択してください'; return; }
+                btnSend.disabled = true; msgEl.textContent = `送信中… (0/${selected.length})`;
+                const failed = [];
+                // コメント取得（改行含むテキストを 500 文字に制限）
+                let comment = '';
+                if (commentEl) {
+                    comment = (commentEl.value || '').replace(/\r?\n/g, '\n').trim();
+                    if (comment.length > 500) comment = comment.slice(0, 500);
+                }
+                try {
+                    for (let i = 0; i < selected.length; i++) {
+                        const d = selected[i];
+                        const res = await fetchWithAuth('api/attendance_notify_missing.php', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: Number(opts.userId), date: d, comment })
+                        });
+                        if (!(res && res.ok)) failed.push(d);
+                        msgEl.textContent = `送信中… (${i + 1}/${selected.length})`;
+                    }
+                    if (!failed.length) {
+                        msgEl.textContent = '通知しました';
+                        setTimeout(() => { modal.remove(); overlay.remove(); }, 300);
+                    } else {
+                        msgEl.textContent = '一部失敗: ' + failed.join(', ');
+                        btnSend.disabled = false;
+                    }
+                } catch (e) {
+                    msgEl.textContent = 'エラーが発生しました';
+                    btnSend.disabled = false;
+                }
+            };
         }
 
         document.addEventListener("click", async (e) => {
@@ -1469,67 +1499,20 @@
                 const date = btn.getAttribute("data-date") || "";
                 const rangeStart = btn.getAttribute("data-range-start") || "";
                 const rangeEnd = btn.getAttribute("data-range-end") || "";
-                let missingDates = [];
-                try {
-                    const md = btn.getAttribute("data-missing-dates") || "";
-                    if (md) missingDates = JSON.parse(decodeURIComponent(md));
-                } catch { }
-                showOverrideModal({
-                    userId,
-                    userName,
-                    date,
-                    rangeStart,
-                    rangeEnd,
-                    missingDates,
-                });
+                showStatusOverrideModal({ userId, userName, date, rangeStart, rangeEnd });
                 return;
             }
-            // 「通知」ボタン（未打刻の直近日に対して通知送信）
+            // 「通知」ボタン（未打刻複数日通知モーダル）
             if (t && t.classList && t.classList.contains("js-notify-missing")) {
                 const btn = t;
-                btn.disabled = true;
-                const oldText = btn.textContent;
-                btn.textContent = "送信中…";
-                const userId = Number(btn.getAttribute("data-user-id"));
+                const userId = Number(btn.getAttribute('data-user-id'));
+                const userName = btn.getAttribute('data-user-name') || '';
                 let missingDates = [];
                 try {
-                    const md = btn.getAttribute("data-missing-dates") || "";
+                    const md = btn.getAttribute('data-missing-dates') || '';
                     if (md) missingDates = JSON.parse(decodeURIComponent(md));
                 } catch { }
-                const date = Array.isArray(missingDates) && missingDates.length ? String(missingDates[0]) : "";
-                if (!userId || !date) {
-                    alert("対象日が取得できませんでした");
-                    btn.disabled = false;
-                    btn.textContent = oldText;
-                    return;
-                }
-                try {
-                    const res = await fetchWithAuth("api/attendance_notify_missing.php", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ user_id: userId, date })
-                    });
-                    const ok = res && res.ok;
-                    if (ok) {
-                        btn.textContent = "通知しました";
-                        setTimeout(() => {
-                            btn.textContent = oldText;
-                            btn.disabled = false;
-                        }, 1200);
-                    } else {
-                        btn.textContent = "失敗";
-                        setTimeout(() => {
-                            btn.textContent = oldText;
-                            btn.disabled = false;
-                        }, 1300);
-                    }
-                } catch {
-                    btn.textContent = "失敗";
-                    setTimeout(() => {
-                        btn.textContent = oldText;
-                        btn.disabled = false;
-                    }, 1300);
-                }
+                showNotifyMissingModal({ userId, userName, missingDates });
                 return;
             }
             // 行クリックで管理者の詳細ページを新規タブで開く（承認/却下ボタンやリンククリックは除外）

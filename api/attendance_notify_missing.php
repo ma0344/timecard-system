@@ -105,6 +105,8 @@ if (empty($data)) {
 }
 $userId = isset($data['user_id']) ? (int)$data['user_id'] : 0;
 $date = isset($data['date']) ? trim((string)$data['date']) : '';
+// 任意コメント（本文に追記）
+$comment = isset($data['comment']) ? (string)$data['comment'] : '';
 if ($userId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     http_response_code(400);
     echo json_encode(['error' => 'invalid params']);
@@ -132,6 +134,21 @@ try {
     $d = (int)$parts[2];
     $title = '勤務記録未入力のお願い';
     $body = sprintf('%d月%d日の勤務記録がありません。入力をお願いします。', $m, $d);
+
+    // コメントがあれば本文に追記（制御文字除去・500 文字上限）
+    if ($comment !== '') {
+        // 改行(\r, \n)とタブ以外の制御文字を除去
+        $comment = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/u', '', $comment ?? '');
+        $comment = trim($comment);
+        if ($comment !== '') {
+            if (function_exists('mb_substr')) {
+                $comment = mb_substr($comment, 0, 500);
+            } else {
+                $comment = substr($comment, 0, 500);
+            }
+            $body .= "\n\n管理者コメント: " . $comment;
+        }
+    }
     $link = './attendance_list.html';
 
     $ins = $pdo->prepare('INSERT INTO notifications (user_id, type, title, body, link) VALUES (?,?,?,?,?)');
