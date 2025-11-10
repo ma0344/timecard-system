@@ -5,8 +5,13 @@ require_once '../db_config.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 $userId = isset($data['userId']) ? intval($data['userId']) : 0;
+$useServerTime = isset($data['use_server_time']) ? (bool)$data['use_server_time'] : false;
 $datetime = isset($data['datetime']) ? $data['datetime'] : '';
 $manual = isset($data['manual']) ? (int)(bool)$data['manual'] : 0;
+if ($useServerTime) {
+    $datetime = date('Y-m-d H:i:s');
+    $manual = 0;
+}
 
 if (!$userId || !$datetime) {
     http_response_code(400);

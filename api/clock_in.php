@@ -6,8 +6,15 @@ require_once '../db_config.php'; // DB接続情報
 // POSTデータ取得
 $data = json_decode(file_get_contents('php://input'), true);
 $userId = isset($data['userId']) ? intval($data['userId']) : 0;
+$useServerTime = isset($data['use_server_time']) ? (bool)$data['use_server_time'] : false;
 $datetime = isset($data['datetime']) ? $data['datetime'] : '';
 $manual = isset($data['manual']) ? (int)(bool)$data['manual'] : 0;
+
+// サーバー時刻使用フラグが立っている場合はサーバー時刻を採用
+if ($useServerTime) {
+    $datetime = date('Y-m-d H:i:s');
+    $manual = 0; // サーバー時刻は手入力扱いではない
+}
 
 if (!$userId || !$datetime) {
     http_response_code(400);

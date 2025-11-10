@@ -254,6 +254,20 @@
             transition: background 0.2s;
         }
 
+        .record-row.highlight {
+            background: #fff8e1 !important;
+            position: relative;
+        }
+
+        .record-row.highlight::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid #fb8c00;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
         /* background: #e3f2fd; */
         .record-row.active {
             z-index: 20;
@@ -1328,7 +1342,22 @@
                             }
                         };
                     }
+                    // ハイライト対象日付ならクラス付与
+                    if (window.__highlightDate && rec.date === window.__highlightDate) {
+                        li.classList.add('highlight');
+                    }
                 });
+                // ハイライト行があり、まだ展開されていない場合は自動展開（初回のみ）
+                if (window.__highlightDate && expandedIdx === null) {
+                    const targetIdx = records.findIndex(r => r.date === window.__highlightDate);
+                    if (targetIdx >= 0) {
+                        expandedIdx = targetIdx;
+                        // 再レンダで展開
+                        render();
+                        // 一度使ったら解除（無限ループ防止）
+                        window.__highlightDate = null;
+                    }
+                }
             }
             function formatDateMD(dateStr) {
                 // "YYYY-MM-DD" → "MM月DD日"
@@ -1362,6 +1391,12 @@
                 monthInput.addEventListener('change', function () {
                     loadRecordsByPeriod(this.value);
                 });
+                // クエリから date パラメータ取得しハイライト用に保持
+                const urlParams = new URLSearchParams(window.location.search);
+                const qpDate = urlParams.get('date');
+                if (qpDate && /\d{4}-\d{2}-\d{2}/.test(qpDate)) {
+                    window.__highlightDate = qpDate;
+                }
                 await loadRecordsByPeriod(ym);
             })();
 
