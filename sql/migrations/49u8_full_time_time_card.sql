@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- ホスト: mysql8008.in.shared-server.net:13654
--- 生成日時: 2025 年 11 月 02 日 13:38
+-- 生成日時: 2025 年 11 月 11 日 17:27
 -- サーバのバージョン： 8.0.29
 -- PHP のバージョン: 7.1.8
 
@@ -21,6 +21,26 @@ SET time_zone = "+00:00";
 --
 -- データベース: `49u8_full_time_time_card`
 --
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `app_settings`
+--
+
+CREATE TABLE `app_settings` (
+  `key` varchar(191) NOT NULL,
+  `value` text,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `app_settings`
+--
+
+INSERT INTO `app_settings` (`key`, `value`) VALUES
+('notify', '{\"enabled\":true,\"recipients\":\"ma0344@net-one.info\"}'),
+('smtp', '{\"host\":\"smtp.net-one.info\",\"port\":587,\"secure\":\"tls\",\"username\":\"netone-admin@net-one.info\",\"password\":\"zRN5gMuFgws94ip\",\"from_email\":\"netone-admin@net-one.info\",\"from_name\":\"ねっとわん勤怠システム\"}');
 
 -- --------------------------------------------------------
 
@@ -168,7 +188,70 @@ INSERT INTO `breaks` (`id`, `timecard_id`, `break_start`, `break_start_manual`, 
 (111, 150, '2025-10-15 12:00:00', 1, '2025-10-15 13:00:00', 1, '2025-10-29 11:41:45'),
 (112, 151, '2025-10-16 12:00:00', 1, '2025-10-16 13:00:00', 1, '2025-10-29 11:41:45'),
 (113, 153, '2025-10-20 12:00:00', 1, '2025-10-20 13:00:00', 1, '2025-10-29 11:41:45'),
-(114, 156, '2025-10-27 12:00:00', 1, '2025-10-27 13:00:00', 1, '2025-10-29 11:41:45');
+(114, 156, '2025-10-27 12:00:00', 1, '2025-10-27 13:00:00', 1, '2025-10-29 11:41:45'),
+(145, 161, '2025-10-31 12:00:00', 0, '2025-10-31 13:00:00', 0, '2025-11-05 11:14:20'),
+(146, 158, '2025-11-01 12:00:00', 0, '2025-11-01 13:00:00', 0, '2025-11-05 11:14:44'),
+(167, 173, '2025-11-10 11:51:48', 0, '2025-11-10 11:52:17', 0, '2025-11-10 11:51:48');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `day_status`
+--
+
+CREATE TABLE `day_status` (
+  `id` bigint NOT NULL,
+  `user_id` int NOT NULL,
+  `date` date NOT NULL,
+  `status` enum('work','off','am_off','pm_off','ignore') NOT NULL DEFAULT 'work',
+  `note` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `day_status_overrides`
+--
+
+CREATE TABLE `day_status_overrides` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `date` date NOT NULL,
+  `status` varchar(16) NOT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `created_by` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `revoked_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `day_status_overrides`
+--
+
+INSERT INTO `day_status_overrides` (`id`, `user_id`, `date`, `status`, `note`, `created_by`, `created_at`, `revoked_at`) VALUES
+(1, 6, '2025-11-05', 'off_full', '', 2, '2025-11-05 11:24:58', '2025-11-05 11:25:00'),
+(2, 6, '2025-11-05', 'off_am', '', 2, '2025-11-05 11:27:34', '2025-11-05 11:28:04'),
+(3, 2, '2025-11-05', 'off_full', '', 2, '2025-11-05 11:46:54', '2025-11-05 11:46:55'),
+(4, 2, '2025-11-05', 'ignore', '', 2, '2025-11-05 11:46:55', '2025-11-05 11:46:56'),
+(5, 2, '2025-11-05', 'off_full', '', 2, '2025-11-05 11:46:59', '2025-11-05 11:47:02'),
+(6, 2, '2025-11-05', 'off_am', '', 2, '2025-11-05 11:47:02', '2025-11-05 11:47:03'),
+(7, 2, '2025-11-05', 'off_pm', '', 2, '2025-11-05 11:47:03', '2025-11-05 11:47:04'),
+(8, 2, '2025-11-05', 'ignore', '', 2, '2025-11-05 11:47:04', '2025-11-05 11:47:05'),
+(9, 2, '2025-11-05', 'off_full', '', 2, '2025-11-05 11:47:06', '2025-11-05 12:24:18'),
+(10, 5, '2025-11-05', 'off_full', '', 2, '2025-11-05 12:24:24', '2025-11-05 12:24:28'),
+(11, 5, '2025-11-05', 'off_am', '', 2, '2025-11-05 12:24:28', '2025-11-05 12:24:30'),
+(12, 5, '2025-11-05', 'off_pm', '', 2, '2025-11-05 12:24:30', '2025-11-05 12:24:34'),
+(13, 6, '2025-11-05', 'off_full', '', 2, '2025-11-05 12:30:30', '2025-11-06 14:54:22'),
+(14, 2, '2025-11-06', 'off_full', '', 2, '2025-11-06 11:33:24', '2025-11-06 11:33:38'),
+(15, 2, '2025-11-06', 'ignore', '', 2, '2025-11-06 11:33:38', '2025-11-06 11:54:16'),
+(16, 2, '2025-11-06', 'off_pm', '', 2, '2025-11-06 11:54:16', '2025-11-06 12:57:27'),
+(17, 3, '2025-11-05', 'off_full', '', 2, '2025-11-06 13:13:27', '2025-11-06 14:48:58'),
+(18, 5, '2025-11-05', 'off_full', '', 2, '2025-11-06 14:48:53', '2025-11-06 15:19:47'),
+(19, 3, '2025-11-05', 'off_full', '', 2, '2025-11-06 14:48:58', '2025-11-06 14:54:09'),
+(20, 3, '2025-11-05', 'off_full', '', 2, '2025-11-06 14:54:09', '2025-11-06 14:54:15'),
+(21, 3, '2025-11-05', 'off_full', '', 2, '2025-11-06 14:54:15', '2025-11-06 15:14:12');
 
 -- --------------------------------------------------------
 
@@ -187,6 +270,108 @@ CREATE TABLE `leave_expire_runs` (
 
 INSERT INTO `leave_expire_runs` (`run_date`, `created_at`) VALUES
 ('2025-10-25', '2025-10-25 17:36:37');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `leave_requests`
+--
+
+CREATE TABLE `leave_requests` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `used_date` date NOT NULL,
+  `hours` decimal(6,2) NOT NULL,
+  `reason` text,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `approver_user_id` int DEFAULT NULL,
+  `decided_at` datetime DEFAULT NULL,
+  `decided_ip` varchar(45) DEFAULT NULL,
+  `decided_user_agent` varchar(255) DEFAULT NULL,
+  `approve_token` varchar(128) DEFAULT NULL,
+  `approve_token_hash` char(64) DEFAULT NULL,
+  `approve_token_expires_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `leave_requests`
+--
+
+INSERT INTO `leave_requests` (`id`, `user_id`, `used_date`, `hours`, `reason`, `status`, `approver_user_id`, `decided_at`, `decided_ip`, `decided_user_agent`, `approve_token`, `approve_token_hash`, `approve_token_expires_at`, `created_at`) VALUES
+(5, 2, '2025-11-02', '8.00', '', 'approved', NULL, '2025-11-02 19:29:06', NULL, NULL, NULL, NULL, NULL, '2025-11-02 19:28:46'),
+(6, 2, '2025-11-03', '8.00', '', 'rejected', NULL, '2025-11-02 20:13:53', NULL, NULL, NULL, NULL, NULL, '2025-11-02 20:13:33'),
+(7, 2, '2025-11-07', '8.00', '', 'approved', NULL, '2025-11-02 20:15:09', NULL, NULL, NULL, NULL, NULL, '2025-11-02 20:14:40'),
+(8, 2, '2025-11-02', '8.00', '', 'approved', NULL, '2025-11-02 20:27:19', NULL, NULL, NULL, NULL, NULL, '2025-11-02 20:25:34'),
+(9, 2, '2025-11-05', '8.00', '', 'approved', NULL, '2025-11-02 20:32:57', NULL, NULL, NULL, NULL, NULL, '2025-11-02 20:32:52'),
+(10, 2, '2025-11-03', '8.00', '', 'approved', 2, '2025-11-03 11:45:59', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, 'd8bf7c3c04c25bc639868ecbb0c8d53bdc8ae3e6c02fbc8e4871a1d96466c3c3', NULL, '2025-11-03 09:43:27'),
+(11, 2, '2025-11-05', '8.00', '', 'rejected', 2, '2025-11-03 11:46:00', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '82f47881d605d905e90182e74aa224fd6cf75b246eb67555a4991da445695b4d', NULL, '2025-11-03 09:49:11'),
+(12, 2, '2025-11-03', '8.00', '', 'rejected', NULL, '2025-11-03 11:47:32', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '8424272298307bc6b56361b9252e8034a221e7348e82dfb2e3ea5779b11a7225', NULL, '2025-11-03 11:47:19'),
+(13, 2, '2025-11-03', '8.00', '', 'approved', 2, '2025-11-03 12:36:12', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, 'f4f252931b1803592727e45497bdb99d906396006330fb1d09cf5c774a1eecd7', NULL, '2025-11-03 11:51:38'),
+(14, 2, '2025-11-03', '8.00', '', 'rejected', 2, '2025-11-03 12:36:14', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '13f79647fa85acaf312fe3b9a1a36b6d9c5b91d856a9c99315225621d3038882', NULL, '2025-11-03 11:51:43'),
+(15, 2, '2025-11-03', '8.00', '', 'rejected', 2, '2025-11-03 13:04:59', '119.243.184.174', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36', NULL, 'f15446585e02b418494af9863db3744792ada01853bfa06eb924a0f3aa30a115', NULL, '2025-11-03 13:04:49'),
+(16, 2, '2025-11-03', '8.00', '', 'approved', 2, '2025-11-03 13:08:57', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '678052b3813fe7b05e4c16e02b3c942c02c9220a0c665f5b881469eea3f365bf', NULL, '2025-11-03 13:08:49'),
+(17, 2, '2025-11-03', '8.00', '', 'rejected', 2, '2025-11-03 13:47:31', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '4e067bbc89a5ada698077dfedbeaf8e8405c90a056837d01e262e5fd08f4411b', NULL, '2025-11-03 13:47:21'),
+(18, 2, '2025-11-03', '8.00', '', 'approved', 2, '2025-11-03 14:08:28', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '483ae819ea4105951842a6396d4cfc4840038edc6af2e414265dc29f5bde76f4', NULL, '2025-11-03 14:08:18'),
+(19, 2, '2025-11-03', '8.00', '', 'rejected', 2, '2025-11-03 21:56:29', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, 'ee0756fc0586014c634a4bdbc88397f4db371533fe483dabd103f20425c8aef7', NULL, '2025-11-03 21:02:59'),
+(20, 2, '2025-11-03', '8.00', '', 'rejected', 2, '2025-11-03 22:21:47', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, 'fd7fa64684a0ffaeaf0c0189c45ca97f37eed33ad1fbc97ddd7f9bf342138549', NULL, '2025-11-03 21:50:37'),
+(21, 2, '2025-11-03', '8.00', '', 'pending', NULL, NULL, NULL, NULL, NULL, 'eec6dfb6eca6980e15cf7a16f8c2a3b44c0cef714810979d8568d8eca6140e08', '2025-11-06 21:52:59', '2025-11-03 21:52:59'),
+(22, 2, '2025-11-03', '8.00', '', 'pending', NULL, NULL, NULL, NULL, NULL, 'b3383b19d47019f47575cd20555749648e9a68c13c4ad4180e7a2b01e8fbaf53', '2025-11-06 21:57:22', '2025-11-03 21:57:22'),
+(23, 2, '2025-10-31', '8.00', '', 'rejected', 2, '2025-11-07 19:05:53', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '09751221a5edc62593211c026dd35a7c440a2f8a90541dd7b122636dec395f08', NULL, '2025-11-03 22:32:33'),
+(24, 2, '2025-11-05', '8.00', '', 'rejected', 2, '2025-11-09 13:20:56', '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', NULL, '320aa66ed7f470930431d42ebf52ad5720d4b89a02ec871a7e2c9c1f6d753fa8', NULL, '2025-11-05 13:09:41');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `leave_request_audit`
+--
+
+CREATE TABLE `leave_request_audit` (
+  `id` bigint NOT NULL,
+  `request_id` int NOT NULL,
+  `action` enum('create','open','approve','reject') NOT NULL,
+  `actor_type` enum('user','admin','token','system') NOT NULL,
+  `actor_id` int DEFAULT NULL,
+  `ip` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `leave_request_audit`
+--
+
+INSERT INTO `leave_request_audit` (`id`, `request_id`, `action`, `actor_type`, `actor_id`, `ip`, `user_agent`, `created_at`) VALUES
+(1, 10, 'approve', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:45:59'),
+(2, 11, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:46:00'),
+(3, 12, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:47:19'),
+(4, 12, 'open', 'token', NULL, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:47:30'),
+(5, 12, 'reject', 'token', NULL, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:47:32'),
+(6, 13, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:51:38'),
+(7, 14, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:51:43'),
+(8, 13, 'open', 'token', NULL, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 11:52:31'),
+(9, 13, 'approve', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 12:36:12'),
+(10, 14, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 12:36:14'),
+(11, 15, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36', '2025-11-03 13:04:49'),
+(12, 15, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36', '2025-11-03 13:04:59'),
+(13, 16, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 13:08:49'),
+(14, 16, 'approve', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 13:08:57'),
+(15, 17, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 13:47:21'),
+(16, 17, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 13:47:31'),
+(17, 18, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 14:08:18'),
+(18, 18, 'approve', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 14:08:28'),
+(19, 19, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 21:02:59'),
+(20, 20, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 21:50:37'),
+(21, 21, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 21:52:59'),
+(22, 19, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 21:56:29'),
+(23, 22, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 21:57:22'),
+(24, 20, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 22:21:47'),
+(25, 23, 'create', 'user', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-03 22:32:33'),
+(26, 23, 'open', 'token', NULL, '157.147.233.93', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-05 10:03:07'),
+(27, 24, 'create', 'user', 2, '157.147.233.93', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36', '2025-11-05 13:09:41'),
+(28, 24, 'open', 'token', NULL, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-06 17:09:08'),
+(29, 23, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-07 19:05:53'),
+(30, 24, 'reject', 'admin', 2, '119.243.184.174', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-11-09 13:20:56');
 
 -- --------------------------------------------------------
 
@@ -270,6 +455,65 @@ INSERT INTO `log_types` (`id`, `code`, `name`, `description`, `effect`, `is_acti
 -- --------------------------------------------------------
 
 --
+-- テーブルの構造 `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` bigint NOT NULL,
+  `user_id` int NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `body` text,
+  `link` varchar(255) DEFAULT NULL,
+  `status` enum('unread','read') NOT NULL DEFAULT 'unread',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `read_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `body`, `link`, `status`, `created_at`, `read_at`) VALUES
+(1, 2, 'leave_request_result', '有給申請が承認されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 12:36:12', '2025-11-03 12:55:47'),
+(2, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 12:36:14', '2025-11-03 12:55:47'),
+(3, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 13:04:59', '2025-11-03 13:05:23'),
+(4, 2, 'leave_request_result', '有給申請が承認されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 13:08:57', '2025-11-03 13:09:31'),
+(5, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 13:47:31', '2025-11-03 13:47:45'),
+(6, 2, 'leave_request_result', '有給申請が承認されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 14:08:28', '2025-11-03 14:14:31'),
+(7, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 21:56:29', '2025-11-03 22:32:45'),
+(8, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-03 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-03 22:21:47', '2025-11-03 22:32:46'),
+(9, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', '../attendance_list.html', 'read', '2025-11-06 17:32:45', '2025-11-06 17:50:48'),
+(10, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 17:35:44', '2025-11-06 17:50:47'),
+(11, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 17:45:55', NULL),
+(12, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 17:48:27', NULL),
+(13, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 17:49:47', NULL),
+(14, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 17:50:31', NULL),
+(15, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 17:50:55', '2025-11-06 17:51:13'),
+(16, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月4日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 18:02:46', '2025-11-06 21:08:29'),
+(17, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:40', NULL),
+(18, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月4日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:40', NULL),
+(19, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月3日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:40', NULL),
+(20, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月2日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:40', NULL),
+(21, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月1日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:40', NULL),
+(22, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '10月31日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:41', NULL),
+(23, 5, 'attendance_missing_reminder', '勤務記録未入力のお願い', '10月30日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'unread', '2025-11-06 21:01:41', NULL),
+(24, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月5日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 21:06:00', '2025-11-06 21:08:29'),
+(25, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月4日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 21:06:01', '2025-11-06 21:08:29'),
+(26, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月3日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 21:06:01', '2025-11-06 21:08:29'),
+(27, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月1日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 21:06:01', '2025-11-06 21:08:29'),
+(28, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '10月31日の勤務記録がありません。入力をお願いします。', './attendance_list.html', 'read', '2025-11-06 21:06:01', '2025-11-06 21:08:29'),
+(29, 2, 'leave_request_result', '有給申請が却下されました', '2025-10-31 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-07 19:05:53', '2025-11-09 12:51:16'),
+(30, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月6日の勤務記録がありません。入力をお願いします。\n\n管理者コメント: テスト入力です', './attendance_list.html', 'read', '2025-11-07 22:03:58', '2025-11-07 22:05:49'),
+(31, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月1日の勤務記録がありません。入力をお願いします。\r\n\r\n管理者コメント: test message', './attendance_list.html', 'read', '2025-11-07 22:07:27', '2025-11-07 22:21:48'),
+(32, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月1日の勤務記録がありません。入力をお願いします。<br>管理者コメント: it\'s a test message', './attendance_list.html', 'read', '2025-11-07 22:09:07', '2025-11-07 22:21:48'),
+(33, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '11月6日の勤務記録がありません。入力をお願いします。\\n\\n管理者コメント: testtesttest', './attendance_list.html', 'unread', '2025-11-07 22:40:02', NULL),
+(34, 6, 'attendance_missing_reminder', '勤務記録未入力のお願い', '10月31日の勤務記録がありません。入力をお願いします。\r\n\r\n管理者コメント: testtesttesttesttest', './attendance_list.html', 'unread', '2025-11-07 22:41:26', NULL),
+(35, 2, 'leave_request_result', '有給申請が却下されました', '2025-11-05 8.0h 申請の決裁結果です。', '../attendance_list.html', 'read', '2025-11-09 13:20:56', '2025-11-11 14:25:04');
+
+-- --------------------------------------------------------
+
+--
 -- テーブルの構造 `paid_leaves`
 --
 
@@ -288,7 +532,6 @@ CREATE TABLE `paid_leaves` (
 
 INSERT INTO `paid_leaves` (`id`, `user_id`, `grant_date`, `grant_hours`, `consumed_hours_total`, `expire_date`) VALUES
 (4, 5, '2025-10-01', 10, '0.00', '2029-10-01'),
-(14, 6, '2025-10-01', 12, '0.00', '2027-09-30'),
 (16, 2, '2015-12-04', 80, '0.00', '2017-12-03'),
 (17, 2, '2016-12-04', 80, '0.00', '2018-12-03'),
 (18, 2, '2017-12-04', 88, '0.00', '2019-12-03'),
@@ -375,6 +618,31 @@ CREATE TABLE `paid_leave_use_events` (
 -- --------------------------------------------------------
 
 --
+-- テーブルの構造 `request_rate_limit`
+--
+
+CREATE TABLE `request_rate_limit` (
+  `id` bigint NOT NULL,
+  `ip` varchar(45) NOT NULL,
+  `endpoint` varchar(100) NOT NULL,
+  `period_start` datetime NOT NULL,
+  `count` int NOT NULL DEFAULT '0',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- テーブルのデータのダンプ `request_rate_limit`
+--
+
+INSERT INTO `request_rate_limit` (`id`, `ip`, `endpoint`, `period_start`, `count`) VALUES
+(1, '119.243.184.174', 'leave_requests_decide_admin', '2025-11-09 13:20:56', 1),
+(2, '157.147.233.93', 'leave_requests_approve_link', '2025-11-05 10:03:07', 1),
+(3, '119.243.184.174', 'leave_requests_approve_link', '2025-11-06 17:09:08', 1),
+(4, '119.243.184.174', 'attendance_notify_missing', '2025-11-07 22:40:02', 2);
+
+-- --------------------------------------------------------
+
+--
 -- テーブルの構造 `settings`
 --
 
@@ -400,7 +668,7 @@ CREATE TABLE `settings` (
 --
 
 INSERT INTO `settings` (`id`, `period_start`, `period_end`, `rounding_type`, `rounding_unit`, `work_hours`, `work_minutes`, `legal_hours_28`, `legal_hours_29`, `legal_hours_30`, `legal_hours_31`, `paid_leave_valid_months`, `paid_leave_rules`, `updated_at`) VALUES
-(1, 16, 15, 'ceil', 15, 8, 0, 160, 165, 171, 177, 24, '{\"fulltime\": [10, 11, 12, 14, 16, 18, 20], \"parttime\": {\"1d\": [1, 2, 2, 2, 3, 3, 3], \"2d\": [3, 4, 4, 5, 6, 6, 7], \"3d\": [5, 6, 6, 7, 9, 10, 11], \"4d\": [7, 8, 9, 10, 12, 13, 15]}, \"milestones\": [\"6m\", \"1y6m\", \"2y6m\", \"3y6m\", \"4y6m\", \"5y6m\", \"6y6m+\"]}', '2025-11-01 11:11:00');
+(1, 16, 15, 'ceil', 15, 8, 0, 160, 165, 171, 177, 24, '{\"fulltime\": [10, 11, 12, 14, 16, 18, 20], \"parttime\": {\"1d\": [1, 2, 2, 2, 3, 3, 3], \"2d\": [3, 4, 4, 5, 6, 6, 7], \"3d\": [5, 6, 6, 7, 9, 10, 11], \"4d\": [7, 8, 9, 10, 12, 13, 15]}, \"milestones\": [\"6m\", \"1y6m\", \"2y6m\", \"3y6m\", \"4y6m\", \"5y6m\", \"6y6m+\"]}', '2025-11-02 16:18:35');
 
 -- --------------------------------------------------------
 
@@ -552,7 +820,15 @@ INSERT INTO `timecards` (`id`, `user_id`, `work_date`, `clock_in`, `clock_in_man
 (154, 6, '2025-10-22', '2025-10-22 13:30:00', 1, '2025-10-22 16:00:00', 1, 0, '2025-10-29 11:41:45'),
 (155, 6, '2025-10-24', '2025-10-24 09:30:00', 1, '2025-10-24 12:00:00', 1, 0, '2025-10-29 11:41:45'),
 (156, 6, '2025-10-27', '2025-10-27 10:00:00', 1, '2025-10-27 16:00:00', 1, 0, '2025-10-29 11:41:45'),
-(157, 6, '2025-10-30', '2025-10-30 12:30:00', 1, '2025-10-30 15:00:00', 1, 0, '2025-10-29 11:41:45');
+(157, 6, '2025-10-30', '2025-10-30 12:30:00', 1, '2025-10-30 18:00:00', 0, 0, '2025-10-29 11:41:45'),
+(158, 2, '2025-11-01', '2025-11-01 09:00:00', 0, '2025-11-01 18:00:00', 0, 0, '2025-11-03 15:24:26'),
+(159, 2, '2025-11-03', '2025-11-03 15:26:00', 1, '2025-11-03 18:00:00', 0, 0, '2025-11-03 15:26:42'),
+(160, 2, '2025-11-04', '2025-11-04 14:50:00', 1, '2025-11-04 18:00:00', 0, 0, '2025-11-04 14:50:17'),
+(161, 2, '2025-10-31', '2025-10-31 09:00:00', 0, '2025-10-31 17:00:00', 0, 0, '2025-11-04 15:34:37'),
+(162, 2, '2025-11-05', '2025-11-05 12:25:00', 1, '2025-11-05 18:00:00', 0, 0, '2025-11-05 12:25:14'),
+(167, 2, '2025-11-07', '2025-11-07 08:44:00', 1, NULL, 0, 0, '2025-11-07 08:44:03'),
+(173, 2, '2025-11-10', '2025-11-10 11:51:21', 0, '2025-11-10 14:32:16', 0, 0, '2025-11-10 11:51:21'),
+(174, 2, '2025-11-08', '2025-11-08 09:00:00', 0, NULL, 0, 0, '2025-11-10 14:29:16');
 
 -- --------------------------------------------------------
 
@@ -579,9 +855,24 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `password_hash`, `role`, `visible`, `must_reset_password`, `reset_token`, `reset_token_expires_at`, `created_at`) VALUES
 (2, '山口　政佳', '$2y$10$i.GJQsCSZA59.VxKAfdeieECrDbsRxQvK0OMzpnUf/nVnZ.D6svXK', 'admin', 1, 0, NULL, NULL, '2025-06-11 17:56:26'),
-(3, 'admin', '$2y$10$s3OtiJxrKHiMKomJkXd5p.8tAcWfOmOhBKyMqd/jZfvWqth6kqnPW', 'admin', 1, 0, NULL, NULL, '2025-06-18 10:55:32'),
+(3, 'admin', '$2y$10$s3OtiJxrKHiMKomJkXd5p.8tAcWfOmOhBKyMqd/jZfvWqth6kqnPW', 'admin', 0, 0, NULL, NULL, '2025-06-18 10:55:32'),
 (5, '小橋加英子', '$2y$10$nIHmpcrg4b3K46KJlaCBtO1zRcQWYuTVx2K5KoZF1EeHfJZ7AMspC', 'admin', 1, 0, NULL, NULL, '2025-06-18 13:06:36'),
 (6, 'ma', '$2y$10$WqUXccMwN7ubKzcNv7z4l.UrMasNb.nt59WxaT/mqWbkFat7gw7Ja', 'user', 1, 0, NULL, NULL, '2025-10-01 10:16:13');
+
+-- --------------------------------------------------------
+
+--
+-- テーブルの構造 `user_day_memos`
+--
+
+CREATE TABLE `user_day_memos` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `work_date` date NOT NULL,
+  `memo_text` text,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 -- --------------------------------------------------------
 
@@ -663,11 +954,17 @@ INSERT INTO `user_leave_summary` (`user_id`, `balance_hours`, `used_total_hours`
 (2, '320.00', '0.00', '2025-12-03'),
 (3, '0.00', '0.00', NULL),
 (5, '10.00', '0.00', '2029-10-01'),
-(6, '12.00', '0.00', '2027-09-30');
+(6, '0.00', '0.00', NULL);
 
 --
 -- ダンプしたテーブルのインデックス
 --
+
+--
+-- テーブルのインデックス `app_settings`
+--
+ALTER TABLE `app_settings`
+  ADD PRIMARY KEY (`key`);
 
 --
 -- テーブルのインデックス `attendance_statuses`
@@ -691,10 +988,47 @@ ALTER TABLE `breaks`
   ADD KEY `timecard_id` (`timecard_id`);
 
 --
+-- テーブルのインデックス `day_status`
+--
+ALTER TABLE `day_status`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_user_date` (`user_id`,`date`),
+  ADD KEY `date` (`date`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- テーブルのインデックス `day_status_overrides`
+--
+ALTER TABLE `day_status_overrides`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_date` (`user_id`,`date`),
+  ADD KEY `idx_active` (`user_id`,`date`,`revoked_at`),
+  ADD KEY `fk_dso_created_by` (`created_by`);
+
+--
 -- テーブルのインデックス `leave_expire_runs`
 --
 ALTER TABLE `leave_expire_runs`
   ADD PRIMARY KEY (`run_date`);
+
+--
+-- テーブルのインデックス `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `approve_token` (`approve_token`),
+  ADD KEY `status` (`status`),
+  ADD KEY `approve_token_2` (`approve_token`),
+  ADD KEY `idx_leave_requests_approve_token_hash` (`approve_token_hash`);
+
+--
+-- テーブルのインデックス `leave_request_audit`
+--
+ALTER TABLE `leave_request_audit`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_lra_request_id` (`request_id`),
+  ADD KEY `idx_lra_action` (`action`),
+  ADD KEY `idx_lra_actor_type` (`actor_type`);
 
 --
 -- テーブルのインデックス `leave_statuses`
@@ -716,6 +1050,14 @@ ALTER TABLE `leave_units`
 ALTER TABLE `log_types`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `log_types_code_unique` (`code`);
+
+--
+-- テーブルのインデックス `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `status` (`status`);
 
 --
 -- テーブルのインデックス `paid_leaves`
@@ -750,6 +1092,13 @@ ALTER TABLE `paid_leave_use_events`
   ADD KEY `idx_plue_user_date` (`user_id`,`used_date`);
 
 --
+-- テーブルのインデックス `request_rate_limit`
+--
+ALTER TABLE `request_rate_limit`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_ip_ep` (`ip`,`endpoint`);
+
+--
 -- テーブルのインデックス `settings`
 --
 ALTER TABLE `settings`
@@ -775,6 +1124,14 @@ ALTER TABLE `timecards`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
+
+--
+-- テーブルのインデックス `user_day_memos`
+--
+ALTER TABLE `user_day_memos`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_user_date` (`user_id`,`work_date`),
+  ADD KEY `idx_user` (`user_id`);
 
 --
 -- テーブルのインデックス `user_detail`
@@ -816,7 +1173,31 @@ ALTER TABLE `audit_logs`
 -- テーブルの AUTO_INCREMENT `breaks`
 --
 ALTER TABLE `breaks`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=172;
+
+--
+-- テーブルの AUTO_INCREMENT `day_status`
+--
+ALTER TABLE `day_status`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT;
+
+--
+-- テーブルの AUTO_INCREMENT `day_status_overrides`
+--
+ALTER TABLE `day_status_overrides`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+
+--
+-- テーブルの AUTO_INCREMENT `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
+-- テーブルの AUTO_INCREMENT `leave_request_audit`
+--
+ALTER TABLE `leave_request_audit`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- テーブルの AUTO_INCREMENT `leave_statuses`
@@ -835,6 +1216,12 @@ ALTER TABLE `leave_units`
 --
 ALTER TABLE `log_types`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- テーブルの AUTO_INCREMENT `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- テーブルの AUTO_INCREMENT `paid_leaves`
@@ -861,6 +1248,12 @@ ALTER TABLE `paid_leave_use_events`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
+-- テーブルの AUTO_INCREMENT `request_rate_limit`
+--
+ALTER TABLE `request_rate_limit`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- テーブルの AUTO_INCREMENT `settings`
 --
 ALTER TABLE `settings`
@@ -876,13 +1269,19 @@ ALTER TABLE `source_types`
 -- テーブルの AUTO_INCREMENT `timecards`
 --
 ALTER TABLE `timecards`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=158;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=175;
 
 --
 -- テーブルの AUTO_INCREMENT `users`
 --
 ALTER TABLE `users`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- テーブルの AUTO_INCREMENT `user_day_memos`
+--
+ALTER TABLE `user_day_memos`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- ダンプしたテーブルの制約
@@ -893,6 +1292,13 @@ ALTER TABLE `users`
 --
 ALTER TABLE `breaks`
   ADD CONSTRAINT `breaks_ibfk_1` FOREIGN KEY (`timecard_id`) REFERENCES `timecards` (`id`);
+
+--
+-- テーブルの制約 `day_status_overrides`
+--
+ALTER TABLE `day_status_overrides`
+  ADD CONSTRAINT `fk_dso_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_dso_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- テーブルの制約 `paid_leaves`
@@ -925,6 +1331,12 @@ ALTER TABLE `source_types`
 --
 ALTER TABLE `timecards`
   ADD CONSTRAINT `timecards_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- テーブルの制約 `user_day_memos`
+--
+ALTER TABLE `user_day_memos`
+  ADD CONSTRAINT `fk_user_day_memos_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- テーブルの制約 `user_detail`

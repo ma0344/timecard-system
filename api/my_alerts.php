@@ -28,8 +28,9 @@ try {
     $st1->execute([$userId, $totalDays]);
     $pastIncomplete = $st1->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
-    // 2) 未打刻（範囲内で出勤記録がなく、かつ全休/無視のオーバーライドがない）
-    $excludeStatuses = "('off_full','ignore')";
+    // 2) 未打刻（範囲内で出勤記録がなく、かつ全休/無視の有効日がない）
+    // day_status_effective を参照し、半休は除外対象に含めない
+    $excludeStatuses = "('off','ignore')";
     // 出勤のある日を取得
     $presentDays = [];
     $stP = $pdo->prepare('SELECT work_date FROM timecards WHERE user_id = ? AND work_date BETWEEN ? AND ?');
@@ -39,7 +40,7 @@ try {
     }
     // 除外日を取得（全休/無視）
     $excludeDays = [];
-    $stE = $pdo->prepare("SELECT date FROM day_status_overrides WHERE user_id = ? AND revoked_at IS NULL AND status IN $excludeStatuses AND date BETWEEN ? AND ?");
+    $stE = $pdo->prepare("SELECT date FROM day_status_effective WHERE user_id = ? AND status IN $excludeStatuses AND date BETWEEN ? AND ?");
     $stE->execute([$userId, $rangeStart, $rangeEnd]);
     while ($r = $stE->fetch(PDO::FETCH_ASSOC)) {
         $excludeDays[$r['date']] = true;

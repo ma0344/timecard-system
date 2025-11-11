@@ -213,3 +213,105 @@ My Day の MVP 完了後に検討する任意改善。優先度は低〜中で�
 
 - 本ファイルを一般ユーザー向けの単一の真実源とし、詳細はここで管理
 - 全体版ロードマップ（`docs/ROADMAP.md`）には、要点・優先順位・リンクのみを記載
+
+---
+
+### F. 日単位ステータス基盤の整備（day_status と overrides の使い分け）
+
+- 目的
+
+  - 「勤務不要日（公休日/会社休日/全休）」や「半休/無視」を、日単位の正規化テーブルで一貫管理
+  - 従来どおり上書き（overrides）は監査可能なログとして残しつつ、参照側は常に「有効値（effective）」を使用
+
+- 方針（読み取りは単一の論理ビューへ）
+
+  - 基本は `day_status`（ベースライン: 1 ユーザー ×1 日 ×1 行, UNIQUE(user_id,date)）
+  - 例外・一時的な変更は `day_status_overrides`（多段に記録、revoked_at で無効化）
+  - 参照は `day_status_effective` ビューに統一（優先順位: override > baseline > 既定=work）
+  - コード正規化: override の code（off_full/off_am/off_pm/ignore）を baseline の enum（off/am_off/pm_off/ignore）へマッピング
+
+- 追加/変更（DB）
+
+  - 追加: ビュー `day_status_effective(user_id, date, status, source, note)`
+  - 既存: `day_status(status ENUM('work','off','am_off','pm_off','ignore'))` をベースラインの単一真実源に昇格
+  - 既存: `day_status_overrides(status VARCHAR)` は「上書きログ」。最新の未取り消し（revoked_at IS NULL）を採用
+  - インデックス: 既存の `(user_id,date)` と `(user_id,date,revoked_at)` を活用（クエリはユーザー × 月を主）
+
+- 影響（読み取り側の統一）
+
+  - アラート: `attendance_alerts.php`, `my_alerts.php` は `day_status_effective` を参照し、
+    - 除外対象 = `status IN ('off','ignore')`（半休は除外しない）
+  - 月次一覧: `attendance_list.html` も同様の基準でバッジ/集計を実施
+  - 適用状況（2025-11-11）: アラート API は参照切替済（別イシュー ALERT-001）
+
+- 書き込みルール
+
+  - 通常運用: 管理者が会社休日/公休日を `day_status` に登録（ベースライン）
+  - 一時対応: 管理者/本人が `day_status_overrides` を作成。API は従来の `day_status_set/clear` を継続利用
+  - ベースラインの直接編集は管理者専用の新 API（後日）に限定（監査ログ併用）
+
+- 受け入れ基準
+
+  - 「未打刻」算出が休日/全休/無視を正しく除外（半休は対象）
+  - 既存 API と後方互換（overrides のみ存在しても正しく反映）
+  - ビュー作成のマイグレーション適用のみで参照統一が可能（段階導入）
+
+- マイグレーション
+  - `sql/migrations/2025-11-11_day_status_effective_view.sql` を追加
+  - 内容: overrides を最新 1 件に集約し baseline とマージ、code を enum に正規化
+
+---
+
+### G. attendance_list 強化（非稼働日の明確化と操作フロー改善）
+
+- 目的
+
+  - 月次一覧で「勤務」「全休」「半休（午前/午後）」「無視」を一目で把握し、未打刻アラートや集計から非稼働日を適切に除外
+  - 当日は直接編集、過去日は「修正申請」へ誘導し、監査性と運用整合性を高める
+
+- UI/UX
+
+  - 行先頭に日ステータスのバッジ表示（work/off/am_off/pm_off/ignore）
+    - 色とアイコンで識別、ツールチップに由来（baseline/override）とメモ（note）
+  - 当日（本人）: クイック分類コントロール（work / am_off / pm_off / off / ignore）
+    - 既存 API `api/day_status_set.php`/`api/day_status_clear.php` を利用して override を設定/解除
+    - 変更後は該当行の再計算（勤務時間/超過/欠落ラベル）を即時反映
+  - 過去日: 直接編集リンクは非表示。かわりに「修正申請」ボタンを表示
+    - 既存の申請ファイル群（issue_attendance_correction.md に準拠）に沿う
+  - 欠落日の行（timecards なしかつ effective が work/半休）には強調＋「修正申請」ショートカット
+  - 集計/メトリクス
+    - 出勤日数: effective IN (work, am_off, pm_off) を含め、off/ignore は除外
+    - 未打刻件数: effective IN (off, ignore) を除外（半休は対象）
+    - 時間計算は現行ロジック踏襲。半休で timecards がある場合は実績ベース
+  - 既知の小修正
+    - overlay 要素の未定義参照を修正
+    - 表示ラベルと値の整合（begins/ends の並び/命名）
+
+- バリデーション（フロント＋サーバ）
+
+  - 休憩は出退勤の範囲内、かつ休憩同士は非交差
+  - 未来日不可、同日複数 timecard の禁止（既存準拠）
+  - ハイライト（?date=YYYY-MM-DD）の自動展開は維持
+
+- API/DB（読み取り統一）
+
+  - 参照は `day_status_effective`（新設ビュー）に統一
+  - 除外ポリシー: status IN ('off','ignore') をアラート/未打刻算出から除外、半休は除外しない
+  - 既存 `api/day_status_get.php` の応答を拡張 or 新規 API で effective を返却（要設計）
+
+- 受け入れ基準
+
+  - 月次一覧で日ステータスの視認性が高く、当日のみ直接分類可能
+  - 欠落日のカウントが休日/全休/無視を正しく除外
+  - 過去日の編集導線は「修正申請」に一本化し、申請作成がワンタップ
+  - 既存の勤務時間/超過計算と互換（半休は実績があれば時間計上）
+  - 既知の小修正（overlay/ラベル）を解消
+
+- 実装ステップ（推奨）
+  1. day_status_effective の導入（完了）とアラート API の参照先切替（別課題）
+  2. attendance_list.html にバッジ/分類 UI を追加（当日の override 設定）
+  3. 欠落日の強調＋「修正申請」導線の追加
+  4. 集計ロジックを effective に準拠させる（off/ignore 除外）
+  5. 小修正（overlay/ラベル）
+
+—

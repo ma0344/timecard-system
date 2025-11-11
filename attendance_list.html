@@ -292,6 +292,80 @@
             flex-grow: 0;
         }
 
+        .day-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65em;
+            font-weight: 600;
+            line-height: 1.1em;
+            padding: 2px 6px;
+            border-radius: 12px;
+            background: #eceff1;
+            color: #455a64;
+            min-width: 3.2em;
+            cursor: default;
+            position: relative;
+        }
+
+        .day-status-badge[data-st="work"] {
+            background: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .day-status-badge[data-st="off"] {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+
+        .day-status-badge[data-st="am_off"],
+        .day-status-badge[data-st="pm_off"] {
+            background: #fff8e1;
+            color: #e65100;
+        }
+
+        .day-status-badge[data-st="ignore"] {
+            background: #eeeeee;
+            color: #616161;
+            text-decoration: line-through;
+        }
+
+        .day-status-badge .src-flag {
+            font-size: 0.55em;
+            font-weight: 400;
+            position: absolute;
+            bottom: -9px;
+            right: 2px;
+            color: #607d8b;
+        }
+
+        .classification-ui {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .classification-ui button {
+            font-size: 0.65em;
+            padding: 4px 6px;
+            border: 1px solid #1976d2;
+            background: #fff;
+            color: #1976d2;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .classification-ui button.active {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        .classification-ui button:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
         .record-times {
             display: flex;
             flex: 1 1 0%;
@@ -739,10 +813,10 @@
                     <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
                     <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
                         <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
                         </div>
                         <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
+                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
                         </div>
                         <div class="record-col">
                             <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
@@ -762,6 +836,7 @@
                 <!-- 勤務記録行がここに動的に挿入されます -->
             </ul>
         </div>
+        <div id="overlay" class="overlay" style="display:none;"></div>
         <div class="fixed-footer">
             <div class="footer-btns">
                 <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
@@ -773,6 +848,7 @@
             <div class="menu-header">メニュー</div>
             <ul class="menu-list">
                 <li><button type="button" id="menuOpenNotif">お知らせを開く</button></li>
+                <li><a href="myday_dashboard.html">ダッシュボード</a></li>
                 <li><a href="punch.html">打刻画面へ</a></li>
                 <li><a href="admin.html" id="menuAdmin" style="display:none;">管理者メニュー</a></li>
                 <li><button type="button" id="menuLogout">ログアウト</button></li>
@@ -835,6 +911,15 @@
                 if (!res) return;
                 if (res.ok) {
                     records = await res.json();
+                    // 有効な日ステータスを期間単位でフェッチ（本人のみ）
+                    try {
+                        const stRes = await fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`);
+                        if (stRes && stRes.ok) {
+                            const stData = await stRes.json();
+                            window.__dayStatuses = {};
+                            (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
+                        }
+                    } catch (e) { window.__dayStatuses = {}; }
                 } else {
                     records = [];
                 }
@@ -848,6 +933,10 @@
                     let totalOverMin = 0;
                     const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
                     records.forEach((rec) => {
+                        const st = (window.__dayStatuses && window.__dayStatuses[rec.date]) ? window.__dayStatuses[rec.date].status : 'work';
+                        if (st === 'off' || st === 'ignore') {
+                            return; // 集計から除外
+                        }
                         if (rec.clockIn && rec.clockOut) {
                             workDays++;
                             // 労働時間（分）
@@ -911,6 +1000,12 @@
             const recordList = document.getElementById('recordList');
             let expandedIdx = null;
             let addPanelActive = false;
+            window.__dayStatuses = window.__dayStatuses || {}; // date -> {status, source, note}
+
+            // 現在ログインユーザーID取得（分類UI用: admin APIは使わず自分のみ）
+            (async function () {
+                try { const who = await fetchWithAuth('api/check_login.php'); if (who && who.ok) { const wj = await who.json(); window.__currentUserId = wj.user_id; } } catch (e) { }
+            })();
             document.getElementById('addRecordBtn').onclick = () => {
                 if (addPanelActive) return;
                 addPanelActive = true;
@@ -1060,8 +1155,8 @@
                 };
                 // 最上部に挿入
                 recordList.insertBefore(li, recordList.firstChild);
-                // オーバーレイは不要
-                document.getElementById('overlay').style.display = 'none';
+                // オーバーレイ表示
+                showOverlay();
             };
             function formatTime(str) {
                 if (!str) return '-';
@@ -1087,14 +1182,12 @@
                     }
                     li.innerHTML = `
                     <div class="record-main">
-                        <span class="record-date">${formatDateMD(rec.date)}</span>
+                        <span class="record-date">${formatDateMD(rec.date)}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[rec.date]?.status) || 'work'}" title="${badgeTitle(rec.date)}">${statusLabel((window.__dayStatuses[rec.date]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[rec.date]?.source === 'override') ? 'O' : ''}</span></span></span>
                         <div class="record-times">
                             <div class="record-col">
-                                <!-- <div class="label">始業</div> -->
                                 <div class="value">${formatTime(rec.clockIn)}</div>
                             </div>
                             <div class="record-col">
-                                <!-- <div class="label">終業</div> -->
                                 <div class="value">${formatTime(rec.clockOut)}</div>
                             </div>
                             <div class="record-col">
@@ -1125,18 +1218,18 @@
                             addPanelActive = false;
                             expandedIdx = idx;
                             render();
-                            document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                            if (expandedIdx !== null) showOverlay(); else hideOverlay();
                             return;
                         }
                         if (expandedIdx !== null && expandedIdx !== idx) {
                             expandedIdx = idx;
                             render();
-                            document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                            if (expandedIdx !== null) showOverlay(); else hideOverlay();
                             return;
                         }
                         expandedIdx = expandedIdx === idx ? null : idx;
                         render();
-                        document.getElementById('overlay').style.display = expandedIdx !== null ? 'none' : 'none';
+                        if (expandedIdx !== null) showOverlay(); else hideOverlay();
                     };
                     recordList.appendChild(li);
                     if (expandedIdx === idx) {
@@ -1148,6 +1241,7 @@
                             <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
                             <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="editVehicleDistance" value="${rec.vehicleDistance ?? 0}"> km</label></label>
                         </div>
+                        ${classificationControls(rec.date)}
                         <div class="break-list">
                             <b >休憩:</b>
                             <div id="breakEditList" style="margin-top: 0.4em;"></div>
@@ -1241,8 +1335,11 @@
                             rec.breaks.push({ start: '', end: '' });
                             renderBreaks();
                         };
-                        // 編集ロック: 他の行や背景クリックで閉じない
-                        document.getElementById('overlay').onclick = () => { };
+                        // オーバーレイクリックで閉じる
+                        const ov = document.getElementById('overlay');
+                        if (ov) {
+                            ov.onclick = () => { expandedIdx = null; addPanelActive = false; render(); hideOverlay(); };
+                        }
                         panel.querySelector('.save-btn').onclick = async e => {
                             e.stopPropagation();
                             // バリデーション: 当日かどうかで条件分岐
@@ -1312,8 +1409,11 @@
                             });
                             if (res.ok) {
                                 expandedIdx = null;
+                                // 再取得（日ステータス再反映）
+                                const monthVal = document.getElementById('monthSelect').value;
+                                await loadRecordsByPeriod(monthVal);
                                 render();
-                                document.getElementById('overlay').style.display = 'none';
+                                hideOverlay();
                             } else {
                                 alert('保存に失敗しました');
                             }
@@ -1322,7 +1422,7 @@
                             e.stopPropagation();
                             expandedIdx = null;
                             render();
-                            document.getElementById('overlay').style.display = 'none';
+                            hideOverlay();
                         };
                         panel.querySelector('.delete-btn').onclick = async e => {
                             e.stopPropagation();
@@ -1335,8 +1435,9 @@
                             });
                             if (res.ok) {
                                 expandedIdx = null;
-                                await loadRecords();
-                                document.getElementById('overlay').style.display = 'none';
+                                const monthVal = document.getElementById('monthSelect').value;
+                                await loadRecordsByPeriod(monthVal);
+                                hideOverlay();
                             } else {
                                 alert('削除に失敗しました');
                             }
@@ -1358,6 +1459,87 @@
                         window.__highlightDate = null;
                     }
                 }
+            }
+            // オーバーレイ制御
+            const __overlayEl = document.getElementById('overlay');
+            function showOverlay() { if (__overlayEl) __overlayEl.style.display = 'block'; }
+            function hideOverlay() { if (__overlayEl) __overlayEl.style.display = 'none'; }
+            function statusLabel(code) {
+                switch (code) {
+                    case 'work': return '勤務';
+                    case 'off': return '全休';
+                    case 'am_off': return '午前休';
+                    case 'pm_off': return '午後休';
+                    case 'ignore': return '除外';
+                    default: return code;
+                }
+            }
+            function badgeTitle(date) {
+                const st = window.__dayStatuses[date];
+                if (!st) return '勤務（既定）';
+                let base = statusLabel(st.status);
+                if (st.source === 'override') base += '（上書き）';
+                if (st.note) base += `\n${st.note}`;
+                return base;
+            }
+            function classificationControls(date) {
+                // 今日のみ操作（本人用）
+                const today = (new Date()).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }).replace(/\//g, '-');
+                if (date !== today) return '';
+                const current = (window.__dayStatuses[date]?.status) || 'work';
+                const opts = [
+                    { code: 'work', label: '勤務' },
+                    { code: 'am_off', label: '午前休' },
+                    { code: 'pm_off', label: '午後休' },
+                    { code: 'off', label: '全休' },
+                    { code: 'ignore', label: '除外' }
+                ];
+                return `<div class="classification-ui" data-date="${date}">
+                    ${opts.map(o => `<button type="button" data-code="${o.code}" class="cls-btn ${o.code === current ? 'active' : ''}">${o.label}</button>`).join('')}
+                    <button type="button" data-clear="1" style="margin-left:6px;border:1px solid #b0bec5;background:#fafafa;color:#546e7a;">クリア</button>
+                </div>`;
+            }
+            // 分類ボタンのイベント委譲
+            document.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.classification-ui button.cls-btn');
+                if (btn) {
+                    const wrap = btn.closest('.classification-ui');
+                    const date = wrap.getAttribute('data-date');
+                    const code = btn.getAttribute('data-code');
+                    // work は clear 相当（上書き不要）→ CLEAR API
+                    let apiCode = code;
+                    if (code === 'work') { // クリアして既定に戻す
+                        await classifyClear(date);
+                    } else {
+                        // map override codes
+                        apiCode = code === 'off' ? 'off_full' : (code === 'am_off' ? 'off_am' : (code === 'pm_off' ? 'off_pm' : (code === 'ignore' ? 'ignore' : 'working')));
+                        await classifySet(date, apiCode);
+                    }
+                }
+                const clr = e.target.closest('.classification-ui button[data-clear="1"]');
+                if (clr) {
+                    const wrap = clr.closest('.classification-ui');
+                    const date = wrap.getAttribute('data-date');
+                    await classifyClear(date);
+                }
+            });
+            async function classifySet(date, overrideCode) {
+                try {
+                    const res = await fetchWithAuth('api/day_status_self_set.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, status: overrideCode }) });
+                    if (res && res.ok) {
+                        const monthVal = document.getElementById('monthSelect').value;
+                        await loadRecordsByPeriod(monthVal);
+                    } else { alert('区分変更に失敗しました'); }
+                } catch (e) { alert('区分変更エラー'); }
+            }
+            async function classifyClear(date) {
+                try {
+                    const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) });
+                    if (res && res.ok) {
+                        const monthVal = document.getElementById('monthSelect').value;
+                        await loadRecordsByPeriod(monthVal);
+                    } else { alert('クリアに失敗しました'); }
+                } catch (e) { alert('クリアエラー'); }
             }
             function formatDateMD(dateStr) {
                 // "YYYY-MM-DD" → "MM月DD日"

@@ -1320,8 +1320,16 @@
                 runRefreshTick();
             }
         });
+
         // 起動
         startAutoRefresh();
+        // ログアウト
+        const menuLogout = document.getElementById('menuLogout');
+        if (menuLogout) menuLogout.onclick = async function () {
+            await fetchWithAuth('api/logout.php', { method: 'POST' });
+            window.location.href = 'login.html';
+        };
+
     </script>
 </body>
 
