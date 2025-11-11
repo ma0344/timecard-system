@@ -48,9 +48,9 @@ if (!$includeSet) {
 }
 
 try {
-    // アラートから除外するオーバーライド（全休・無視）
-    // 要件: 「全休でない」ものは表示対象。午前休/午後休は除外しない。
-    $excludeStatuses = "('off_full','ignore')";
+    // アラートから除外する日（全休・無視）。半休は除外しない。
+    // day_status_effective を参照するため、ENUM 側のコードで判定
+    $excludeStatuses = "('off','ignore')";
 
     // 1) 今日 勤務中（clock_inあり・clock_outなし）＝勤務中
     $todayNoOut = [];
@@ -58,8 +58,8 @@ try {
         $sqlToday = "SELECT u.id AS user_id, u.name, t.work_date, t.clock_in
                                          FROM timecards t
                                          JOIN users u ON u.id = t.user_id
-                                         LEFT JOIN day_status_overrides o
-                                             ON o.user_id = u.id AND o.date = t.work_date AND o.revoked_at IS NULL AND o.status IN $excludeStatuses
+                                         LEFT JOIN day_status_effective o
+                                             ON o.user_id = u.id AND o.date = t.work_date AND o.status IN $excludeStatuses
                                          WHERE t.work_date = CURDATE() AND t.clock_in IS NOT NULL AND t.clock_out IS NULL
                                              AND o.user_id IS NULL
                                          ORDER BY t.clock_in ASC
@@ -76,8 +76,8 @@ try {
         $sql2 = "SELECT u.id AS user_id, u.name, t.work_date, t.clock_in
                                     FROM timecards t
                                     JOIN users u ON u.id = t.user_id
-                                    LEFT JOIN day_status_overrides o
-                                        ON o.user_id = u.id AND o.date = t.work_date AND o.revoked_at IS NULL AND o.status IN $excludeStatuses
+                                    LEFT JOIN day_status_effective o
+                                        ON o.user_id = u.id AND o.date = t.work_date AND o.status IN $excludeStatuses
                                     WHERE t.work_date < CURDATE()
                                         AND t.work_date >= DATE_SUB(CURDATE(), INTERVAL $constDays2 DAY)
                                         AND t.clock_in IS NOT NULL AND t.clock_out IS NULL
@@ -112,9 +112,8 @@ try {
                  FROM users u
                  LEFT JOIN (
                     SELECT user_id, COUNT(*) AS ov_days
-                    FROM day_status_overrides
-                    WHERE revoked_at IS NULL
-                                            AND status IN $excludeStatuses
+                                        FROM day_status_effective
+                                        WHERE status IN $excludeStatuses
                       AND date BETWEEN DATE_SUB(CURDATE(), INTERVAL $constDays DAY) AND DATE_SUB(CURDATE(), INTERVAL 1 DAY)
                     GROUP BY user_id
                  ) ov ON ov.user_id = u.id
@@ -145,9 +144,9 @@ try {
                 if (!isset($presentMap[$uid])) $presentMap[$uid] = [];
                 $presentMap[$uid][$d] = true;
             }
-            // 期間内の除外オーバーライド（全休/無視）の日付を一括取得
+            // 期間内の除外日（全休/無視）を一括取得（effective）
             $excludeMap = [];
-            $sqlO = "SELECT user_id, date FROM day_status_overrides WHERE revoked_at IS NULL AND status IN $excludeStatuses AND date BETWEEN ? AND ?";
+            $sqlO = "SELECT user_id, date FROM day_status_effective WHERE status IN $excludeStatuses AND date BETWEEN ? AND ?";
             $stO = $pdo->prepare($sqlO);
             $stO->execute([$rangeStart, $rangeEnd]);
             while ($r = $stO->fetch(PDO::FETCH_ASSOC)) {
