@@ -40,7 +40,6 @@
             display: flex;
             flex-direction: column;
             grid-template-rows: auto auto auto 1fr auto auto auto;
-            gap: 0.7rem;
             padding: 1rem 1rem 1rem 1rem;
             box-sizing: border-box;
         }
@@ -139,12 +138,17 @@
             margin-right: 5px;
         }
 
-        /* ステータス帯 */
-        .status-card {
+        /* カードベース */
+        .card {
             background: var(--card-bg);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             padding: 0.5rem 1rem;
+            margin-top: 0.7rem
+        }
+
+        /* ステータス帯 */
+        .status-card {
             display: grid;
             grid-template-columns: auto 1fr auto;
             align-items: center;
@@ -189,6 +193,7 @@
             display: none;
             gap: 6px;
             flex-wrap: wrap;
+            margin-top: 0.7rem;
         }
 
         .alert-pill {
@@ -315,14 +320,6 @@
             display: none !important;
         }
 
-        /* 情報カード（下段） */
-        .info-card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 0.5rem 1rem;
-        }
-
         /* メモカード */
         .memo-card-header {
             display: flex;
@@ -415,17 +412,16 @@
             color: var(--accent);
         }
 
-        .timeline-toggle {
-            background: #1976d2;
-            color: #fff;
+        .expand-toggle {
+            background: transparent;
+            color: var(--accent);
             border: none;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 0.85rem;
+            font-size: 1.5rem;
+            font-weight: bolder;
             cursor: pointer;
         }
 
-        .timeline-toggle:active {
+        .expand-toggle:active {
             transform: scale(.96);
         }
 
@@ -463,7 +459,7 @@
 
         .timeline-item .ts {
             font-weight: 600;
-            color: #1976d2;
+            color: var(--accent);
             min-width: 64px;
         }
 
@@ -475,6 +471,47 @@
             font-size: 0.9rem;
             color: #666;
             padding: 4px 2px;
+        }
+
+        /* 通知プレビューカード */
+        .notif-preview-card {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 9999;
+        }
+
+        .notif-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .notif-statusDot {
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 4px rgba(25, 118, 210, .15);
+            border-radius: 8px;
+            background: var(--accent);
+        }
+
+        .notif-title {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* メニュー（継承） */
@@ -536,6 +573,7 @@
             cursor: pointer;
         }
 
+        .menu-list div:hover,
         .menu-list a:hover,
         .menu-list button:hover {
             background: #f7f9fc;
@@ -575,7 +613,7 @@
             </button>
         </div>
         <!-- ステータス帯 + 警告有無の提示 -->
-        <section class="status-card" aria-live="polite">
+        <section class="card status-card" aria-live="polite">
             <span id="statusDot" class="status-dot off"></span>
             <div>
                 <div id="statusText" class="status-text">状態: 取得中…</div>
@@ -584,23 +622,26 @@
             <div id="todayDate" class="status-sub"></div>
         </section>
         <!-- 今日の状態遷移タイムライン（折りたたみ） -->
-        <section id="timelineCard" class="info-card" aria-expanded="false">
+        <section id="timelineCard" class="card" aria-expanded="false">
             <div class="timeline-card-header" id="timelineHeader">
                 <div class="timeline-title">今日のタイムライン</div>
-                <button id="timelineToggle" class="timeline-toggle" aria-controls="timelineBody" aria-expanded="false">開く</button>
+                <button id="timelineToggle" class="expand-toggle" aria-controls="timelineBody" aria-expanded="false">＞</button>
             </div>
             <div id="timelineBody" class="timeline-body" style="display:none;" aria-live="polite"></div>
         </section>
         <div id="alertStrip" class="alert-strip" aria-live="polite"></div>
         <!-- 最新通知(最大3件)プレビュー -->
-        <section id="notifPreviewCard" class="info-card" style="display:none;" aria-label="最新のお知らせ">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-                <div style="font-weight:600;color:#1976d2;font-size:1.05rem;display:flex;align-items:center;gap:6px;">
-                    <span style="width:16px;height:16px;background:#1976d2;border-radius:50%;display:inline-block;box-shadow:0 0 0 4px rgba(25,118,210,.15);"></span> 最新通知
+        <section id="notifPreviewCard" class="card" style="display:none;" aria-label="最新のお知らせ" aria-expanded="false">
+            <div class="notif-card-header" id="notifCardHeader">
+                <div class="notif-title">
+                    <span class="notif-statusDot"></span> 最新通知<span id="notifCount" style="margin-left: 1em;">未読 0</span>
                 </div>
-                <button id="openAllNotif" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;cursor:pointer;">全て表示</button>
+                <div class="notifButtons" style="display: flex; gap: 8px;">
+                    <button id="openAllNotif" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;cursor:pointer;">全て表示</button>
+                    <button id="notifToggle" class="expand-toggle" aria-controls="notifPreviewList" aria-expanded="false">＞</button>
+                </div>
             </div>
-            <ul id="notifPreviewList" style="list-style:none;padding:0;margin:10px 0 0 0;display:grid;gap:6px;"></ul>
+            <ul id="notifPreviewList" style="list-style:none;padding:0;margin:10px 0 0 0;display:none;gap:6px;"></ul>
         </section>
         <!-- アクション帯を画面中央付近に寄せるためのスペーサ（動的） -->
         <div class="band-spacer" aria-hidden="true"></div>
@@ -613,7 +654,7 @@
             <button id="actOpenPunch" class="action-btn muted hidden">打刻ページを開く</button>
         </section>
         <!-- 下段：今日のメモ（端末に保存） + 導線 -->
-        <section id="memoCard" class="info-card" aria-label="今日のメモ">
+        <section id="memoCard" class="card" aria-label="今日のメモ">
             <div class="memo-card-header">
                 <div style="font-weight:600;color:#1976d2;font-size:1.05rem;">今日のメモ</div>
                 <div id="memoHint" style="font-size:0.8rem;color:#607d8b;">端末に自動保存 / 退勤でクリア→サーバーに送信</div>
@@ -634,7 +675,12 @@
     <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
         <div class="menu-header">メニュー</div>
         <ul class="menu-list">
-            <li><button type="button" id="menuOpenNotif">お知らせを開く</button></li>
+            <li>
+                <div class="menu-list" style="position:relative;display:flex;align-items:center;cursor:pointer;">
+                    <button type="button" id="menuOpenNotif" style="width: fit-content;">お知らせを開く</button>
+                    <span id="notifBadgeInMenu" class="notif-badge" style="position:unset; cursor: pointer;"></span>
+                </div>
+            </li>
             <li><a href="attendance_list.html">勤務・有給 管理</a></li>
             <li><a href="punch.html">打刻ページ</a></li>
             <li><a href="admin.html" id="menuAdmin" style="display:none;">管理者メニュー</a></li>
@@ -852,9 +898,21 @@
                 if (!res) return; const data = await res.json();
                 const unread = Number((data && data.unread) || 0);
                 const badge = document.getElementById('menuNotifBadge');
+                const textContent = unread > 0 ? unread > 99 ? '99+' : String(unread) : '';
                 if (badge) {
-                    if (unread > 0) { badge.style.display = 'inline-block'; badge.textContent = unread > 99 ? '99+' : String(unread); }
-                    else { badge.style.display = 'none'; badge.textContent = ''; }
+                    if (unread > 0) { badge.style.display = 'inline-block'; }
+                    else { badge.style.display = 'none'; }
+                    badge.textContent = textContent;
+                }
+                const badgeInMenu = document.getElementById('notifBadgeInMenu');
+                if (badgeInMenu) {
+                    if (unread > 0) { badgeInMenu.style.display = 'inline-block'; }
+                    else { badgeInMenu.style.display = 'none'; }
+                    badgeInMenu.textContent = textContent;
+                }
+                const notifCount = document.getElementById('notifCount');
+                if (notifCount) {
+                    notifCount.textContent = '未読 ' + (textContent === '' ? '0' : textContent);
                 }
             } catch (e) { /* noop */ }
         }
@@ -1102,19 +1160,43 @@
         const timelineHeader = document.getElementById('timelineHeader');
         timelineHeader.addEventListener('click', () => toggleTimeline());
         timelineToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleTimeline(); });
+
         function toggleTimeline() {
             const expanded = timelineCard.getAttribute('aria-expanded') === 'true';
             if (expanded) {
                 timelineCard.setAttribute('aria-expanded', 'false');
                 timelineToggle.setAttribute('aria-expanded', 'false');
-                timelineToggle.textContent = '開く';
+                timelineToggle.textContent = '＞';
                 timelineBody.style.display = 'none';
             } else {
                 timelineCard.setAttribute('aria-expanded', 'true');
                 timelineToggle.setAttribute('aria-expanded', 'true');
-                timelineToggle.textContent = '閉じる';
+                timelineToggle.textContent = '∨';
                 timelineBody.style.display = 'block';
                 refreshTimeline();
+            }
+        }
+        // 通知プレビュー開閉
+        const notifCard = document.getElementById('notifPreviewCard');
+        const notifHeader = document.getElementById('notifCardHeader');
+        const notifToggle = document.getElementById('notifToggle');
+        const notifList = document.getElementById('notifPreviewList');
+        notifHeader.addEventListener('click', () => toggleNotifPreview());
+        notifToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleNotifPreview(); });
+
+        function toggleNotifPreview() {
+            const expanded = notifCard.getAttribute('aria-expanded') === 'true';
+            if (expanded) {
+                notifCard.setAttribute('aria-expanded', 'false');
+                notifToggle.setAttribute('aria-expanded', 'false');
+                notifToggle.textContent = '＞';
+                notifList.style.display = 'none';
+            } else {
+                notifCard.setAttribute('aria-expanded', 'true');
+                notifToggle.setAttribute('aria-expanded', 'true');
+                notifToggle.textContent = '∨';
+                notifList.style.display = 'grid';
+                refreshNotifPreview();
             }
         }
 
