@@ -263,7 +263,7 @@
             right: 0;
             bottom: 0;
             background-color: #ccc;
-            transition: 0.4s;
+            transition: 0.1s;
             border-radius: 23px;
         }
 
@@ -276,7 +276,7 @@
             left: 3px;
             bottom: 3px;
             background: #fff;
-            transition: 0.3s;
+            transition: 0.1s;
             box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
         }
 
@@ -384,29 +384,47 @@
             </select>
             <button class="btn" id="addUserBtn">＋新規ユーザー</button>
             <div style="flex: 1; text-align: right; display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
-                <label class="toggle" for="showDeletedToggle">
-                    <input
-                        type="checkbox"
-                        class="toggle__input"
-                        id="showDeletedToggle" />
-                    <span class="toggle__slider"></span>
+                <!-- 雇用区分フィルタ（常時表示） -->
+                <select id="filterEmpType" style="padding:4px 8px;border:1px solid #b0bec5;border-radius:4px;font-size:.85em;">
+                    <option value="">全区分</option>
+                    <option value="full">常勤のみ</option>
+                    <option value="part">パートのみ</option>
+                </select>
+                <!-- その他フィルタは折りたたみパネルへ -->
+                <button id="toggleFilterPanel" type="button" class="btn" style="background:#546e7a;">詳細フィルタ ▼</button>
+            </div>
+        </div>
+        <!-- 折りたたみフィルタパネル -->
+        <div id="advFilterPanel" style="display:none;margin:4px 0 8px 0;padding:8px 12px;border:1px solid #cfd8dc;border-radius:6px;background:#fafafa;font-size:.85em;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;">
+                <label style="display:flex; align-items:center;gap:4px;margin-right:16px;">
+                    <div class="toggle-s" style="display:flex;align-items:center;gap:4px;">
+                        <input type="checkbox" class="toggle__input-s" id="showDeletedToggle" />
+                        <span class="toggle__slider-s" id="showDeletedUser"></span>
+                    </div>
+                    <label style="cursor:pointer; user-select:none;" for="showDeletedToggle">削除ユーザー表示</label>
                 </label>
-                <label
-                    for="showDeletedToggle"
-                    style="cursor: pointer; user-select: none"> 削除したユーザーの表示</label>
-                <span class="muted" style="margin-left:8px;">表示オプション</span>
-                <label style="user-select:none; cursor:pointer;">
-                    <input type="checkbox" id="optShowRole" style="vertical-align:middle;"> 権限 </label>
-                <label style="user-select:none; cursor:pointer;">
-                    <input type="checkbox" id="optShowVehicle" style="vertical-align:middle;"> 自家用車 </label>
+                <label style="display:flex; align-items:center;gap:4px;margin-left:16px;">
+                    <div class="toggle-s" style="display:flex;align-items:center;gap:4px;">
+                        <input type="checkbox" class="toggle__input-s" id="optShowRole" style="vertical-align:middle;">
+                        <span class="toggle__slider-s" id="showRole"></span>
+                    </div>
+                    <label style="user-select:none; cursor:pointer;" for="optShowRole">権限表示</label>
+                </label>
+                <label style="display:flex; align-items:center;gap:4px;margin-left:16px;">
+                    <div class="toggle-s">
+                        <input type="checkbox" class="toggle__input-s" id="optShowVehicle" style="vertical-align:middle;">
+                        <span class="toggle__slider-s" id="showVehicle"></span>
+                    </div>
+                    <label style="user-select: none; cursor:pointer;" for="optShowVehicle">自家用車表示</label>
+                </label>
             </div>
         </div>
         <table class="user-table" id="userTable">
             <colgroup>
                 <col style="width: 2.2em;" />
                 <col style="width: 3.8em;" />
-                <col style="width: 12.5em;" />
-                <col style="width: 5.5em;" />
+                <col style="width: 15.5em;" />
                 <col style="width: 7em;" />
                 <col style="width: 9.5em;" />
                 <col style="width: 7.5em;" />
@@ -417,8 +435,7 @@
                 <tr>
                     <th></th>
                     <th style="text-align: start;">ID</th>
-                    <th style="text-align: start;">ユーザー名</th>
-                    <th style="text-align: start;">区分</th>
+                    <th style="text-align: start;">ユーザー名 / 区分</th>
                     <th style="text-align: center;">契約h/日</th>
                     <th style="text-align: center;">所定(週日/週h)</th>
                     <th style="text-align: center;">入社日</th>
@@ -431,6 +448,7 @@
             </tbody>
         </table>
     </div>
+    </div>
     <script>
         // fetchWithAuth: 401/403時は自動ログアウト
         async function fetchWithAuth(url, options) {
@@ -441,6 +459,62 @@
             }
             return res;
         }
+        // 詳細フィルタの開閉
+        (function initFilterPanel() {
+            const btn = document.getElementById('toggleFilterPanel');
+            const panel = document.getElementById('advFilterPanel');
+            if (btn && panel) {
+                btn.addEventListener('click', () => {
+                    const open = panel.style.display !== 'none';
+                    panel.style.display = open ? 'none' : 'block';
+                    btn.textContent = open ? '詳細フィルタ ▼' : '詳細フィルタ ▲';
+                });
+            }
+        })();
+        // レガシー半休検出（期間は画面表示範囲基準で再利用可）
+        async function loadLegacyHalfDays() {
+            const today = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const end = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            const start = `${today.getFullYear() - 1}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`; // 過去1年
+            try {
+                const res = await fetchWithAuth(`api/admin_user_legacy_halfday_list.php?start=${start}&end=${end}`);
+                if (!res || !res.ok) { return []; }
+                const data = await res.json();
+                return data.items || [];
+            } catch { return []; }
+        }
+        async function renderLegacyPanel() {
+            const containerId = 'legacyHalfPanel';
+            let el = document.getElementById(containerId);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = containerId;
+                el.style.cssText = 'margin:6px 0 12px 0;padding:8px 10px;border:1px solid #ffe0b2;background:#fff8e1;border-radius:6px;font-size:.75em;';
+                const anchor = document.getElementById('advFilterPanel');
+                (anchor ? anchor.parentNode.insertBefore(el, anchor.nextSibling) : document.body.appendChild(el));
+            }
+            el.innerHTML = '<div style="font-weight:600;color:#e65100;margin-bottom:4px;">パート半休レガシー検出</div><div>読み込み中...</div>';
+            const items = await loadLegacyHalfDays();
+            if (!items.length) { el.style.display = 'none'; return; }
+            const rows = items.map(i => `<tr><td style='text-align:start;'>${i.id}</td><td>${i.name}</td><td>${i.half_count}</td><td>${i.first_date}</td><td>${i.last_date}</td></tr>`).join('');
+            el.innerHTML = `<div style='font-weight:600;color:#e65100;margin-bottom:4px;'>パート半休レガシー検出</div>
+                <div style='margin-bottom:6px;'>パートユーザーで半休を検知しました。クリアまたは全休への置換を検討してください。</div>
+                <table style='width:100%;border-collapse:collapse;font-size:.7em;'>
+                  <thead><tr style='background:#ffe0b2;'><th style='text-align:start;'>ID</th><th style='text-align:start;'>氏名</th><th style='text-align:center;'>件数</th><th style='text-align:center;'>初日</th><th style='text-align:center;'>最終日</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>`;
+        }
+        // 初期描画後にレガシーパネル遅延ロード
+        setTimeout(renderLegacyPanel, 300);
+        // 雇用区分バッジ用の簡易スタイル（既存CSSへ影響少）
+        (function injectEmpBadgeCss() {
+            const style = document.createElement('style');
+            style.textContent = `.emp-badge{display:inline-block;font-size:0.65em;font-weight:600;padding:3px 6px;border-radius:12px;border:1px solid #90caf9;background:#e3f2fd;color:#0d47a1;line-height:1;}
+            .emp-badge.part{background:#fff3e0;color:#e65100;border-color:#ffb74d;}
+            .emp-badge.full{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}`;
+            document.head.appendChild(style);
+        })();
         // 管理者権限チェック（URL直打ち対策）
         fetchWithAuth("api/check_login.php")
             .then((res) => res && res.json())
@@ -476,6 +550,7 @@
         let users = [];
         let allUsers = [];
         let expandedUserId = null; // 展開中のユーザーID
+        let empTypeFilter = ''; // '', 'full', 'part'
         let mastersCache = null;   // マスターキャッシュ
         let newUserOpen = false;   // 新規ユーザー入力パネルの開閉状態
         async function renderTable() {
@@ -512,7 +587,10 @@
             const addMonthsEndFix = (base, months) => { const d = new Date(base.getTime()); const srcD = d.getDate(); d.setMonth(d.getMonth() + months); if (d.getDate() < srcD) d.setDate(0); return d; };
 
             users.forEach((u, idx) => {
-                const fullTimeLabel = (Number(u.full_time) === 1) ? '常勤' : '非常勤';
+                if (empTypeFilter === 'full' && Number(u.full_time) !== 1) return;
+                if (empTypeFilter === 'part' && Number(u.full_time) === 1) return;
+                const fullTimeLabel = (Number(u.full_time) === 1) ? '常勤' : 'パート';
+                const legacyHalfDayFlag = (Number(u.full_time) === 0); // パートで半休が残っている可能性表示用（集計とは別）
                 const ch = (u.contract_hours_per_day != null && u.contract_hours_per_day !== '') ? `${u.contract_hours_per_day} h/日` : '—';
                 const swd = (u.scheduled_weekly_days != null && u.scheduled_weekly_days !== '') ? `${u.scheduled_weekly_days}` : '—';
                 const swh = (u.scheduled_weekly_hours != null && u.scheduled_weekly_hours !== '') ? `${u.scheduled_weekly_hours}` : '—';
@@ -541,10 +619,12 @@
                                 ${statusBadge}
                             </td>
                             <td style="text-wrap-mode: nowrap;">
-                                <div>${u.name}</div>
+                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                    <span class="emp-badge ${Number(u.full_time) === 1 ? 'full' : 'part'}" title="雇用区分">${fullTimeLabel}</span>
+                                    <span>${u.name}</span>
+                                </div>
                                 ${subBadges}
                             </td>
-                            <td>${fullTimeLabel}</td>
                             <td style="text-align:center;">${ch}</td>
                             <td style="text-align:center;">${schedStr}</td>
                             <td class="date-cell" ${(() => {
@@ -589,6 +669,26 @@
         document
             .getElementById("userSearch")
             .addEventListener("change", renderTable);
+        const empSel = document.getElementById('filterEmpType');
+        if (empSel) {
+            // 初期復元
+            const saved = localStorage.getItem('emp_type_filter');
+            if (saved === 'full' || saved === 'part' || saved === '') {
+                empTypeFilter = saved;
+                empSel.value = saved;
+            } else if (saved === null) {
+                empTypeFilter = '';
+                empSel.value = '';
+            } else {
+                empTypeFilter = '';
+                empSel.value = '';
+            }
+            empSel.addEventListener('change', () => {
+                empTypeFilter = empSel.value;
+                localStorage.setItem('emp_type_filter', empTypeFilter);
+                renderTable();
+            });
+        }
         // 表示オプション（ロール/車）
         (function bindOptionToggles() {
             const chkRole = document.getElementById('optShowRole');
@@ -621,7 +721,7 @@
                 await renderTable();
             }
             const tbody = document.querySelector('#userTable tbody');
-            const colSpan = 9; // 失効列削除に合わせる
+            const colSpan = 8; // 列数調整（区分列統合後）
             const baseHoursDefault = (orgSettings ? (Number(orgSettings.work_hours || 0) + (Number(orgSettings.work_minutes || 0) / 60)) : 8);
             const panel = document.createElement('tr');
             panel.className = 'expanded-row';
@@ -683,7 +783,7 @@
                 const cb = document.getElementById('newFullTime');
                 const lbl = document.getElementById('new-ft-label');
                 if (!cb || !lbl) return;
-                const sync = () => { if (cb.checked) { lbl.textContent = '常勤'; lbl.classList.remove('muted'); } else { lbl.textContent = '非常勤'; lbl.classList.add('muted'); } };
+                const sync = () => { if (cb.checked) { lbl.textContent = '常勤'; lbl.classList.remove('muted'); } else { lbl.textContent = 'パート'; lbl.classList.add('muted'); } };
                 sync();
                 cb.addEventListener('change', sync);
             })();
@@ -868,7 +968,7 @@
                             <input type="checkbox" class="toggle__input-s" id="det-fulltime-${user.id}" ${user.full_time == 1 ? 'checked' : ''} ${disabled}>
                             <span class="toggle__slider-s"></span>
                         </label>
-                        <label id="det-fulltime-label-${user.id}" for="det-fulltime-${user.id}" style="cursor:pointer; user-select:none" class="${user.full_time == 1 ? '' : 'muted'}">${user.full_time == 1 ? '常勤' : '非常勤'}</label>
+                        <label id="det-fulltime-label-${user.id}" for="det-fulltime-${user.id}" style="cursor:pointer; user-select:none" class="${user.full_time == 1 ? '' : 'muted'}">${user.full_time == 1 ? '常勤' : 'パート'}</label>
                     </div>
                     <div>自家用車</div>
                     <div class="inline">
@@ -912,14 +1012,14 @@
                 cb.addEventListener('change', sync);
             })();
 
-            // 区分(常勤/非常勤)ラベル同期
+            // 区分(常勤/パート)ラベル同期
             (function () {
                 const cb = document.getElementById(`det-fulltime-${user.id}`);
                 const lbl = document.getElementById(`det-fulltime-label-${user.id}`);
                 if (!cb || !lbl) return;
                 const sync = () => {
                     if (cb.checked) { lbl.textContent = '常勤'; lbl.classList.remove('muted'); }
-                    else { lbl.textContent = '非常勤'; lbl.classList.add('muted'); }
+                    else { lbl.textContent = 'パート'; lbl.classList.add('muted'); }
                 };
                 sync();
                 cb.addEventListener('change', sync);

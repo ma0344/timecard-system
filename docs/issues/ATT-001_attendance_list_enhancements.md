@@ -1,6 +1,6 @@
 # ATT-001: attendance_list 強化（非稼働日の明確化と操作フロー改善）
 
-ステータス: Open
+ステータス: In Progress
 作成日: 2025-11-11
 担当: 未割当
 関連: docs/ROADMAP_USER_UI.md#G-attendance_list-強化（非稼働日の明確化と操作フロー改善）, sql/migrations/2025-11-11_day_status_effective_view.sql
@@ -29,7 +29,7 @@
 - アラート API（`api/my_alerts.php`, `api/attendance_alerts.php`）の参照切替
 - 勤怠修正申請機能の詳細拡張（承認画面など）
 
-## 仕様
+## 仕様（2025-11-14 更新）
 
 ### 日ステータス（表示/解釈）
 
@@ -44,10 +44,11 @@
 
 - 行先頭: ステータスバッジ（色＋アイコン）。ツールチップに source（baseline/override）と note。
 - 当日（本人）: 分類コントロール（work / am_off / pm_off / off / ignore）。
-  - API: `api/day_status_set.php`/`api/day_status_clear.php` で override を更新。
-  - 成功後は当該行を再描画し、集計も再計算。
+  - API: 本人用 `api/day_status_self_set.php` / `api/day_status_self_clear.php` で override を更新。
+  - 成功後は当該行とサマリを再計算。
 - 過去日: 直接編集を隠し、「修正申請」ボタンを表示。
 - 欠落日（work/半休 かつ timecards なし）: 強調表示＋「修正申請」ショートカット。
+  - 現状は「＋」による新規追加パネルを行内展開（修正申請ボタンは後続）。
 - 集計: 出勤日数は (work, am_off, pm_off) を対象、off/ignore は除外。未打刻件数は off/ignore を除外。
 
 ### バリデーション
@@ -56,9 +57,10 @@
 - 未来日不可。同日複数レコード不可（既存踏襲）。
 - クエリ `?date=YYYY-MM-DD` の自動展開を維持。
 
-## API/DB
+## API/DB（暫定）
 
-- 読み取り: `day_status_effective`（新ビュー）。
+- 読み取り: `day_status_effective`（新ビュー）を参照。
+  - 一覧側は暫定 API `api/day_status_effective_get.php` を利用（将来 `day_status_get` に統合予定）。
 - 既存 API の拡張案:
   - GET `api/day_status_get.php?start=YYYY-MM-DD&end=YYYY-MM-DD&effective=1`
     - 応答: [{user_id, date, status, source, note}]
@@ -82,13 +84,18 @@
 
 ## タスク（チェックリスト）
 
-- [ ] フロント: バッジ表示の実装（ツールチップ含む）
-- [ ] フロント: 当日の分類コントロール（override SET/CLEAR）
-- [ ] フロント: 欠落日の強調と修正申請ボタン
-- [ ] フロント: 集計ロジックの見直し（off/ignore 除外）
-- [ ] フロント: overlay/ラベルの不具合修正
-- [ ] API: `day_status_get` を effective 応答に対応（新パラメータ追加 or 新 API）
-- [ ] ドキュメント更新（操作説明と除外ルール）
+- [x] フロント: バッジ表示の実装（ツールチップ含む）
+- [x] フロント: 当日の分類コントロール（self_set/self_clear で更新）
+- [ ] フロント: 欠落日の強調と修正申請ボタン（現状は「＋」で新規追加パネル）
+- [x] フロント: 集計ロジックの見直し（off/ignore 除外）
+- [x] フロント: overlay/ラベルの不具合修正
+- [ ] API: `day_status_get` を effective 応答に対応（暫定 API を後続統合）
+- [x] ドキュメント更新（操作説明と除外ルール）
+
+### 追加（2025-11-14）
+
+- [x] ディープリンク安定化（強制可視化＋遅延ハイライト解除）
+- [x] `back`/`backMode` の戻り導線（保存/キャンセル/閉じる/削除/復元で auto 戻り）
 
 ## 影響 / リスク
 

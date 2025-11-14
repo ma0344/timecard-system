@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>期間ロック管理</title>
+    <link rel="stylesheet" href="css/common.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 1rem 1.2rem 2rem;
+            box-shadow: 0 2px 12px #0002;
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-size: 1.4em;
+            margin: 0 0 1rem;
+            color: #1976d2;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9em;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .range-cell {
+            white-space: nowrap;
+        }
+
+        .status-locked {
+            color: #b71c1c;
+            font-weight: bold;
+        }
+
+        .status-reopened {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+
+        .form-row label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8em;
+            gap: 4px;
+            min-width: 160px;
+        }
+
+        input[type=date],
+        input[type=text],
+        textarea,
+        select {
+            font-size: 1em;
+            padding: 6px 8px;
+            border: 1px solid #b0bec5;
+            border-radius: 4px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-size: 0.9em;
+            background: #1976d2;
+            color: #fff;
+            box-shadow: 0 2px 6px #1976d229;
+        }
+
+        button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .secondary {
+            background: #607d8b;
+        }
+
+        .danger {
+            background: #e53935;
+        }
+
+        .inline-btn {
+            padding: 4px 10px;
+            font-size: 0.75em;
+        }
+
+        .msg {
+            min-height: 1.2em;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+
+        .flex-grow {
+            flex: 1;
+        }
+
+        .filters {
+            margin-top: 1.2rem;
+            padding: 0.6rem 0.8rem;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .badge-global {
+            background: #455a64;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+        }
+
+        .badge-user {
+            background: #1976d2;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>期間ロック管理</h1>
+        <section id="createLockSection">
+            <h2 style="font-size:1.1em;color:#1976d2;margin:0 0 .6rem;">新規ロック</h2>
+            <div class="form-row">
+                <label>対象ユーザー (空=全体) <input type="text" id="lockUserId" placeholder="例: 42" />
+                </label>
+                <label>開始日 <input type="date" id="lockStart" />
+                </label>
+                <label>終了日 <input type="date" id="lockEnd" />
+                </label>
+                <label class="flex-grow">メモ <textarea id="lockNote" placeholder="任意"></textarea>
+                </label>
+            </div>
+            <button id="lockCreateBtn">期間をロック</button>
+            <div id="lockCreateMsg" class="msg"></div>
+        </section>
+        <section id="filterSection" class="filters">
+            <div class="form-row" style="margin-bottom:0;">
+                <label>ユーザーIDフィルタ <input type="text" id="fltUserId" placeholder="例: 42" />
+                </label>
+                <label>表示開始日 <input type="date" id="fltStart" />
+                </label>
+                <label>表示終了日 <input type="date" id="fltEnd" />
+                </label>
+                <div style="display:flex;align-items:flex-end;gap:.6rem;">
+                    <button id="fltApplyBtn" class="secondary">フィルタ適用</button>
+                    <button id="fltClearBtn" class="secondary">クリア</button>
+                </div>
+            </div>
+        </section>
+        <section id="locksListSection">
+            <h2 style="font-size:1.1em;color:#1976d2;margin:1.2rem 0 .6rem;">ロック履歴</h2>
+            <table id="locksTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>スコープ</th>
+                        <th>期間</th>
+                        <th>状態</th>
+                        <th>作成日時</th>
+                        <th>再オープン日時</th>
+                        <th>操作</th>
+                        <th>メモ</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id="locksMsg" class="msg"></div>
+        </section>
+    </div>
+    <script>
+        async function fetchAuth(url, opt) {
+            const r = await fetch(url, opt); if (r.status === 401) { location.href = 'login.html'; return null; } return r;
+        }
+        function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c])); }
+        async function loadLocks() {
+            const params = new URLSearchParams();
+            const u = document.getElementById('fltUserId').value.trim(); if (u) params.set('user_id', u);
+            const s = document.getElementById('fltStart').value; if (s) params.set('start', s);
+            const e = document.getElementById('fltEnd').value; if (e) params.set('end', e);
+            const res = await fetchAuth('api/period_lock_list.php?' + params.toString());
+            const tbody = document.querySelector('#locksTable tbody');
+            const msg = document.getElementById('locksMsg');
+            tbody.innerHTML = ''; msg.textContent = '';
+            if (!res) { return; }
+            try {
+                const data = await res.json(); if (!data.ok) { msg.textContent = '取得失敗'; return; }
+                (data.items || []).forEach(row => {
+                    const tr = document.createElement('tr');
+                    const scope = row.user_id === null ? '<span class="badge-global">全体</span>' : `<span class="badge-user">UID ${esc(row.user_id)}</span>`;
+                    const statusClass = row.status === 'locked' ? 'status-locked' : 'status-reopened';
+                    const actionCell = row.status === 'locked' ? `<button class='inline-btn danger' data-reopen='${row.id}'>再オープン</button>` : '';
+                    tr.innerHTML = `<td>${row.id}</td>` +
+                        `<td>${scope}</td>` +
+                        `<td class='range-cell'>${esc(row.start_date)} ～ ${esc(row.end_date)}</td>` +
+                        `<td class='${statusClass}'>${row.status}</td>` +
+                        `<td>${esc(row.locked_at || '')}</td>` +
+                        `<td>${esc(row.reopened_at || '')}</td>` +
+                        `<td>${actionCell}</td>` +
+                        `<td style='max-width:200px;'>${esc(row.note || '')}</td>`;
+                    tbody.appendChild(tr);
+                });
+                if (!tbody.children.length) { msg.textContent = 'ロック履歴はありません'; }
+            } catch (e) { msg.textContent = 'パースエラー'; }
+        }
+        async function createLock() {
+            const userIdRaw = document.getElementById('lockUserId').value.trim();
+            const start = document.getElementById('lockStart').value;
+            const end = document.getElementById('lockEnd').value;
+            const note = document.getElementById('lockNote').value.trim();
+            const m = document.getElementById('lockCreateMsg'); m.textContent = '';
+            if (!start || !end) { m.textContent = '開始日と終了日は必須です'; return; }
+            if (start > end) { m.textContent = '開始日と終了日の順序が不正です'; return; }
+            const payload = { start_date: start, end_date: end, note: note || null };
+            if (userIdRaw) { if (!/^\d+$/.test(userIdRaw)) { m.textContent = 'ユーザーIDは数値'; return; } payload.user_id = parseInt(userIdRaw, 10); }
+            const btn = document.getElementById('lockCreateBtn'); btn.disabled = true; m.textContent = '送信中...';
+            try {
+                const res = await fetchAuth('api/period_lock_set.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!res) { m.textContent = '認証エラー'; btn.disabled = false; return; }
+                const data = await res.json();
+                if (!res.ok) {
+                    if (data.error === 'overlap_locked') { m.textContent = '既存ロックと重複しています (ID ' + data.conflict.id + ')'; }
+                    else m.textContent = data.error || '失敗';
+                    btn.disabled = false; return;
+                }
+                m.textContent = 'ロックを作成しました ID=' + data.id; btn.disabled = false;
+                loadLocks();
+            } catch (e) { m.textContent = '通信エラー'; btn.disabled = false; }
+        }
+        async function reopen(id, el) {
+            if (!confirm('ID ' + id + ' を再オープンしますか？')) return;
+            el.disabled = true;
+            try {
+                const res = await fetchAuth('api/period_lock_reopen.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+                const data = await res.json();
+                if (res.ok) { loadLocks(); } else { alert(data.error || '再オープン失敗'); }
+            } catch (e) { alert('通信エラー'); }
+            finally { el.disabled = false; }
+        }
+        document.getElementById('lockCreateBtn').addEventListener('click', createLock);
+        document.getElementById('fltApplyBtn').addEventListener('click', loadLocks);
+        document.getElementById('fltClearBtn').addEventListener('click', () => { ['fltUserId', 'fltStart', 'fltEnd'].forEach(id => document.getElementById(id).value = ''); loadLocks(); });
+        document.addEventListener('click', e => { const b = e.target.closest('button[data-reopen]'); if (b) { reopen(parseInt(b.getAttribute('data-reopen'), 10), b); } });
+        // 初期日付候補（今月）
+        const pad = n => n.toString().padStart(2, '0'); const now = new Date();
+        const first = new Date(now.getFullYear(), now.getMonth(), 1); const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('lockStart').value = first.toISOString().slice(0, 10);
+        document.getElementById('lockEnd').value = last.toISOString().slice(0, 10);
+        loadLocks();
+    </script>
+</body>
+
+</html>

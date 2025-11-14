@@ -1,6 +1,6 @@
 <?php
 // api/day_status_self_clear.php
-// 自分自身の当日の日ステータス上書きを取り消す（一般ユーザー可）
+// 自分自身の日ステータス上書きを取り消す（一般ユーザー可）
 session_start();
 header('Content-Type: application/json');
 require_once '../db_config.php';
@@ -20,10 +20,15 @@ if (!$date || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     exit;
 }
 
-$today = date('Y-m-d');
-if ($date !== $today) {
+// 期間ロック中は変更不可
+function is_locked($pdo, $userId, $date) {
+    $q = $pdo->prepare('SELECT 1 FROM attendance_period_locks WHERE status="locked" AND (user_id IS NULL OR user_id=?) AND start_date <= ? AND end_date >= ? LIMIT 1');
+    $q->execute([$userId, $date, $date]);
+    return (bool)$q->fetchColumn();
+}
+if (is_locked($pdo, $userId, $date)) {
     http_response_code(403);
-    echo json_encode(['error' => 'only today allowed']);
+    echo json_encode(['error' => 'locked period']);
     exit;
 }
 

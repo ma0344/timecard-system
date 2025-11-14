@@ -1,6 +1,6 @@
 # ALERT-001: アラート API を day_status_effective 参照へ切替
 
-ステータス: Open
+ステータス: Closed
 作成日: 2025-11-11
 担当: 未割当
 関連: sql/migrations/2025-11-11_day_status_effective_view.sql, api/my_alerts.php, api/attendance_alerts.php
@@ -40,6 +40,7 @@
 - 直近 N 日の missing_users における effective_days と missing の整合。
 - 既存の `limit`, `days`, `n`, `missing_dates` パラメータの挙動が変わらないこと。
 
-## 次アクション
+## クローズメモ（2025-11-14）
 
-- Close 条件: 本番環境にビュー適用後、管理画面/ユーザー画面のアラート表示が想定通りであることを確認。
+- ビュー適用と両画面の確認完了。`status IN ('off','ignore')` の除外が未打刻算出/missing_dates と整合。
+- 以後の拡張は運用チューニング（days/limit）や性能面の最適化に委譲。

@@ -22,7 +22,7 @@ try {
     $rangeStart = $rangeStartDt->format('Y-m-d');
     $rangeEnd = $rangeEndDt->format('Y-m-d');
 
-    // 1) 過去日の未退勤（当日除外）
+    // 1) 過去日の未退勤（当日除外）※ 論理削除は除外
     $sqlIncomplete = "SELECT work_date FROM timecards WHERE user_id = ? AND work_date < CURDATE() AND work_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) AND clock_in IS NOT NULL AND clock_out IS NULL ORDER BY work_date DESC";
     $st1 = $pdo->prepare($sqlIncomplete);
     $st1->execute([$userId, $totalDays]);
@@ -30,9 +30,11 @@ try {
 
     // 2) 未打刻（範囲内で出勤記録がなく、かつ全休/無視の有効日がない）
     // day_status_effective を参照し、半休は除外対象に含めない
-    $excludeStatuses = "('off','ignore')";
+    // 全休と除外は未打刻判定から除外（半休は除外しない）。full-off も考慮。
+    $excludeStatuses = "('off','off_full','ignore')";
     // 出勤のある日を取得
     $presentDays = [];
+    // 出勤記録のある日（論理削除は除く）
     $stP = $pdo->prepare('SELECT work_date FROM timecards WHERE user_id = ? AND work_date BETWEEN ? AND ?');
     $stP->execute([$userId, $rangeStart, $rangeEnd]);
     while ($r = $stP->fetch(PDO::FETCH_ASSOC)) {

@@ -10,7 +10,7 @@
 
 ---
 
-## 現在の状態（2025-11-10 時点・更新）
+## 現在の状態（2025-11-14 時点・更新）
 
 <details><summary style="font-size:140%;"><b>完了</b></summary>
 
@@ -64,11 +64,31 @@
     - 通知の個別既読に対応（モーダル内で各通知に「既読」ボタン、実行後に未読バッジを即時更新）
 
 - 一般ユーザー向け: My Day（個人ダッシュボード）MVP 完了（2025-11-10）
+
   - ステータス帯（出勤/休憩/退勤）、クイックアクション表示制御
   - 本人向けアラート（未退勤/未打刻）ピル＋日付一覧モーダル
   - 今日のタイムライン（降順・折りたたみ）
   - 今日のメモ（ローカル自動保存＋退勤時サーバー保存）
   - 未読通知バッジ＋最新 3 件通知プレビュー（一行表示/未読優先）
+
+- 一般ユーザー向け: My Day フォローアップ（2025-11-14）
+
+  - 本人向けアラートから対象日へディープリンクし、`attendance_list.html` 側でパネル自動展開
+  - ディープリンクに `back`/`backMode=auto` を付与して編集完了後に自動戻り（同一オリジンのみ）
+
+- 勤務記録一覧（`attendance_list.html`）強化（2025-11-14）
+
+  - 日ステータスのバッジ表示（work/off/am_off/pm_off/ignore, source=O 表示）
+  - 本人による当日分類（`api/day_status_self_set.php` / `api/day_status_self_clear.php`）
+  - 欠落日の強調（＋行内「＋」で新規追加パネルを即時表示）
+  - ディープリンク安定化（強制可視化＋遅延ハイライト解除）
+  - `back`/`backMode` による戻り導線（保存/キャンセル/閉じる/削除/復元後に自動戻り: auto）
+  - 期間ロックの読み取りを反映（`api/period_lock_effective_get.php`）
+  - 小修正（overlay 参照/ラベル整合）
+
+- 日単位ステータス基盤（effective 化）適用（2025-11-14）
+  - アラート API（`api/my_alerts.php`, `api/attendance_alerts.php`）は `day_status_effective` 参照へ切替
+  - 勤務記録一覧でも `day_status_effective` を参照（暫定 API `api/day_status_effective_get.php` を使用）
 
 </details>
 
@@ -117,6 +137,9 @@
 - 通知/SMTP: `api/notify_settings_get.php`, `api/notify_settings_save.php`, `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`, `api/smtp_test_send_mail.php`
 - 当日実績サマリ: `api/today_status_summary.php`
 - 日上書き状態: `api/day_status_get.php`, `api/day_status_set.php`, `api/day_status_clear.php`
+- 本人の自己区分変更: `api/day_status_self_set.php`, `api/day_status_self_clear.php`
+- 日ステータス（effective）: `api/day_status_effective_get.php`（暫定）
+- 期間ロック（effective）: `api/period_lock_effective_get.php`
 
 ## フェーズ 3（短期・小粒から着手）
 

@@ -10,12 +10,42 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// 管理者のみ
-$adminId = $_SESSION['user_id'];
+// ロール確認
+$loginId = $_SESSION['user_id'];
 $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
-$stmt->execute([$adminId]);
-$admin = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$admin || $admin['role'] !== 'admin') {
+$stmt->execute([$loginId]);
+$me = $stmt->fetch(PDO::FETCH_ASSOC);
+$isAdmin = $me && $me['role'] === 'admin';
+
+// 範囲取得モード（start/endが指定された場合は一般ユーザーも自分分の取得を許可）
+$start = isset($_GET['start']) ? $_GET['start'] : null;
+$end = isset($_GET['end']) ? $_GET['end'] : null;
+$reqUserId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+
+if ($start && $end) {
+    $uid = $isAdmin && $reqUserId ? $reqUserId : $loginId;
+    $items = [];
+    try {
+        $stmtEv = $pdo->prepare('SELECT id AS event_id, used_date, total_hours AS used_hours, reason FROM paid_leave_use_events WHERE user_id = ? AND used_date BETWEEN ? AND ? ORDER BY used_date');
+        $stmtEv->execute([$uid, $start, $end]);
+        $items = $stmtEv->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (Exception $e) {
+        // テーブル未存在などの場合は空
+        $items = [];
+    }
+    echo json_encode(['ok' => true, 'user_id' => $uid, 'items' => array_map(function ($r) {
+        return [
+            'date' => $r['used_date'],
+            'hours' => (float)$r['used_hours'],
+            'reason' => isset($r['reason']) ? $r['reason'] : null,
+            'source' => 'event'
+        ];
+    }, $items)]);
+    exit;
+}
+
+// 旧モード: 管理者のみ、履歴リスト
+if (!$isAdmin) {
     http_response_code(403);
     echo json_encode(['error' => 'forbidden']);
     exit;

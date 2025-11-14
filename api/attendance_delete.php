@@ -51,20 +51,23 @@ try {
         $target_user_id = (int)$input['user_id'];
     }
 
-    // まず該当timecard_idを取得
-    $stmt_id = $pdo->prepare('SELECT id FROM timecards WHERE user_id = ? AND work_date = ?');
-    $stmt_id->execute([$target_user_id, $date]);
-    $row = $stmt_id->fetch(PDO::FETCH_ASSOC);
-    if ($row && isset($row['id'])) {
-        $timecard_id = $row['id'];
-        // 休憩記録を先に削除（外部キー制約対応）
-        $stmt2 = $pdo->prepare('DELETE FROM breaks WHERE timecard_id = ?');
-        $stmt2->execute([$timecard_id]);
-        // 勤務記録本体削除
-        $stmt = $pdo->prepare('DELETE FROM timecards WHERE id = ?');
-        $stmt->execute([$timecard_id]);
+    // 対象日の全ての timecard のID取得（重複含む）
+    $stmt_ids = $pdo->prepare('SELECT id FROM timecards WHERE user_id = ? AND work_date = ?');
+    $stmt_ids->execute([$target_user_id, $date]);
+    $rows = $stmt_ids->fetchAll(PDO::FETCH_COLUMN, 0);
+    if ($rows && count($rows) > 0) {
+        $ids = array_map('intval', $rows);
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        // 関連休憩物理削除
+        $sqlBreaks = "DELETE FROM breaks WHERE timecard_id IN ($in)";
+        $stmt2 = $pdo->prepare($sqlBreaks);
+        $stmt2->execute($ids);
+        // 勤務記録物理削除
+        $sqlTc = "DELETE FROM timecards WHERE id IN ($in)";
+        $stmt = $pdo->prepare($sqlTc);
+        $stmt->execute($ids);
     }
-    echo json_encode(['message' => '削除しました']);
+    echo json_encode(['message' => '削除しました', 'soft' => false]);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['message' => '削除に失敗しました']);

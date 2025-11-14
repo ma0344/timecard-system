@@ -330,6 +330,11 @@
             text-decoration: line-through;
         }
 
+        .day-status-badge[data-st="paid"] {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
         .day-status-badge .src-flag {
             font-size: 0.55em;
             font-weight: 400;
@@ -780,6 +785,44 @@
         .menu-list button:hover {
             background: #f7f9fc;
         }
+
+        /* 押し込み式トグルボタン */
+        #listToggles .toggle-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid #cfd8dc;
+            background: linear-gradient(#ffffff, #f7f9fc);
+            color: #455a64;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.9em;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+            transition: background .15s ease, box-shadow .15s ease, transform .02s ease;
+            user-select: none;
+        }
+
+        #listToggles .toggle-btn:hover {
+            background: linear-gradient(#ffffff, #eef3f7);
+        }
+
+        #listToggles .toggle-btn:active {
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, .12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+        }
+
+        #listToggles .toggle-btn.active {
+            background: #e3f2fd;
+            border-color: #90caf9;
+            color: #0d47a1;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, .14), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+        }
+
+        #listToggles .toggle-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px #90caf9aa, inset 0 2px 4px rgba(0, 0, 0, .08);
+        }
     </style>
 </head>
 
@@ -829,6 +872,15 @@
                         </div>
                     </div>
                 </div>
+                <div style="display:flex;justify-content:flex-end;padding:0 0.5em 0.4em 0.5em;">
+                    <div id="listToggles" style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button type="button" class="toggle-btn" data-type="work">勤務</button>
+                        <button type="button" class="toggle-btn" data-type="off">全休</button>
+                        <button type="button" class="toggle-btn" data-type="paid">有給</button>
+                        <button type="button" class="toggle-btn" data-type="ignore">除外</button>
+                        <button type="button" class="toggle-btn" data-type="missing">未</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="scroll-area">
@@ -855,6 +907,44 @@
             </ul>
         </nav>
         <script>
+            // --- 戻り導線（back, backMode） ---
+            function sanitizeBackUrl(url) {
+                if (!url) return null;
+                try {
+                    const u = new URL(url, window.location.origin);
+                    if (u.origin !== window.location.origin) return null; // 同一オリジンのみ
+                    return u.pathname + u.search + u.hash;
+                } catch (_) { return null; }
+            }
+            function initBackNavFromUrl() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const back = params.get('back');
+                    const backMode = (params.get('backMode') || 'manual').toLowerCase();
+                    window.__backUrl = sanitizeBackUrl(back);
+                    window.__backMode = (backMode === 'auto') ? 'auto' : 'manual';
+                } catch (_) {
+                    window.__backUrl = null; window.__backMode = 'manual';
+                }
+            }
+            function shouldAutoBack() { return !!window.__backUrl && window.__backMode === 'auto'; }
+            function backNavigate() {
+                if (window.__backUrl) { window.location.href = window.__backUrl; }
+                else if (window.history && typeof window.history.back === 'function') { window.history.back(); }
+            }
+            function renderBackButton() {
+                if (!window.__backUrl || window.__backMode === 'auto') return;
+                const headerTitle = document.querySelector('.header-title');
+                if (!headerTitle) return;
+                if (document.getElementById('backBtn')) return;
+                const btn = document.createElement('button');
+                btn.id = 'backBtn';
+                btn.type = 'button';
+                btn.textContent = '← 戻る';
+                btn.style.cssText = 'margin-right:6px;padding:4px 10px;border:1px solid #cfd8dc;background:#fff;color:#455a64;border-radius:6px;cursor:pointer;';
+                btn.addEventListener('click', () => backNavigate());
+                headerTitle.insertBefore(btn, headerTitle.firstChild);
+            }
             // fetchラッパー: 未ログインならlogin.htmlへ遷移
             async function fetchWithAuth(url, options) {
                 const res = await fetch(url, options);
@@ -894,9 +984,26 @@
                     startMonth += 12;
                 }
                 const pad = n => n.toString().padStart(2, '0');
-                const start = `${startYear}-${pad(startMonth)}-${pad(settings.period_start)}`;
-                const end = `${y}-${pad(m)}-${pad(settings.period_end)}`;
+                // 月末超過をクランプ
+                const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate(); // mm: 1-12, 日数
+                const startDay = Math.min(Number(settings.period_start) || 1, daysIn(startYear, startMonth));
+                const endDay = Math.min(Number(settings.period_end) || 31, daysIn(y, m));
+                const start = `${startYear}-${pad(startMonth)}-${pad(startDay)}`;
+                const end = `${y}-${pad(m)}-${pad(endDay)}`;
                 return { start, end };
+            }
+            // 期間を日付配列に展開
+            function enumerateDates(start, end) {
+                const arr = [];
+                const s = new Date(start + 'T00:00:00');
+                const e = new Date(end + 'T00:00:00');
+                for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                    const yy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    arr.push(`${yy}-${mm}-${dd}`);
+                }
+                return arr;
             }
 
             async function loadRecordsByPeriod(monthVal) {
@@ -911,6 +1018,12 @@
                 if (!res) return;
                 if (res.ok) {
                     records = await res.json();
+                    // 期間情報・日リスト・レコードマップ
+                    const pr = calcPeriodRange(monthVal);
+                    window.__periodRange = pr;
+                    window.__dayList = enumerateDates(pr.start, pr.end);
+                    window.__recordMap = {};
+                    (records || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
                     // 有効な日ステータスを期間単位でフェッチ（本人のみ）
                     try {
                         const stRes = await fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`);
@@ -920,8 +1033,28 @@
                             (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
                         }
                     } catch (e) { window.__dayStatuses = {}; }
+                    // ロック情報取得
+                    try {
+                        const lockRes = await fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`);
+                        if (lockRes && lockRes.ok) {
+                            const lockData = await lockRes.json();
+                            window.__lockedRanges = lockData.locked_ranges || [];
+                        } else { window.__lockedRanges = []; }
+                    } catch (e) { window.__lockedRanges = []; }
+                    // 有給（範囲）取得
+                    try {
+                        const plRes = await fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`);
+                        if (plRes && plRes.ok) {
+                            const plData = await plRes.json();
+                            window.__paidLeave = {};
+                            (plData.items || []).forEach(it => { if (it.date) window.__paidLeave[it.date] = it; });
+                        } else { window.__paidLeave = {}; }
+                    } catch (e) { window.__paidLeave = {}; }
                 } else {
                     records = [];
+                    window.__dayStatuses = {};
+                    window.__lockedRanges = [];
+                    window.__paidLeave = {};
                 }
                 setYearLabel();
                 renderStatsBox();
@@ -932,14 +1065,13 @@
                     let totalWorkMin = 0;
                     let totalOverMin = 0;
                     const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-                    records.forEach((rec) => {
-                        const st = (window.__dayStatuses && window.__dayStatuses[rec.date]) ? window.__dayStatuses[rec.date].status : 'work';
-                        if (st === 'off' || st === 'ignore') {
-                            return; // 集計から除外
-                        }
-                        if (rec.clockIn && rec.clockOut) {
+                    const dayList = window.__dayList || [];
+                    for (const d of dayList) {
+                        const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
+                        if (st === 'off' || st === 'ignore') continue; // 集計から除外
+                        const rec = window.__recordMap ? window.__recordMap[d] : null;
+                        if (rec && rec.clockIn && rec.clockOut) {
                             workDays++;
-                            // 労働時間（分）
                             const s = parseTimeStr(rec.clockIn);
                             const e = parseTimeStr(rec.clockOut);
                             if (s && e) {
@@ -949,7 +1081,7 @@
                                 if (min > baseMin) totalOverMin += min - baseMin;
                             }
                         }
-                    });
+                    }
                     const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
                     const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "";
                     document.getElementById("workDaysValue").textContent = workDays;
@@ -1004,7 +1136,15 @@
 
             // 現在ログインユーザーID取得（分類UI用: admin APIは使わず自分のみ）
             (async function () {
-                try { const who = await fetchWithAuth('api/check_login.php'); if (who && who.ok) { const wj = await who.json(); window.__currentUserId = wj.user_id; } } catch (e) { }
+                try {
+                    const who = await fetchWithAuth('api/check_login.php');
+                    if (who && who.ok) {
+                        const wj = await who.json();
+                        window.__currentUserId = wj.user_id;
+                        // 雇用区分フラグ（1=常勤, 0=パート）
+                        window.__fullTimeFlag = (wj && typeof wj.full_time !== 'undefined') ? Number(wj.full_time) : 1;
+                    }
+                } catch (e) { }
             })();
             document.getElementById('addRecordBtn').onclick = () => {
                 if (addPanelActive) return;
@@ -1020,12 +1160,14 @@
                 li.innerHTML = `
                 <div class="expand-panel">
                     <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${todayStr}"></label>
+                    <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
                     <div class="edit-row">
 
                         <label style="display: inline-grid;">始業 <input type="time" id="addIn"></label>
                         <label style="display: inline-grid;">終業 <input type="time" id="addOut"></label>
                         <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km</label></label>
                     </div>
+                    <div id="addClassification" style="margin-top:6px;"></div>
                     <div class="break-list">
                         <b>休憩:</b>
                         <div id="addBreakEditList" style="margin-top: 0.4em;"></div>
@@ -1040,6 +1182,18 @@
                 </div>`;
                 // 休憩データ
                 const addRec = { date: todayStr, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+                // 分類UIレンダリング
+                function renderAddClassification() {
+                    const wrap = li.querySelector('#addClassification');
+                    if (!wrap) return;
+                    wrap.innerHTML = classificationControls(addRec.date);
+                }
+                function updateLockWarn() {
+                    const warn = li.querySelector('#addLockWarn');
+                    if (!warn) return;
+                    if (isLocked(addRec.date)) { warn.style.display = 'block'; }
+                    else { warn.style.display = 'none'; }
+                }
                 // 休憩編集UI
                 const breakEditList = li.querySelector('#addBreakEditList');
                 function renderBreaks() {
@@ -1082,6 +1236,8 @@
                     const inVal = li.querySelector('#addIn').value;
                     const outVal = li.querySelector('#addOut').value;
                     if (!dateVal || !inVal || !outVal) return false;
+                    // 期間ロック中は保存不可
+                    if (isLocked(dateVal)) return false;
                     // 日付重複チェック
                     if (records.some(r => r.date === dateVal)) return false;
                     const inDate = toDateObj(dateVal, inVal);
@@ -1108,6 +1264,8 @@
                 }
                 li.querySelector('#addDate').addEventListener('input', e => {
                     addRec.date = e.target.value;
+                    renderAddClassification();
+                    updateLockWarn();
                     updateSaveBtn();
                 });
                 li.querySelector('#addIn').addEventListener('input', e => {
@@ -1123,6 +1281,8 @@
                     updateSaveBtn();
                 });
                 renderBreaks();
+                renderAddClassification();
+                updateLockWarn();
                 // 保存
                 li.querySelector('.save-btn').onclick = async () => {
                     if (!validateInputs()) {
@@ -1143,15 +1303,29 @@
                     });
                     if (res.ok) {
                         addPanelActive = false;
-                        await loadRecords();
+                        const monthVal = document.getElementById('monthSelect').value;
+                        clearForceVisibleDate();
+                        if (shouldAutoBack()) { backNavigate(); return; }
+                        await loadRecordsByPeriod(monthVal);
                     } else {
                         alert('新規追加に失敗しました');
                     }
                 };
+                // オーバーレイクリックで閉じる
+                document.getElementById('overlay').onclick = () => {
+                    addPanelActive = false;
+                    clearForceVisibleDate();
+                    render();
+                    hideOverlay();
+                    if (shouldAutoBack()) { backNavigate(); }
+                };
                 // キャンセル
                 li.querySelector('.cancel-btn').onclick = () => {
                     addPanelActive = false;
+                    clearForceVisibleDate();
                     render();
+                    hideOverlay();
+                    if (shouldAutoBack()) { backNavigate(); }
                 };
                 // 最上部に挿入
                 recordList.insertBefore(li, recordList.firstChild);
@@ -1165,97 +1339,330 @@
                 if (str.length === 2 || str.length === 1) return str.padStart(2, '0') + ':00'; // "9"→"09:00"
                 return '-';
             }
+            // フィルタ制御
+            // トグルフィルタ: 選択セット（work/off/paid/ignore/missing）
+            let __filterSet = (() => { try { return JSON.parse(localStorage.getItem('attListFilterSet') || 'null'); } catch (_) { return null; } })() || ['work', 'off', 'paid', 'ignore', 'missing'];
+            function saveFilterSet() { localStorage.setItem('attListFilterSet', JSON.stringify(__filterSet)); }
+            function toggleFilter(type) {
+                if (__filterSet.includes(type)) { __filterSet = __filterSet.filter(t => t !== type); } else { __filterSet.push(type); }
+                if (__filterSet.length === 0) { __filterSet = ['work']; } // 最低1個
+                saveFilterSet();
+                syncToggleUI();
+                render();
+            }
+            function syncToggleUI() {
+                const wrap = document.getElementById('listToggles');
+                if (!wrap) return;
+                wrap.querySelectorAll('.toggle-btn').forEach(btn => {
+                    const t = btn.getAttribute('data-type');
+                    const on = __filterSet.includes(t);
+                    btn.classList.toggle('active', on);
+                    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    btn.setAttribute('role', 'button');
+                });
+            }
+            function dayType(date) {
+                const st = (window.__dayStatuses && window.__dayStatuses[date]) ? window.__dayStatuses[date].status : 'work';
+                const hasRec = window.__recordMap && !!window.__recordMap[date];
+                if (window.__paidLeave && window.__paidLeave[date]) return 'paid';
+                if (st === 'off') return 'off';
+                if (st === 'ignore') return 'ignore';
+                if (!hasRec && (st === 'work' || st === 'am_off' || st === 'pm_off')) return 'missing';
+                return 'work';
+            }
+            function passFilter(date) {
+                // 深リンクやアラートからのジャンプ時は、対象日だけは常に表示してパネルを出せるようにする
+                if (window.__forceVisibleDate && date === window.__forceVisibleDate) return true;
+                // 互換のため、ハイライト日付でも許可（forceVisible導入前の動作を維持）
+                if (window.__highlightDate && date === window.__highlightDate) return true;
+                return __filterSet.includes(dayType(date));
+            }
+            // 強制表示の解除（パネルを閉じたタイミング等で呼ぶ）
+            function clearForceVisibleDate() { window.__forceVisibleDate = null; }
+            function openAddPanelFor(date, anchorLi) {
+                // 既存の追加パネルがあれば除去
+                const oldPanel = recordList.querySelector('li.record-row.active #addDate');
+                if (oldPanel) {
+                    const li = oldPanel.closest('li.record-row.active');
+                    if (li) li.remove();
+                }
+                // 追加パネルの表示フラグのみ切替（expandedIdx は変更しない）
+                addPanelActive = true;
+                // 新規追加パネル生成（既存トップ挿入ロジックをベースに行内挿入へ）
+                const li = document.createElement('li');
+                li.className = 'record-row active';
+                li.innerHTML = `
+                <div class="expand-panel">
+                    <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${date}"></label>
+                    <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
+                    <div class="edit-row">
+                        <label style="display: inline-grid;">始業 <input type="time" id="addIn"></label>
+                        <label style="display: inline-grid;">終業 <input type="time" id="addOut"></label>
+                        <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km</label></label>
+                    </div>
+                    <div id="addClassification" style="margin-top:6px;"></div>
+                    <div class="break-list">
+                        <b>休憩:</b>
+                        <div id="addBreakEditList" style="margin-top: 0.4em;"></div>
+                    </div>
+                    <div class="break-delete-btns">
+                        <button class="add-break-btn" type="button">＋休憩を追加</button>
+                    </div>
+                    <div class="edit-btns">
+                        <button class="default-btn save-btn" disabled>保存</button>
+                        <button class="default-btn cancel-btn">キャンセル</button>
+                    </div>
+                </div>`;
+                const addRec = { date, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+                function renderAddClassification() {
+                    const wrap = li.querySelector('#addClassification');
+                    if (!wrap) return; wrap.innerHTML = classificationControls(addRec.date);
+                }
+                function updateLockWarn() {
+                    const warn = li.querySelector('#addLockWarn'); if (!warn) return; warn.style.display = isLocked(addRec.date) ? 'block' : 'none';
+                }
+                const breakEditList = li.querySelector('#addBreakEditList');
+                function renderBreaks() {
+                    breakEditList.innerHTML = '';
+                    addRec.breaks.forEach((b, i) => {
+                        const row = document.createElement('div');
+                        row.className = 'break-edit-row';
+                        row.innerHTML = `
+                            <span>${i + 1}.</span>
+                            <input type="time" value="${b.start || ''}" class="break-start"> ～
+                            <input type="time" value="${b.end || ''}" class="break-end">
+                            <button type="button" title="削除">×</button>`;
+                        const startInput = row.querySelector('.break-start');
+                        const endInput = row.querySelector('.break-end');
+                        startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+                        endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+                        row.querySelector('button').onclick = e => { e.stopPropagation(); addRec.breaks.splice(i, 1); renderBreaks(); updateSaveBtn(); };
+                        breakEditList.appendChild(row);
+                    });
+                }
+                li.querySelector('.add-break-btn').onclick = () => { addRec.breaks.push({ start: '', end: '' }); renderBreaks(); updateSaveBtn(); };
+                function toDateObj(dateStr, timeStr) { if (!dateStr || !timeStr) return null; return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`); }
+                function validateInputs() {
+                    const dateVal = li.querySelector('#addDate').value;
+                    const inVal = li.querySelector('#addIn').value;
+                    const outVal = li.querySelector('#addOut').value;
+                    if (!dateVal || !inVal || !outVal) return false;
+                    if (isLocked(dateVal)) return false;
+                    if (records.some(r => r.date === dateVal)) return false;
+                    const inDate = toDateObj(dateVal, inVal); const outDate = toDateObj(dateVal, outVal);
+                    if (inDate && outDate && inDate >= outDate) return false;
+                    for (let i = 0; i < addRec.breaks.length; i++) {
+                        const b = addRec.breaks[i]; const bStart = b.start ? toDateObj(dateVal, b.start) : null; const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
+                        if (!b.start || !b.end) return false;
+                        if (bStart && bEnd) { if (bStart >= bEnd) return false; if (inDate && bStart < inDate) return false; if (outDate && bEnd > outDate) return false; }
+                    }
+                    const monthVal = document.getElementById('monthSelect').value; if (!dateVal.startsWith(monthVal)) return false; return true;
+                }
+                function updateSaveBtn() { li.querySelector('.save-btn').disabled = !validateInputs(); }
+                li.querySelector('#addDate').addEventListener('input', e => { addRec.date = e.target.value; renderAddClassification(); updateLockWarn(); updateSaveBtn(); });
+                li.querySelector('#addIn').addEventListener('input', e => { addRec.clockIn = e.target.value; updateSaveBtn(); });
+                li.querySelector('#addOut').addEventListener('input', e => { addRec.clockOut = e.target.value; updateSaveBtn(); });
+                li.querySelector('#addVehicleDistance').addEventListener('input', e => { addRec.vehicleDistance = Number(e.target.value) || 0; updateSaveBtn(); });
+                renderBreaks(); renderAddClassification(); updateLockWarn(); updateSaveBtn();
+                li.querySelector('.save-btn').onclick = async () => {
+                    if (!validateInputs()) { alert('入力内容に誤りがあります。'); return; }
+                    const res = await fetch('api/attendance_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: addRec.date, clockIn: addRec.clockIn, clockOut: addRec.clockOut, breaks: addRec.breaks, vehicleDistance: addRec.vehicleDistance }) });
+                    if (res.ok) { addPanelActive = false; const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal); } else { alert('新規追加に失敗しました'); }
+                };
+                document.getElementById('overlay').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                li.querySelector('.cancel-btn').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
+                if (anchorLi && anchorLi.parentNode === recordList) {
+                    if (anchorLi.nextSibling) recordList.insertBefore(li, anchorLi.nextSibling); else recordList.appendChild(li);
+                } else {
+                    recordList.insertBefore(li, recordList.firstChild);
+                }
+                showOverlay();
+                const inEl = li.querySelector('#addIn'); if (inEl) inEl.focus();
+            }
             function render() {
                 recordList.innerHTML = '';
-                records.forEach((rec, idx) => {
+                const dayList = window.__dayList || [];
+                dayList.forEach((d, idx) => {
+                    if (!passFilter(d)) return;
+                    const rec = window.__recordMap ? window.__recordMap[d] : null;
+                    const t = dayType(d);
                     const li = document.createElement('li');
                     li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
-                    // 労働時間計算
-                    const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
-                    const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
-                    // 超過判定
-                    const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-                    let overStr = '';
-                    if (workMin > baseMin) {
-                        const overMin = workMin - baseMin;
-                        overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`;
+                    if (t !== 'work') {
+                        const badgeSt = (window.__dayStatuses[d]?.status) || 'work';
+                        let timesHTML = `
+                            <div class="record-col"><div class="value"></div></div>
+                            <div class="record-col"><div class="value"></div></div>
+                            <div class="record-col"><div class="value"></div></div>
+                            <div class="record-col"><div class="value"></div></div>`;
+                        if (t === 'missing') {
+                            timesHTML = `<div class="record-col"><div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;">（未）<button type='button' class='mini-add-btn' data-date='${d}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div>`;
+                        } else if (t === 'paid') {
+                            const info = window.__paidLeave[d];
+                            const hrs = info ? info.hours : null;
+                            const reason = info && info.reason ? info.reason : '';
+                            timesHTML = `<div class='record-col'><div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div>`;
+                        }
+                        const badgeCode = t === 'paid' ? 'paid' : badgeSt;
+                        li.innerHTML = `
+                        <div class="record-main">
+                            <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[d]?.reason ? ('\n' + escapeHtml(window.__paidLeave[d].reason)) : '')) : badgeTitle(d)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span>`}</span></span>
+                            <div class="record-times">${timesHTML}</div>
+                        </div>`;
+                        li.onclick = (e) => {
+                            if (t === 'missing') { openAddPanelFor(d, li); return; }
+                            if (t === 'paid') { expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+                            expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
+                        };
+                    } else {
+                        const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
+                        const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
+                        const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+                        let overStr = '';
+                        if (workMin > baseMin) { const overMin = workMin - baseMin; overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`; }
+                        li.innerHTML = `
+                        <div class="record-main">
+                            <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[d]?.status) || 'work'}" title="${badgeTitle(d)}">${statusLabel((window.__dayStatuses[d]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span></span></span>
+                            <div class="record-times">
+                                <div class="record-col"><div class="value">${formatTime(rec.clockIn)}</div></div>
+                                <div class="record-col"><div class="value">${formatTime(rec.clockOut)}</div></div>
+                                <div class="record-col"><div class="value">${Math.floor(calcTotalBreak(rec.breaks || []))}<span style="font-size:0.5em;">分</span></div></div>
+                                <div class="record-col"><div class="value">${workStr}${overStr}</div></div>
+                                <div class="record-col"><div class="value">${rec.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div></div>
+                            </div>
+                        </div>`;
+                        li.onclick = (e) => {
+                            if (
+                                expandedIdx === idx &&
+                                e.target.closest('.record-row.active') &&
+                                !e.target.classList.contains('save-btn') &&
+                                !e.target.classList.contains('cancel-btn')
+                            ) return;
+                            if (addPanelActive) { addPanelActive = false; expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+                            if (expandedIdx !== null && expandedIdx !== idx) { expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+                            expandedIdx = expandedIdx === idx ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
+                        };
                     }
-                    li.innerHTML = `
-                    <div class="record-main">
-                        <span class="record-date">${formatDateMD(rec.date)}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[rec.date]?.status) || 'work'}" title="${badgeTitle(rec.date)}">${statusLabel((window.__dayStatuses[rec.date]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[rec.date]?.source === 'override') ? 'O' : ''}</span></span></span>
-                        <div class="record-times">
-                            <div class="record-col">
-                                <div class="value">${formatTime(rec.clockIn)}</div>
-                            </div>
-                            <div class="record-col">
-                                <div class="value">${formatTime(rec.clockOut)}</div>
-                            </div>
-                            <div class="record-col">
-                                <!-- <div class="label">休憩</div> -->
-                                <div class="value">${Math.floor(calcTotalBreak(rec.breaks))}<span style="font-size:0.5em;">分</span></div>
-                            </div>
-                            <div class="record-col">
-                                <!-- <div class="label">労働</div> -->
-                                <div class="value">${workStr}${overStr}</div>
-                            </div>
-                            <div class="record-col">
-                                <!-- <div class="label">車距離</div> -->
-                                <div class="value">${rec.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                    li.onclick = (e) => {
-                        // 保存・キャンセルボタン以外のエクスパンドパネル内要素をクリックした場合は何もしない
-                        if (
-                            expandedIdx === idx &&
-                            e.target.closest('.record-row.active') &&
-                            !e.target.classList.contains('save-btn') &&
-                            !e.target.classList.contains('cancel-btn')
-                        ) return;
-                        // ここからadmin_attendance.htmlと同じ挙動に
-                        if (addPanelActive) {
-                            addPanelActive = false;
-                            expandedIdx = idx;
-                            render();
-                            if (expandedIdx !== null) showOverlay(); else hideOverlay();
-                            return;
-                        }
-                        if (expandedIdx !== null && expandedIdx !== idx) {
-                            expandedIdx = idx;
-                            render();
-                            if (expandedIdx !== null) showOverlay(); else hideOverlay();
-                            return;
-                        }
-                        expandedIdx = expandedIdx === idx ? null : idx;
-                        render();
-                        if (expandedIdx !== null) showOverlay(); else hideOverlay();
-                    };
                     recordList.appendChild(li);
                     if (expandedIdx === idx) {
+                        const locked = isLocked(d);
+                        const effSt = (window.__dayStatuses[d]?.status) || 'work';
                         const panel = document.createElement('div');
                         panel.className = 'expand-panel';
-                        panel.innerHTML = `
-                        <div class="edit-row">
-                            <label style="display: inline-grid;">始業 <input type="time" value="${formatTime(rec.clockIn) !== '-' ? formatTime(rec.clockIn) : ''}" id="editIn"></label>
-                            <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
-                            <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="editVehicleDistance" value="${rec.vehicleDistance ?? 0}"> km</label></label>
-                        </div>
-                        ${classificationControls(rec.date)}
-                        <div class="break-list">
-                            <b >休憩:</b>
-                            <div id="breakEditList" style="margin-top: 0.4em;"></div>
-                        </div>
-                        <div class="break-delete-btns">
-                                <button class="add-break-btn" type="button">＋休憩を追加</button>
-                                <button class="delete-btn" style="background:#e57373;">削除</button>
-                        </div>
-                        <div class="edit-btns">
-                            <button class="default-btn save-btn">保存</button>
-                            <button class="default-btn cancel-btn">キャンセル</button>
-                        </div>
-                    `;
-                        li.appendChild(panel);
+                        if (t === 'paid') {
+                            panel.innerHTML = `
+                                                            <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;border-radius:6px;font-size:.85em;'>この日は有給（${window.__paidLeave[d]?.hours || ''}h）です</div>
+                                                            <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                                                                <div><b>日付:</b> ${d}</div>
+                                                                <div><b>区分:</b> 有給</div>
+                                                                ${window.__paidLeave[d]?.reason ? `<div><b>理由:</b> ${escapeHtml(window.__paidLeave[d].reason)}</div>` : ''}
+                                                            </div>
+                                                            <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
+                                                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
+                                                            </div>`;
+                            li.appendChild(panel);
+                            const ov = document.getElementById('overlay');
+                            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            return;
+                        } else if (effSt === 'off') {
+                            // 全休 → 読み取り＋勤務へ戻す
+                            const canRestore = !locked;
+                            panel.innerHTML = `
+                              ${locked ? `<div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>` : ''}
+                              <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                                <div><b>日付:</b> ${d}</div>
+                                <div><b>区分:</b> 全休</div>
+                              </div>
+                              <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;gap:8px;'>
+                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
+                                ${canRestore ? `<button class='default-btn restore-btn'>勤務へ戻す</button>` : ''}
+                              </div>`;
+                            li.appendChild(panel);
+                            const ov = document.getElementById('overlay');
+                            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            const rb = panel.querySelector('.restore-btn');
+                            if (rb) rb.onclick = async e => {
+                                e.stopPropagation();
+                                try {
+                                    const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: d }) });
+                                    if (res && res.ok) {
+                                        const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal);
+                                        expandedIdx = null; render(); hideOverlay();
+                                    } else { alert('解除に失敗しました'); }
+                                } catch (_) { alert('解除エラー'); }
+                            };
+                            return;
+                        }
+                        if (!rec) {
+                            if (effSt === 'ignore') {
+                                panel.innerHTML = `
+                                                                    <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #cfd8dc;background:#eceff1;color:#455a64;border-radius:6px;font-size:.85em;'>この日は集計外です（編集不可）</div>
+                                                                    <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                                                                        <div><b>日付:</b> ${d}</div>
+                                                                        <div><b>区分:</b> 除外</div>
+                                                                    </div>
+                                                                    <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
+                                                                        <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
+                                                                    </div>`;
+                                li.appendChild(panel);
+                                const ov = document.getElementById('overlay');
+                                if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                                panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            } else {
+                                openAddPanelFor(d, li);
+                            }
+                            return;
+                        }
+                        if (locked) {
+                            // ロック期間 → 読み取り専用表示（閉じる以外の操作を禁止）
+                            panel.innerHTML = `
+                              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>
+                              <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                                <div><b>日付:</b> ${d}</div>
+                                <div><b>区分:</b> ${statusLabel((window.__dayStatuses[d]?.status) || 'work')}</div>
+                                <div><b>始業:</b> ${formatTime(rec.clockIn)}</div>
+                                <div><b>終業:</b> ${formatTime(rec.clockOut)}</div>
+                                <div><b>休憩合計:</b> ${Math.floor(calcTotalBreak(rec.breaks))} 分</div>
+                                <div><b>車距離:</b> ${rec.vehicleDistance ?? 0} km</div>
+                                <div><b>休憩明細:</b></div>
+                                <div style='padding-left:4px;'>${rec.breaks.length ? rec.breaks.map((b, i) => `<div style='margin:2px 0;'>${i + 1}. ${b.start ? formatTime(b.start) : '-'} ～ ${b.end ? formatTime(b.end) : '-'}</div>`).join('') : '（なし）'}</div>
+                              </div>
+                              <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
+                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
+                              </div>
+                            `;
+                            li.appendChild(panel);
+                            const ov = document.getElementById('overlay');
+                            if (ov) { ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } }; }
+                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                            // スクロール位置維持のため何も追加せず終了
+                            return;
+                        } else {
+                            panel.innerHTML = `
+                            <div class="edit-row">
+                                <label style="display: inline-grid;">始業 <input type="time" value="${formatTime(rec.clockIn) !== '-' ? formatTime(rec.clockIn) : ''}" id="editIn"></label>
+                                <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
+                                <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="editVehicleDistance" value="${rec.vehicleDistance ?? 0}"> km</label></label>
+                            </div>
+                            ${classificationControls(d)}
+                            <div class="break-list">
+                                <b >休憩:</b>
+                                <div id="breakEditList" style="margin-top: 0.4em;"></div>
+                            </div>
+                            <div class="break-delete-btns">
+                                    <button class="add-break-btn" type="button">＋休憩を追加</button>
+                                    <button class="delete-btn" style="background:#e57373;">削除</button>
+                            </div>
+                            <div class="edit-btns">
+                                <button class="default-btn save-btn">保存</button>
+                                <button class="default-btn cancel-btn">キャンセル</button>
+                            </div>
+                        `;
+                            li.appendChild(panel);
+                        }
                         // 休憩編集UIの動的生成
                         // 編集時も選択月以外は編集不可
                         const monthVal = document.getElementById('monthSelect').value;
@@ -1274,9 +1681,9 @@
                                 const pad = n => n.toString().padStart(2, '0');
                                 return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
                             })();
-                            const isToday = rec.date === todayStr;
-                            const inDate = inVal ? toDateObj(rec.date, inVal) : null;
-                            const outDate = outVal ? toDateObj(rec.date, outVal) : null;
+                            const isToday = d === todayStr;
+                            const inDate = inVal ? toDateObj(d, inVal) : null;
+                            const outDate = outVal ? toDateObj(d, outVal) : null;
                             if (!isToday) {
                                 if (!inVal || !outVal) return false;
                             }
@@ -1338,7 +1745,7 @@
                         // オーバーレイクリックで閉じる
                         const ov = document.getElementById('overlay');
                         if (ov) {
-                            ov.onclick = () => { expandedIdx = null; addPanelActive = false; render(); hideOverlay(); };
+                            ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); };
                         }
                         panel.querySelector('.save-btn').onclick = async e => {
                             e.stopPropagation();
@@ -1350,9 +1757,9 @@
                                 const pad = n => n.toString().padStart(2, '0');
                                 return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
                             })();
-                            const isToday = rec.date === todayStr;
-                            const inDate = inVal ? toDateObj(rec.date, inVal) : null;
-                            const outDate = outVal ? toDateObj(rec.date, outVal) : null;
+                            const isToday = d === todayStr;
+                            const inDate = inVal ? toDateObj(d, inVal) : null;
+                            const outDate = outVal ? toDateObj(d, outVal) : null;
                             // 当日以外は空欄NG
                             if (!isToday) {
                                 if (!inVal || !outVal) {
@@ -1400,7 +1807,7 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    date: rec.date,
+                                    date: d,
                                     clockIn: rec.clockIn,
                                     clockOut: rec.clockOut,
                                     breaks: rec.breaks,
@@ -1411,6 +1818,8 @@
                                 expandedIdx = null;
                                 // 再取得（日ステータス再反映）
                                 const monthVal = document.getElementById('monthSelect').value;
+                                clearForceVisibleDate();
+                                if (shouldAutoBack()) { backNavigate(); return; }
                                 await loadRecordsByPeriod(monthVal);
                                 render();
                                 hideOverlay();
@@ -1421,8 +1830,10 @@
                         panel.querySelector('.cancel-btn').onclick = e => {
                             e.stopPropagation();
                             expandedIdx = null;
+                            clearForceVisibleDate();
                             render();
                             hideOverlay();
+                            if (shouldAutoBack()) { backNavigate(); }
                         };
                         panel.querySelector('.delete-btn').onclick = async e => {
                             e.stopPropagation();
@@ -1431,11 +1842,13 @@
                             const res = await fetch('api/attendance_delete.php', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ date: rec.date })
+                                body: JSON.stringify({ date: d })
                             });
                             if (res.ok) {
                                 expandedIdx = null;
                                 const monthVal = document.getElementById('monthSelect').value;
+                                clearForceVisibleDate();
+                                if (shouldAutoBack()) { backNavigate(); return; }
                                 await loadRecordsByPeriod(monthVal);
                                 hideOverlay();
                             } else {
@@ -1444,32 +1857,58 @@
                         };
                     }
                     // ハイライト対象日付ならクラス付与
-                    if (window.__highlightDate && rec.date === window.__highlightDate) {
+                    if (window.__highlightDate && d === window.__highlightDate) {
                         li.classList.add('highlight');
                     }
                 });
-                // ハイライト行があり、まだ展開されていない場合は自動展開（初回のみ）
+                // ハイライト行の自動展開は一度だけ。再帰レンダリングを避けつつ展開後にスクロール＆オーバーレイ表示。
                 if (window.__highlightDate && expandedIdx === null) {
-                    const targetIdx = records.findIndex(r => r.date === window.__highlightDate);
+                    const dayList2 = window.__dayList || [];
+                    const targetIdx = dayList2.findIndex(d => d === window.__highlightDate);
                     if (targetIdx >= 0) {
                         expandedIdx = targetIdx;
-                        // 再レンダで展開
-                        render();
-                        // 一度使ったら解除（無限ループ防止）
-                        window.__highlightDate = null;
+                        // ハイライトは展開・スクロール完了後に外す（早すぎるとフィルタで隠れる恐れ）
+                        // 次フレームで展開を反映し、その次のフレームでスクロール＆オーバーレイ表示（render のネスト回避）
+                        requestAnimationFrame(() => {
+                            render();
+                            requestAnimationFrame(() => {
+                                const lis = recordList.querySelectorAll('li.record-row');
+                                const tli = lis[targetIdx];
+                                if (tli && typeof tli.scrollIntoView === 'function') {
+                                    tli.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                                // 自動展開時は明示的にオーバーレイを表示して編集状態を示す
+                                if (typeof showOverlay === 'function') showOverlay();
+                                // 表示安定後にハイライト解除
+                                window.__highlightDate = null;
+                            });
+                        });
                     }
                 }
             }
+            // フィルタUI初期化（トグル）
+            (function initListToggles() {
+                const wrap = document.getElementById('listToggles');
+                if (!wrap) return;
+                syncToggleUI();
+                wrap.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.toggle-btn');
+                    if (!btn) return;
+                    const type = btn.getAttribute('data-type');
+                    toggleFilter(type);
+                });
+            })();
             // オーバーレイ制御
             const __overlayEl = document.getElementById('overlay');
             function showOverlay() { if (__overlayEl) __overlayEl.style.display = 'block'; }
             function hideOverlay() { if (__overlayEl) __overlayEl.style.display = 'none'; }
             function statusLabel(code) {
+                const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
                 switch (code) {
                     case 'work': return '勤務';
                     case 'off': return '全休';
-                    case 'am_off': return '午前休';
-                    case 'pm_off': return '午後休';
+                    case 'am_off': return isFullTime ? '午前休' : '午前休（旧）';
+                    case 'pm_off': return isFullTime ? '午後休' : '午後休（旧）';
                     case 'ignore': return '除外';
                     default: return code;
                 }
@@ -1479,24 +1918,34 @@
                 if (!st) return '勤務（既定）';
                 let base = statusLabel(st.status);
                 if (st.source === 'override') base += '（上書き）';
+                if ((window.__fullTimeFlag === 0) && (st.status === 'am_off' || st.status === 'pm_off')) {
+                    base += '\n※ パートは半休区分の新規/変更不可（既存データのみ表示）';
+                }
                 if (st.note) base += `\n${st.note}`;
                 return base;
             }
             function classificationControls(date) {
-                // 今日のみ操作（本人用）
-                const today = (new Date()).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }).replace(/\//g, '-');
-                if (date !== today) return '';
+                // ロック判定: ロック期間内は表示しない
+                if (isLocked(date)) return '';
                 const current = (window.__dayStatuses[date]?.status) || 'work';
+                const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
+                // パートで現在 half-day が既に設定されている legacy ケース: 表示はするが警告とボタン抑制
+                const legacyHalf = (!isFullTime && (current === 'am_off' || current === 'pm_off'));
                 const opts = [
                     { code: 'work', label: '勤務' },
-                    { code: 'am_off', label: '午前休' },
-                    { code: 'pm_off', label: '午後休' },
+                    // パートは半休ボタンを表示しない
+                    ...(isFullTime ? [{ code: 'am_off', label: '午前休' }, { code: 'pm_off', label: '午後休' }] : []),
                     { code: 'off', label: '全休' },
                     { code: 'ignore', label: '除外' }
                 ];
+                let warn = '';
+                if (legacyHalf) {
+                    warn = `<div class="legacy-warn" style="flex-basis:100%;font-size:.55em;color:#e65100;background:#fff3e0;padding:4px 6px;border:1px solid #ffb74d;border-radius:4px;">過去の半休区分（${current === 'am_off' ? '午前休' : '午後休'}）: パート区分では今後変更/新規指定できません。クリアまたは全休へ変更可能。</div>`;
+                }
                 return `<div class="classification-ui" data-date="${date}">
-                    ${opts.map(o => `<button type="button" data-code="${o.code}" class="cls-btn ${o.code === current ? 'active' : ''}">${o.label}</button>`).join('')}
+                    ${opts.map(o => `<button type="button" data-code="${o.code}" class="cls-btn ${o.code === current ? 'active' : ''}" ${legacyHalf && (o.code === 'am_off' || o.code === 'pm_off') ? 'disabled' : ''}>${o.label}</button>`).join('')}
                     <button type="button" data-clear="1" style="margin-left:6px;border:1px solid #b0bec5;background:#fafafa;color:#546e7a;">クリア</button>
+                    ${warn}
                 </div>`;
             }
             // 分類ボタンのイベント委譲
@@ -1541,6 +1990,13 @@
                     } else { alert('クリアに失敗しました'); }
                 } catch (e) { alert('クリアエラー'); }
             }
+            function isLocked(date) {
+                if (!window.__lockedRanges) return false;
+                for (const r of window.__lockedRanges) {
+                    if (date >= r.start && date <= r.end) return true;
+                }
+                return false;
+            }
             function formatDateMD(dateStr) {
                 // "YYYY-MM-DD" → "MM月DD日"
                 if (!dateStr) return '';
@@ -1550,6 +2006,12 @@
             }
             // 年月をタイトル左に表示
             function setYearLabel() {
+                const monthInput = document.getElementById('monthSelect');
+                if (monthInput && monthInput.value) {
+                    const [yy, mm] = monthInput.value.split('-');
+                    document.getElementById('yearLabel').textContent = `${yy}年${parseInt(mm, 10)}月度 `;
+                    return;
+                }
                 if (records.length > 0) {
                     const ymd = records[0].date ? records[0].date.split('-') : [];
                     if (ymd.length === 3) {
@@ -1563,23 +2025,33 @@
             }
             // 初回ロード
             (async function () {
+                // 戻り導線の初期化＆ボタン描画
+                initBackNavFromUrl();
                 await loadSettings();
-                // 今月を初期値に
                 const now = new Date();
                 const pad = n => n.toString().padStart(2, '0');
-                const ym = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+                const thisYm = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
                 const monthInput = document.getElementById('monthSelect');
-                monthInput.value = ym;
-                monthInput.addEventListener('change', function () {
-                    loadRecordsByPeriod(this.value);
-                });
-                // クエリから date パラメータ取得しハイライト用に保持
+                monthInput.addEventListener('change', function () { loadRecordsByPeriod(this.value); });
+                // クエリ: 指定日があればその年月に合わせて初期ロードし、新規追加パネルを開く
                 const urlParams = new URLSearchParams(window.location.search);
                 const qpDate = urlParams.get('date');
                 if (qpDate && /\d{4}-\d{2}-\d{2}/.test(qpDate)) {
+                    // ダッシュボードなどからの指定日遷移: ハイライト→自動展開（render 内で処理）
                     window.__highlightDate = qpDate;
+                    // フィルタに関わらず対象日を表示させる（パネルが開くまで維持）
+                    window.__forceVisibleDate = qpDate;
+                    const targetYm = qpDate.slice(0, 7);
+                    monthInput.value = targetYm;
+                    await loadRecordsByPeriod(targetYm);
+                    renderBackButton();
+                    // 自動展開後はレンダ側でスクロール＆オーバーレイ表示を実施
+                } else {
+                    // 通常: 今月表示
+                    monthInput.value = thisYm;
+                    await loadRecordsByPeriod(thisYm);
+                    renderBackButton();
                 }
-                await loadRecordsByPeriod(ym);
             })();
 
             function adjustScrollAreaHeight() {

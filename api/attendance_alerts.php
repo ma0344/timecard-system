@@ -50,7 +50,8 @@ if (!$includeSet) {
 try {
     // アラートから除外する日（全休・無視）。半休は除外しない。
     // day_status_effective を参照するため、ENUM 側のコードで判定
-    $excludeStatuses = "('off','ignore')";
+    // off_full: 全休コード（self_set では off_full を保存）。互換のため 'off' も含める。
+    $excludeStatuses = "('off','off_full','ignore')";
 
     // 1) 今日 勤務中（clock_inあり・clock_outなし）＝勤務中
     $todayNoOut = [];
