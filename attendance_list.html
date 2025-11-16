@@ -2,1170 +2,1191 @@
 <html lang="ja">
 
 <head style="height: 0px;">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>勤務記録一覧</title>
-    <link rel="stylesheet" href="css/common.css">
-    <style>
-        html {
-            height: 100%;
-            margin-top: 0px;
-        }
-
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f6fa;
-            margin: 0;
-        }
-
-        .fixed-header {
-            position: sticky;
-            top: 0px;
-            z-index: 100;
-            background: #fff;
-            padding: 0;
-            display: block;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        @media (max-width: 600px) {
-            .fixed-header {
-                border-radius: 0;
-                height: auto;
-                padding: 0;
-                justify-content: space-between;
-            }
-        }
-
-        .header-title {
-            font-size: 1.3em;
-            width: -webkit-fill-available;
-            color: #1976d2;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.5em;
-            padding: 10px 1em 0 1em;
-        }
-
-        @media (max-width: 600px) {
-            .header-title {
-                padding: 8px 0.5em 0 0.5em;
-            }
-        }
-
-        .header-btns {
-            display: grid;
-            grid-auto-columns: 1fr;
-            grid-auto-flow: column;
-            position: sticky;
-            bottom: 0;
-            background: #fff;
-            padding: 10px 0 10px 0;
-            justify-content: center;
-            z-index: 200;
-            align-items: center;
-            max-width: 480px;
-            margin: 0 auto;
-            height: 70px;
-            gap: 0.7em;
-        }
-
-        .listLabelBox {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 1rem;
-            margin-bottom: 0.3em;
-            background: #ffffff;
-        }
-
-        @media (max-width: 600px) {
-            .listLabelBox {
-                padding: 0 0.2em;
-            }
-        }
-
-        #listLabel {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            padding: 0.7em 0.5em 0.3em 0.5em;
-        }
-
-        .fixed-footer {
-            position: sticky;
-            bottom: 0;
-            left: 0;
-            /*width: 100%;*/
-            z-index: 100;
-            background: #fff;
-            padding: 0 0 0 0;
-            display: block;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .footer-btns {
-            display: grid;
-            grid-auto-columns: 1fr;
-            grid-auto-flow: column;
-            gap: 0.7em;
-            position: sticky;
-            bottom: 0;
-            background: #fff;
-            padding: 0px 0 0px 0;
-            justify-content: center;
-            z-index: 200;
-            align-items: center;
-            max-width: 480px;
-            margin: 10px auto;
-        }
-
-        .footer-btn {
-            font-size: 1.3em;
-            padding: 0.5em 1.2em;
-            border-radius: 4px;
-            background: #1976d2;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-        }
-
-        @media (max-width: 600px) {
-            .footer-btn {
-                padding: 0.4em 0.5em;
-            }
-        }
-
-        .footer-btn:active {
-            background: #1565c0;
-        }
-
-        #statsBox {
-            display: grid;
-            row-gap: 0.3em;
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
-            grid-auto-columns: 1fr;
-            grid-auto-flow: column;
-            height: auto;
-            padding-top: 0.5em;
-            padding-bottom: 0.8em;
-            font-size: 1.1em;
-            color: #1976d2;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        input[type="month" i] {
-            font-size: 1.5em;
-            border: 1px solid #b0bec5;
-            border-radius: 4px;
-            padding: 2px 0;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            /*margin-bottom: -16px;*/
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-            padding: 0;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .scroll-area {
-            overflow-y: scroll;
-            padding: 0 1rem 0 1rem;
-            background: #fff;
-        }
-
-        .footer-btn {
-            font-size: 1.1em;
-            padding: 0.8em 2em;
-            background: #1976d2;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-            cursor: pointer;
-        }
-
-        .footer-btn:active {
-            background: #1565c0;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                max-width: 100vw;
-                height: 100%;
-                margin: 0 auto;
-                border-radius: 0;
-                box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-                padding: 0;
-            }
-
-            .scroll-area {
-                padding: 0 0.2rem 0 0.2rem;
-            }
-
-            .header-btns {
-                padding: 0.8em 0 0.8em 0;
-                height: 70px;
-            }
-
-            input[type="month" i] {
-                font-size: 1em;
-                border: 1px solid #b0bec5;
-                border-radius: 4px;
-                padding: 2px 0;
-                width: 30%;
-            }
-        }
-
-        h2 {
-            text-align: center;
-            color: #1976d2;
-            margin-bottom: 1rem;
-        }
-
-        .record-list {
-            list-style: none;
-            padding: 0 0.5rem;
-            margin: 0;
-        }
-
-        .record-row {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0.7rem 0;
-            display: block;
-            /* blockに変更 */
-            background: #fff;
-            transition: background 0.2s;
-        }
-
-        .record-row.highlight {
-            background: #fff8e1 !important;
-            position: relative;
-        }
-
-        .record-row.highlight::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border: 2px solid #fb8c00;
-            border-radius: 4px;
-            pointer-events: none;
-        }
-
-        /* background: #e3f2fd; */
-        .record-row.active {
-            z-index: 20;
-            position: relative;
-        }
-
-        .record-main {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            flex: 1 1 0%;
-            gap: 0;
-            width: 100%;
-        }
-
-        .record-date {
-            font-weight: bold;
-            min-width: 4.5em;
-            max-width: 4.5em;
-            width: 4.5em;
-            flex-shrink: 0;
-            flex-grow: 0;
-        }
-
-        .day-status-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65em;
-            font-weight: 600;
-            line-height: 1.1em;
-            padding: 2px 6px;
-            border-radius: 12px;
-            background: #eceff1;
-            color: #455a64;
-            min-width: 3.2em;
-            cursor: default;
-            position: relative;
-        }
-
-        .day-status-badge[data-st="work"] {
-            background: #e3f2fd;
-            color: #0d47a1;
-        }
-
-        .day-status-badge[data-st="off"] {
-            background: #ffebee;
-            color: #b71c1c;
-        }
-
-        .day-status-badge[data-st="am_off"],
-        .day-status-badge[data-st="pm_off"] {
-            background: #fff8e1;
-            color: #e65100;
-        }
-
-        .day-status-badge[data-st="ignore"] {
-            background: #eeeeee;
-            color: #616161;
-            text-decoration: line-through;
-        }
-
-        .day-status-badge[data-st="paid"] {
-            background: #e8f5e9;
-            color: #1b5e20;
-        }
-
-        .day-status-badge .src-flag {
-            font-size: 0.55em;
-            font-weight: 400;
-            position: absolute;
-            bottom: -9px;
-            right: 2px;
-            color: #607d8b;
-        }
-
-        .classification-ui {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-            margin-top: 6px;
-        }
-
-        .classification-ui button {
-            font-size: 0.65em;
-            padding: 4px 6px;
-            border: 1px solid #1976d2;
-            background: #fff;
-            color: #1976d2;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .classification-ui button.active {
-            background: #1976d2;
-            color: #fff;
-        }
-
-        .classification-ui button:disabled {
-            opacity: .35;
-            cursor: not-allowed;
-        }
-
-        .record-times {
-            display: flex;
-            flex: 1 1 0%;
-            justify-content: space-between;
-            gap: 0;
-            margin-right: 0em;
-        }
-
-        .record-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 3.5em;
-            flex: 1 1 0%;
-        }
-
-        @media (max-width: 600px) {
-            .record-col {
-                min-width: 3em;
-            }
-        }
-
-        .record-col:nth-child(2) {
-            /* 終業 */
-            margin-right: 0.3em;
-        }
-
-        .record-col:nth-child(3) {
-            /* 休憩 */
-            margin-left: 0.3em;
-        }
-
-        .record-col .label {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .record-col .value {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #1976d2;
-            text-align: center;
-            margin-top: 0.1em;
-        }
-
-        .record-summary {
-            font-size: 0.9em;
-            color: #1976d2;
-            margin-left: 1em;
-        }
-
-        /* background: #f1f8e9; */
-        .expand-panel {
-            padding: 1em 0.7em 0em 0.7em;
-            z-index: 20;
-            position: static;
-            width: 100%;
-            box-sizing: border-box;
-            display: block;
-            clear: both;
-        }
-
-        .expand-panel .edit-row {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.7em;
-        }
-
-        @media (max-width: 600px) {
-            .expand-panel .edit-row {
-                gap: 0.5em;
-                justify-content: space-between;
-            }
-        }
-
-        .expand-panel .edit-row label {
-            align-items: center;
-            min-width: 0;
-        }
-
-        .expand-panel input[type="date"],
-        input[type="month"] {
-            width: 8em;
-            font-size: 1.5em;
-            padding: 0em 0em 0em 0em;
-            height: 1.65em;
-            border: 0.5px solid;
-            border-radius: 0.2em;
-            background: #fff;
-            box-shadow: 0 0 8px 1px #1976d229;
-            color: #1976d2;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-            text-align: center;
-            position: relative;
-        }
-
-        @media (max-width: 600px) {
-            .expand-panel input[type="time"] {
-                font-size: 1.8em;
-                height: 1.34em;
-                width: 7em;
-            }
-        }
-
-        @media (max-width: 600px) {
-            input[type="month"] {
-                font-size: 1.2em;
-                border: 1px solid #b0bec5;
-                border-radius: 4px;
-                padding: 2px 0;
-            }
-        }
-
-        .expand-panel input[type="time"] {
-            width: 5em;
-            font-size: 1.5em;
-            padding: 0em 0em 0em 0em;
-            height: 1.65em;
-            border: 0.5px solid;
-            border-radius: 0.2em;
-            background: #fff;
-            box-shadow: 0 0 8px 1px #1976d229;
-            color: #1976d2;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-            text-align: center;
-            position: relative;
-        }
-
-        @media (max-width: 600px) {
-            .expand-panel input[type="time"] {
-                font-size: 1.8em;
-                height: 1.34em;
-                width: 3.5em;
-            }
-        }
-
-        .expand-panel input[type="number"] {
-            width: 3.5em;
-            height: 1.34em;
-            font-size: 1.5em;
-            padding: 0em 0em 0em 0em;
-            border: 0.5px solid;
-            border-radius: 0.2em;
-            background: #fff;
-            box-shadow: 0 0 8px 1px #1976d229;
-            color: #1976d2;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-            position: relative;
-            text-align: right;
-        }
-
-        @media (max-width: 600px) {
-            .expand-panel input[type=number] {
-                font-size: 1.8em;
-                height: 1.34em;
-                width: 2.5em;
-                padding: 0 0.5em 0 0;
-            }
-        }
-
-        .expand-panel input[type="time"]:focus {
-            border: 1.5px solid rgba(25, 118, 210, 0.08);
-            box-shadow: 0 0 0 2px #90caf991;
-            background: #fff;
-        }
-
-        .break-edit-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5em;
-            margin-bottom: 0.3em;
-        }
-
-        .break-edit-row button {
-            background: #e57373;
-            color: #fff;
-            border: none;
-            border-radius: 3px;
-            padding: 0.2em 0.7em;
-            font-size: 1.3em;
-            cursor: pointer;
-        }
-
-        .default-btn,
-        .save-btn,
-        .cancel-btn {
-            font-size: 1.3em;
-            padding: 0.7em 1.5em;
-            min-width: 5.5em;
-            border-radius: 4px;
-            margin-top: 0.7em;
-            background: #1976d2;
-            color: #fff;
-            border: none;
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-        }
-
-        @media (max-width: 600px) {
-
-            .default-btn,
-            .save-btn,
-            .cancel-btn {
-                font-size: 1.1em;
-                padding: 1em 0.5em;
-                min-width: 7em;
-                cursor: pointer;
-            }
-        }
-
-        .add-break-btn,
-        .delete-btn {
-            font-size: 1.2em;
-            height: 2em;
-            padding: 0em;
-            min-width: 6.5em;
-            border-radius: 4px;
-            margin-top: 0.7em;
-            background: #1976d2;
-            color: #fff;
-            border: none;
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-        }
-
-        @media (max-width: 600px) {
-
-            .add-break-btn,
-            .delete-btn {
-                font-size: 1.1em;
-            }
-        }
-
-        .edit-btns {
-            display: flex;
-            gap: 1em;
-            align-items: center;
-            justify-content: flex-end;
-        }
-
-        .break-delete-btns {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 0.5em;
-        }
-
-        .default-btn:disabled,
-        .add-break-btn:disabled,
-        .save-btn:disabled,
-        .cancel-btn:disabled,
-        .delete-btn:disabled {
-            background: #b0bec5 !important;
-            color: #fff !important;
-            cursor: not-allowed !important;
-            box-shadow: none !important;
-            opacity: 0.6;
-            border: none;
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.15);
-            z-index: 10;
-        }
-
-        /* 管理者専用要素制御 */
-        .admin-only {
-            display: none;
-        }
-
-        body.is-admin .admin-only {
-            display: inline-flex;
-        }
-
-        /* --- Hamburger Menu --- */
-        .hamburger {
-            background: rgba(25, 118, 210, 0.06);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            position: relative;
-            cursor: pointer;
-            transition: background .15s ease-in-out;
-        }
-
-        .hamburger:focus {
-            outline: 2px solid #90caf9;
-            background: rgba(25, 118, 210, 0.08);
-        }
-
-        .hamburger:hover {
-            background: rgba(25, 118, 210, 0.14);
-        }
-
-        .hamburger .bar {
-            position: absolute;
-            left: 8px;
-            right: 8px;
-            height: 2px;
-            background: #1976d2;
-            transition: transform .2s ease, opacity .2s ease;
-        }
-
-        .hamburger .bar:nth-child(1) {
-            top: 12px;
-        }
-
-        .hamburger .bar:nth-child(2) {
-            top: 19px;
-        }
-
-        .hamburger .bar:nth-child(3) {
-            top: 26px;
-        }
-
-        .hamburger[aria-expanded="true"] .bar:nth-child(1) {
-            transform: translateY(7px) rotate(45deg);
-        }
-
-        .hamburger[aria-expanded="true"] .bar:nth-child(2) {
-            opacity: 0;
-        }
-
-        .hamburger[aria-expanded="true"] .bar:nth-child(3) {
-            transform: translateY(-7px) rotate(-45deg);
-        }
-
-        .notif-badge {
-            display: none;
-            position: absolute;
-            top: 4px;
-            right: 2px;
-            background: #e53935;
-            color: #fff;
-            min-width: 18px;
-            height: 18px;
-            padding: 0;
-            border-radius: 9px;
-            font-size: 12px;
-            line-height: 18px;
-            text-align: center;
-        }
-
-        .menu-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .25);
-            display: none;
-            z-index: 9998;
-        }
-
-        .menu-drawer {
-            position: fixed;
-            top: 0;
-            right: 0;
-            height: 100vh;
-            width: 78vw;
-            max-width: 320px;
-            background: #fff;
-            box-shadow: -2px 0 16px rgba(0, 0, 0, .15);
-            transform: translateX(100%);
-            transition: transform .2s ease;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .menu-drawer.open {
-            transform: translateX(0);
-        }
-
-        .menu-header {
-            padding: 1rem;
-            font-weight: bold;
-            color: #1976d2;
-            border-bottom: 1px solid #eee;
-        }
-
-        .menu-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .menu-list li {
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .menu-list a,
-        .menu-list button {
-            display: block;
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            border: none;
-            padding: 0.9rem 1rem;
-            font-size: 1rem;
-            color: #333;
-            cursor: pointer;
-        }
-
-        .menu-list a:hover,
-        .menu-list button:hover {
-            background: #f7f9fc;
-        }
-
-        /* 押し込み式トグルボタン */
-        #listToggles .toggle-btn {
-            appearance: none;
-            -webkit-appearance: none;
-            border: 1px solid #cfd8dc;
-            background: linear-gradient(#ffffff, #f7f9fc);
-            color: #455a64;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 0.9em;
-            line-height: 1;
-            cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
-            transition: background .15s ease, box-shadow .15s ease, transform .02s ease;
-            user-select: none;
-        }
-
-        #listToggles .toggle-btn:hover {
-            background: linear-gradient(#ffffff, #eef3f7);
-        }
-
-        #listToggles .toggle-btn:active {
-            transform: translateY(1px);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, .12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
-        }
-
-        #listToggles .toggle-btn.active {
-            background: #e3f2fd;
-            border-color: #90caf9;
-            color: #0d47a1;
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, .14), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
-        }
-
-        #listToggles .toggle-btn:focus-visible {
-            outline: none;
-            box-shadow: 0 0 0 2px #90caf9aa, inset 0 2px 4px rgba(0, 0, 0, .08);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>勤務記録一覧</title>
+  <link rel="stylesheet" href="css/common.css">
+  <style>
+    html {
+      height: 100%;
+      margin-top: 0px;
+    }
+
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+    }
+
+    .fixed-header {
+      position: sticky;
+      top: 0px;
+      z-index: 100;
+      background: #fff;
+      padding: 0;
+      display: block;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 600px) {
+      .fixed-header {
+        border-radius: 0;
+        height: auto;
+        padding: 0;
+        justify-content: space-between;
+      }
+    }
+
+    .header-title {
+      font-size: 1.3em;
+      width: -webkit-fill-available;
+      color: #1976d2;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5em;
+      padding: 10px 1em 0 1em;
+    }
+
+    @media (max-width: 600px) {
+      .header-title {
+        padding: 8px 0.5em 0 0.5em;
+      }
+    }
+
+    .header-btns {
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding: 10px 0 10px 0;
+      justify-content: center;
+      z-index: 200;
+      align-items: center;
+      max-width: 480px;
+      margin: 0 auto;
+      height: 70px;
+      gap: 0.7em;
+    }
+
+    .listLabelBox {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 1rem;
+      margin-bottom: 0.3em;
+      background: #ffffff;
+    }
+
+    @media (max-width: 600px) {
+      .listLabelBox {
+        padding: 0 0.2em;
+      }
+    }
+
+    #listLabel {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      padding: 0.7em 0.5em 0.3em 0.5em;
+    }
+
+    .fixed-footer {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      /*width: 100%;*/
+      z-index: 100;
+      background: #fff;
+      padding: 0 0 0 0;
+      display: block;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-btns {
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      gap: 0.7em;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding: 0px 0 0px 0;
+      justify-content: center;
+      z-index: 200;
+      align-items: center;
+      max-width: 480px;
+      margin: 10px auto;
+    }
+
+    .footer-btn {
+      font-size: 1.3em;
+      padding: 0.5em 1.2em;
+      border-radius: 4px;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+    }
+
+    @media (max-width: 600px) {
+      .footer-btn {
+        padding: 0.4em 0.5em;
+      }
+    }
+
+    .footer-btn:active {
+      background: #1565c0;
+    }
+
+    #statsBox {
+      display: grid;
+      row-gap: 0.3em;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      height: auto;
+      padding-top: 0.5em;
+      padding-bottom: 0.8em;
+      font-size: 1.1em;
+      color: #1976d2;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    input[type="month" i] {
+      font-size: 1.5em;
+      border: 1px solid #b0bec5;
+      border-radius: 4px;
+      padding: 2px 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      /*margin-bottom: -16px;*/
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+      padding: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scroll-area {
+      overflow-y: scroll;
+      padding: 0 1rem 0 1rem;
+      background: #fff;
+    }
+
+    .footer-btn {
+      font-size: 1.1em;
+      padding: 0.8em 2em;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      cursor: pointer;
+    }
+
+    .footer-btn:active {
+      background: #1565c0;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        max-width: 100vw;
+        height: 100%;
+        margin: 0 auto;
+        border-radius: 0;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+        padding: 0;
+      }
+
+      .scroll-area {
+        padding: 0 0.2rem 0 0.2rem;
+      }
+
+      .header-btns {
+        padding: 0.8em 0 0.8em 0;
+        height: 70px;
+      }
+
+      input[type="month" i] {
+        font-size: 1em;
+        border: 1px solid #b0bec5;
+        border-radius: 4px;
+        padding: 2px 0;
+        width: 30%;
+      }
+    }
+
+    h2 {
+      text-align: center;
+      color: #1976d2;
+      margin-bottom: 1rem;
+    }
+
+    .record-list {
+      list-style: none;
+      padding: 0 0.5rem;
+      margin: 0;
+    }
+
+    .record-row {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.7rem 0;
+      display: block;
+      /* blockに変更 */
+      background: #fff;
+      transition: background 0.2s;
+    }
+
+    .record-row.highlight {
+      background: #fff8e1 !important;
+      position: relative;
+    }
+
+    .record-row.highlight::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid #fb8c00;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    /* background: #e3f2fd; */
+    .record-row.active {
+      z-index: 20;
+      position: relative;
+    }
+
+    .record-main {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      flex: 1 1 0%;
+      gap: 0;
+      width: 100%;
+    }
+
+    .record-date {
+      font-weight: bold;
+      min-width: 4.5em;
+      max-width: 4.5em;
+      width: 4.5em;
+      flex-shrink: 0;
+      flex-grow: 0;
+    }
+
+    .day-status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65em;
+      font-weight: 600;
+      line-height: 1.1em;
+      padding: 2px 6px;
+      border-radius: 12px;
+      background: #eceff1;
+      color: #455a64;
+      min-width: 3.2em;
+      cursor: default;
+      position: relative;
+    }
+
+    .day-status-badge[data-st="work"] {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .day-status-badge[data-st="off"] {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .day-status-badge[data-st="am_off"],
+    .day-status-badge[data-st="pm_off"] {
+      background: #fff8e1;
+      color: #e65100;
+    }
+
+    .day-status-badge[data-st="ignore"] {
+      background: #eeeeee;
+      color: #616161;
+      text-decoration: line-through;
+    }
+
+    .day-status-badge[data-st="paid"] {
+      background: #e8f5e9;
+      color: #1b5e20;
+    }
+
+    .day-status-badge .src-flag {
+      font-size: 0.55em;
+      font-weight: 400;
+      position: absolute;
+      bottom: -9px;
+      right: 2px;
+      color: #607d8b;
+    }
+
+    .classification-ui {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .classification-ui button {
+      font-size: 0.65em;
+      padding: 4px 6px;
+      border: 1px solid #1976d2;
+      background: #fff;
+      color: #1976d2;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .classification-ui button.active {
+      background: #1976d2;
+      color: #fff;
+    }
+
+    .classification-ui button:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .record-times {
+      display: flex;
+      flex: 1 1 0%;
+      justify-content: space-between;
+      gap: 0;
+      margin-right: 0em;
+    }
+
+    .record-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 3.5em;
+      flex: 1 1 0%;
+    }
+
+    @media (max-width: 600px) {
+      .record-col {
+        min-width: 3em;
+      }
+    }
+
+    .record-col:nth-child(2) {
+      /* 終業 */
+      margin-right: 0.3em;
+    }
+
+    .record-col:nth-child(3) {
+      /* 休憩 */
+      margin-left: 0.3em;
+    }
+
+    .record-col .label {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .record-col .value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #1976d2;
+      text-align: center;
+      margin-top: 0.1em;
+    }
+
+    .record-summary {
+      font-size: 0.9em;
+      color: #1976d2;
+      margin-left: 1em;
+    }
+
+    /* background: #f1f8e9; */
+    .expand-panel {
+      padding: 1em 0.7em 0em 0.7em;
+      z-index: 20;
+      position: static;
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+      clear: both;
+    }
+
+    .expand-panel .edit-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.7em;
+    }
+
+    @media (max-width: 600px) {
+      .expand-panel .edit-row {
+        gap: 0.5em;
+        justify-content: space-between;
+      }
+    }
+
+    .expand-panel .edit-row label {
+      align-items: center;
+      min-width: 0;
+    }
+
+    .expand-panel input[type="date"],
+    input[type="month"] {
+      width: 8em;
+      font-size: 1.5em;
+      padding: 0em 0em 0em 0em;
+      height: 1.65em;
+      border: 0.5px solid;
+      border-radius: 0.2em;
+      background: #fff;
+      box-shadow: 0 0 8px 1px #1976d229;
+      color: #1976d2;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      text-align: center;
+      position: relative;
+    }
+
+    @media (max-width: 600px) {
+      .expand-panel input[type="time"] {
+        font-size: 1.8em;
+        height: 1.34em;
+        width: 7em;
+      }
+    }
+
+    @media (max-width: 600px) {
+      input[type="month"] {
+        font-size: 1.2em;
+        border: 1px solid #b0bec5;
+        border-radius: 4px;
+        padding: 2px 0;
+      }
+    }
+
+    .expand-panel input[type="time"] {
+      width: 5em;
+      font-size: 1.5em;
+      padding: 0em 0em 0em 0em;
+      height: 1.65em;
+      border: 0.5px solid;
+      border-radius: 0.2em;
+      background: #fff;
+      box-shadow: 0 0 8px 1px #1976d229;
+      color: #1976d2;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      text-align: center;
+      position: relative;
+    }
+
+    @media (max-width: 600px) {
+      .expand-panel input[type="time"] {
+        font-size: 1.8em;
+        height: 1.34em;
+        width: 3.5em;
+      }
+    }
+
+    .expand-panel input[type="number"] {
+      width: 3.5em;
+      height: 1.34em;
+      font-size: 1.5em;
+      padding: 0em 0em 0em 0em;
+      border: 0.5px solid;
+      border-radius: 0.2em;
+      background: #fff;
+      box-shadow: 0 0 8px 1px #1976d229;
+      color: #1976d2;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      position: relative;
+      text-align: right;
+    }
+
+    @media (max-width: 600px) {
+      .expand-panel input[type=number] {
+        font-size: 1.8em;
+        height: 1.34em;
+        width: 2.5em;
+        padding: 0 0.5em 0 0;
+      }
+    }
+
+    .expand-panel input[type="time"]:focus {
+      border: 1.5px solid rgba(25, 118, 210, 0.08);
+      box-shadow: 0 0 0 2px #90caf991;
+      background: #fff;
+    }
+
+    .break-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-bottom: 0.3em;
+    }
+
+    .break-edit-row button {
+      background: #e57373;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      padding: 0.2em 0.7em;
+      font-size: 1.3em;
+      cursor: pointer;
+    }
+
+    .default-btn,
+    .save-btn,
+    .cancel-btn {
+      font-size: 1.3em;
+      padding: 0.7em 1.5em;
+      min-width: 5.5em;
+      border-radius: 4px;
+      margin-top: 0.7em;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+    }
+
+    @media (max-width: 600px) {
+
+      .default-btn,
+      .save-btn,
+      .cancel-btn {
+        font-size: 1.1em;
+        padding: 1em 0.5em;
+        min-width: 7em;
+        cursor: pointer;
+      }
+    }
+
+    .add-break-btn,
+    .delete-btn {
+      font-size: 1.2em;
+      height: 2em;
+      padding: 0em;
+      min-width: 6.5em;
+      border-radius: 4px;
+      margin-top: 0.7em;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+    }
+
+    @media (max-width: 600px) {
+
+      .add-break-btn,
+      .delete-btn {
+        font-size: 1.1em;
+      }
+    }
+
+    .edit-btns {
+      display: flex;
+      gap: 1em;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .break-delete-btns {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5em;
+    }
+
+    .default-btn:disabled,
+    .add-break-btn:disabled,
+    .save-btn:disabled,
+    .cancel-btn:disabled,
+    .delete-btn:disabled {
+      background: #b0bec5 !important;
+      color: #fff !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      opacity: 0.6;
+      border: none;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+
+    /* 管理者専用要素制御 */
+    .admin-only {
+      display: none;
+    }
+
+    body.is-admin .admin-only {
+      display: inline-flex;
+    }
+
+    /* --- Hamburger Menu --- */
+    .hamburger {
+      background: rgba(25, 118, 210, 0.06);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      position: relative;
+      cursor: pointer;
+      transition: background .15s ease-in-out;
+    }
+
+    .hamburger:focus {
+      outline: 2px solid #90caf9;
+      background: rgba(25, 118, 210, 0.08);
+    }
+
+    .hamburger:hover {
+      background: rgba(25, 118, 210, 0.14);
+    }
+
+    .hamburger .bar {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: #1976d2;
+      transition: transform .2s ease, opacity .2s ease;
+    }
+
+    .hamburger .bar:nth-child(1) {
+      top: 12px;
+    }
+
+    .hamburger .bar:nth-child(2) {
+      top: 19px;
+    }
+
+    .hamburger .bar:nth-child(3) {
+      top: 26px;
+    }
+
+    .hamburger[aria-expanded="true"] .bar:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .hamburger[aria-expanded="true"] .bar:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger[aria-expanded="true"] .bar:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .notif-badge {
+      display: none;
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      background: #e53935;
+      color: #fff;
+      min-width: 18px;
+      height: 18px;
+      padding: 0;
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .25);
+      display: none;
+      z-index: 9998;
+    }
+
+    .menu-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: 78vw;
+      max-width: 320px;
+      background: #fff;
+      box-shadow: -2px 0 16px rgba(0, 0, 0, .15);
+      transform: translateX(100%);
+      transition: transform .2s ease;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .menu-drawer.open {
+      transform: translateX(0);
+    }
+
+    .menu-header {
+      padding: 1rem;
+      font-weight: bold;
+      color: #1976d2;
+      border-bottom: 1px solid #eee;
+    }
+
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .menu-list li {
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .menu-list a,
+    .menu-list button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .menu-list a:hover,
+    .menu-list button:hover {
+      background: #f7f9fc;
+    }
+
+    /* 押し込み式トグルボタン */
+    #listToggles .toggle-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid #cfd8dc;
+      background: linear-gradient(#ffffff, #f7f9fc);
+      color: #455a64;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.9em;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+      transition: background .15s ease, box-shadow .15s ease, transform .02s ease;
+      user-select: none;
+    }
+
+    #listToggles .toggle-btn:hover {
+      background: linear-gradient(#ffffff, #eef3f7);
+    }
+
+    #listToggles .toggle-btn:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, .12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+
+    #listToggles .toggle-btn.active {
+      background: #e3f2fd;
+      border-color: #90caf9;
+      color: #0d47a1;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, .14), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+    }
+
+    #listToggles .toggle-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #90caf9aa, inset 0 2px 4px rgba(0, 0, 0, .08);
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="fixed-header">
-            <div class="header-title">
-                <span id="yearLabel" style="display: none;"></span>
-                <a>勤務記録一覧</a>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <input type="month" id="monthSelect" />
-                    <button id="menuToggle" class="hamburger" aria-label="メニュー" aria-expanded="false" aria-controls="sideMenu">
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span class="bar"></span>
-                        <span id="menuNotifBadge" class="notif-badge"></span>
-                    </button>
-                </div>
-            </div>
-            <div id="header-btns" class="header-btns" style="display:none;"></div>
-            <div id="statsBox">
-                <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
-                <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">合計労働時間</span>
-                <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超過勤務時間</span>
-                <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
-                <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
-                <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
-            </div>
-            <div class="listLabelBox">
-                <div id="listLabel">
-                    <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
-                    <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
-                        <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
-                        </div>
-                        <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
-                        </div>
-                        <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
-                        </div>
-                        <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">労働</span>
-                        </div>
-                        <div class="record-col">
-                            <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="display:flex;justify-content:flex-end;padding:0 0.5em 0.4em 0.5em;">
-                    <div id="listToggles" style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button type="button" class="toggle-btn" data-type="work">勤務</button>
-                        <button type="button" class="toggle-btn" data-type="off">全休</button>
-                        <button type="button" class="toggle-btn" data-type="paid">有給</button>
-                        <button type="button" class="toggle-btn" data-type="ignore">除外</button>
-                        <button type="button" class="toggle-btn" data-type="missing">未</button>
-                    </div>
-                </div>
-            </div>
+  <div class="container">
+    <div class="fixed-header">
+      <div class="header-title">
+        <span id="yearLabel" style="display: none;"></span>
+        <a>勤務記録一覧</a>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="month" id="monthSelect" />
+          <button id="menuToggle" class="hamburger" aria-label="メニュー" aria-expanded="false" aria-controls="sideMenu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span id="menuNotifBadge" class="notif-badge"></span>
+          </button>
         </div>
-        <div class="scroll-area">
-            <ul class="record-list" id="recordList">
-                <!-- 勤務記録行がここに動的に挿入されます -->
-            </ul>
-        </div>
-        <div id="overlay" class="overlay" style="display:none;"></div>
-        <div class="fixed-footer">
-            <div class="footer-btns">
-                <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
-                <button class="footer-btn" id="addRecordBtn">＋新規追加</button>
+      </div>
+      <div id="header-btns" class="header-btns" style="display:none;"></div>
+      <div id="statsBox">
+        <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
+        <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">合計労働時間</span>
+        <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超過勤務時間</span>
+        <span id="missingCountLabel" style="grid-row: 1; grid-column: 4;">未打刻</span>
+        <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
+        <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
+        <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
+        <span id="missingCountValue" style="grid-row: 2; grid-column: 4;"></span>
+      </div>
+      <div class="listLabelBox">
+        <div id="listLabel">
+          <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
+          <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
+            <div class="record-col">
+              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
             </div>
+            <div class="record-col">
+              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
+            </div>
+            <div class="record-col">
+              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
+            </div>
+            <div class="record-col">
+              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">労働</span>
+            </div>
+            <div class="record-col">
+              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
+            </div>
+          </div>
         </div>
-        <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
-        <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
-            <div class="menu-header">メニュー</div>
-            <ul class="menu-list">
-                <li><button type="button" id="menuOpenNotif">お知らせを開く</button></li>
-                <li><a href="myday_dashboard.html">ダッシュボード</a></li>
-                <li><a href="punch.html">打刻画面へ</a></li>
-                <li><a href="admin.html" id="menuAdmin" style="display:none;">管理者メニュー</a></li>
-                <li><button type="button" id="menuLogout">ログアウト</button></li>
-            </ul>
-        </nav>
-        <script>
-            // --- 戻り導線（back, backMode） ---
-            function sanitizeBackUrl(url) {
-                if (!url) return null;
-                try {
-                    const u = new URL(url, window.location.origin);
-                    if (u.origin !== window.location.origin) return null; // 同一オリジンのみ
-                    return u.pathname + u.search + u.hash;
-                } catch (_) { return null; }
-            }
-            function initBackNavFromUrl() {
-                try {
-                    const params = new URLSearchParams(window.location.search);
-                    const back = params.get('back');
-                    const backMode = (params.get('backMode') || 'manual').toLowerCase();
-                    window.__backUrl = sanitizeBackUrl(back);
-                    window.__backMode = (backMode === 'auto') ? 'auto' : 'manual';
-                } catch (_) {
-                    window.__backUrl = null; window.__backMode = 'manual';
-                }
-            }
-            function shouldAutoBack() { return !!window.__backUrl && window.__backMode === 'auto'; }
-            function backNavigate() {
-                if (window.__backUrl) { window.location.href = window.__backUrl; }
-                else if (window.history && typeof window.history.back === 'function') { window.history.back(); }
-            }
-            function renderBackButton() {
-                if (!window.__backUrl || window.__backMode === 'auto') return;
-                const headerTitle = document.querySelector('.header-title');
-                if (!headerTitle) return;
-                if (document.getElementById('backBtn')) return;
-                const btn = document.createElement('button');
-                btn.id = 'backBtn';
-                btn.type = 'button';
-                btn.textContent = '← 戻る';
-                btn.style.cssText = 'margin-right:6px;padding:4px 10px;border:1px solid #cfd8dc;background:#fff;color:#455a64;border-radius:6px;cursor:pointer;';
-                btn.addEventListener('click', () => backNavigate());
-                headerTitle.insertBefore(btn, headerTitle.firstChild);
-            }
-            // fetchラッパー: 未ログインならlogin.htmlへ遷移
-            async function fetchWithAuth(url, options) {
-                const res = await fetch(url, options);
-                if (res.status === 401) {
-                    window.location.href = 'login.html';
-                    return null;
-                }
-                return res; // 403などは呼び出し側で必要なら処理
-            }
-            // ダミーデータ削除・APIから取得
-            let records = [];
-            // 勤怠ルール設定値
-            let settings = {
-                period_start: 1,
-                period_end: 31,
-                rounding_type: 'floor',
-                rounding_unit: 1,
-                work_hours: 8,
-                work_minutes: 0
-            };
-            // 設定取得
-            async function loadSettings() {
-                const res = await fetchWithAuth('api/settings_get.php');
-                if (!res) return;
-                if (res.ok) settings = await res.json();
-            }
+        <div style="display:flex;justify-content:flex-end;padding:0 0.5em 0.4em 0.5em;">
+          <div id="listToggles" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="toggle-btn" data-type="work">勤務</button>
+            <button type="button" class="toggle-btn" data-type="off">全休</button>
+            <button type="button" class="toggle-btn" data-type="paid">有給</button>
+            <button type="button" class="toggle-btn" data-type="ignore">除外</button>
+            <button type="button" class="toggle-btn" data-type="missing">未</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-area">
+      <ul class="record-list" id="recordList">
+        <!-- 勤務記録行がここに動的に挿入されます -->
+      </ul>
+    </div>
+    <div id="overlay" class="overlay" style="display:none;"></div>
+    <div class="fixed-footer">
+      <div class="footer-btns">
+        <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
+        <button class="footer-btn" id="addRecordBtn">＋新規追加</button>
+      </div>
+    </div>
+    <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
+    <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
+      <div class="menu-header">メニュー</div>
+      <ul class="menu-list">
+        <li><button type="button" id="menuOpenNotif">お知らせを開く</button></li>
+        <li><a href="myday_dashboard.html">ダッシュボード</a></li>
+        <li><a href="punch.html">打刻画面へ</a></li>
+        <li><a href="admin.html" id="menuAdmin" style="display:none;">管理者メニュー</a></li>
+        <li><button type="button" id="menuLogout">ログアウト</button></li>
+      </ul>
+    </nav>
+    <script>
+      // --- 戻り導線（back, backMode） ---
+      function sanitizeBackUrl(url) {
+        if (!url) return null;
+        try {
+          const u = new URL(url, window.location.origin);
+          if (u.origin !== window.location.origin) return null; // 同一オリジンのみ
+          return u.pathname + u.search + u.hash;
+        } catch (_) { return null; }
+      }
+      function initBackNavFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const back = params.get('back');
+          const backMode = (params.get('backMode') || 'manual').toLowerCase();
+          window.__backUrl = sanitizeBackUrl(back);
+          window.__backMode = (backMode === 'auto') ? 'auto' : 'manual';
+        } catch (_) {
+          window.__backUrl = null; window.__backMode = 'manual';
+        }
+      }
+      function shouldAutoBack() { return !!window.__backUrl && window.__backMode === 'auto'; }
+      function backNavigate() {
+        if (window.__backUrl) { window.location.href = window.__backUrl; }
+        else if (window.history && typeof window.history.back === 'function') { window.history.back(); }
+      }
+      function renderBackButton() {
+        if (!window.__backUrl || window.__backMode === 'auto') return;
+        const headerTitle = document.querySelector('.header-title');
+        if (!headerTitle) return;
+        if (document.getElementById('backBtn')) return;
+        const btn = document.createElement('button');
+        btn.id = 'backBtn';
+        btn.type = 'button';
+        btn.textContent = '← 戻る';
+        btn.style.cssText = 'margin-right:6px;padding:4px 10px;border:1px solid #cfd8dc;background:#fff;color:#455a64;border-radius:6px;cursor:pointer;';
+        btn.addEventListener('click', () => backNavigate());
+        headerTitle.insertBefore(btn, headerTitle.firstChild);
+      }
+      // fetchラッパー: 未ログインならlogin.htmlへ遷移
+      async function fetchWithAuth(url, options) {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return null;
+        }
+        return res; // 403などは呼び出し側で必要なら処理
+      }
+      // ダミーデータ削除・APIから取得
+      let records = [];
+      // 勤怠ルール設定値
+      let settings = {
+        period_start: 1,
+        period_end: 31,
+        rounding_type: 'floor',
+        rounding_unit: 1,
+        work_hours: 8,
+        work_minutes: 0
+      };
+      // 設定取得
+      async function loadSettings() {
+        const res = await fetchWithAuth('api/settings_get.php');
+        if (!res) return;
+        if (res.ok) settings = await res.json();
+      }
 
-            // 指定年月から「前月period_start日」～「選択月period_end日」までの範囲を計算
-            function calcPeriodRange(monthVal) {
-                // monthVal: "YYYY-MM"
-                const [y, m] = monthVal.split("-").map(Number);
-                // 前月
-                let startYear = y;
-                let startMonth = m - 1;
-                if (startMonth <= 0) {
-                    startYear -= 1;
-                    startMonth += 12;
-                }
-                const pad = n => n.toString().padStart(2, '0');
-                // 月末超過をクランプ
-                const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate(); // mm: 1-12, 日数
-                const startDay = Math.min(Number(settings.period_start) || 1, daysIn(startYear, startMonth));
-                const endDay = Math.min(Number(settings.period_end) || 31, daysIn(y, m));
-                const start = `${startYear}-${pad(startMonth)}-${pad(startDay)}`;
-                const end = `${y}-${pad(m)}-${pad(endDay)}`;
-                return { start, end };
-            }
-            // 期間を日付配列に展開
-            function enumerateDates(start, end) {
-                const arr = [];
-                const s = new Date(start + 'T00:00:00');
-                const e = new Date(end + 'T00:00:00');
-                for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-                    const yy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, '0');
-                    const dd = String(d.getDate()).padStart(2, '0');
-                    arr.push(`${yy}-${mm}-${dd}`);
-                }
-                return arr;
-            }
+      // 指定年月から「前月period_start日」～「選択月period_end日」までの範囲を計算
+      function calcPeriodRange(monthVal) {
+        // monthVal: "YYYY-MM"
+        const [y, m] = monthVal.split("-").map(Number);
+        // 前月
+        let startYear = y;
+        let startMonth = m - 1;
+        if (startMonth <= 0) {
+          startYear -= 1;
+          startMonth += 12;
+        }
+        const pad = n => n.toString().padStart(2, '0');
+        // 月末超過をクランプ
+        const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate(); // mm: 1-12, 日数
+        const startDay = Math.min(Number(settings.period_start) || 1, daysIn(startYear, startMonth));
+        const endDay = Math.min(Number(settings.period_end) || 31, daysIn(y, m));
+        const start = `${startYear}-${pad(startMonth)}-${pad(startDay)}`;
+        const end = `${y}-${pad(m)}-${pad(endDay)}`;
+        return { start, end };
+      }
+      // 期間を日付配列に展開
+      function enumerateDates(start, end) {
+        const arr = [];
+        const s = new Date(start + 'T00:00:00');
+        const e = new Date(end + 'T00:00:00');
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          const yy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          arr.push(`${yy}-${mm}-${dd}`);
+        }
+        return arr;
+      }
 
-            async function loadRecordsByPeriod(monthVal) {
-                let url = 'api/attendance_list.php';
-                const { start, end } = calcPeriodRange(monthVal);
-                const options = {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start, end })
-                };
-                const res = await fetchWithAuth(url, options);
-                if (!res) return;
-                if (res.ok) {
-                    records = await res.json();
-                    // 期間情報・日リスト・レコードマップ
-                    const pr = calcPeriodRange(monthVal);
-                    window.__periodRange = pr;
-                    window.__dayList = enumerateDates(pr.start, pr.end);
-                    window.__recordMap = {};
-                    (records || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
-                    // 有効な日ステータスを期間単位でフェッチ（本人のみ）
-                    try {
-                        const stRes = await fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`);
-                        if (stRes && stRes.ok) {
-                            const stData = await stRes.json();
-                            window.__dayStatuses = {};
-                            (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
-                        }
-                    } catch (e) { window.__dayStatuses = {}; }
-                    // ロック情報取得
-                    try {
-                        const lockRes = await fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`);
-                        if (lockRes && lockRes.ok) {
-                            const lockData = await lockRes.json();
-                            window.__lockedRanges = lockData.locked_ranges || [];
-                        } else { window.__lockedRanges = []; }
-                    } catch (e) { window.__lockedRanges = []; }
-                    // 有給（範囲）取得
-                    try {
-                        const plRes = await fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`);
-                        if (plRes && plRes.ok) {
-                            const plData = await plRes.json();
-                            window.__paidLeave = {};
-                            (plData.items || []).forEach(it => { if (it.date) window.__paidLeave[it.date] = it; });
-                        } else { window.__paidLeave = {}; }
-                    } catch (e) { window.__paidLeave = {}; }
-                } else {
-                    records = [];
-                    window.__dayStatuses = {};
-                    window.__lockedRanges = [];
-                    window.__paidLeave = {};
-                }
-                setYearLabel();
-                renderStatsBox();
-                render();
-                // 勤怠統計情報の表示
-                function renderStatsBox() {
-                    let workDays = 0;
-                    let totalWorkMin = 0;
-                    let totalOverMin = 0;
-                    const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-                    const dayList = window.__dayList || [];
-                    for (const d of dayList) {
-                        const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
-                        if (st === 'off' || st === 'ignore') continue; // 集計から除外
-                        const rec = window.__recordMap ? window.__recordMap[d] : null;
-                        if (rec && rec.clockIn && rec.clockOut) {
-                            workDays++;
-                            const s = parseTimeStr(rec.clockIn);
-                            const e = parseTimeStr(rec.clockOut);
-                            if (s && e) {
-                                let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
-                                min -= calcTotalBreak(rec.breaks || []);
-                                if (min > 0) totalWorkMin += min;
-                                if (min > baseMin) totalOverMin += min - baseMin;
-                            }
-                        }
-                    }
-                    const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
-                    const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "";
-                    document.getElementById("workDaysValue").textContent = workDays;
-                    document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
-                    document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
-                }
+      async function loadRecordsByPeriod(monthVal) {
+        let url = 'api/attendance_list.php';
+        const { start, end } = calcPeriodRange(monthVal);
+        const options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start, end })
+        };
+        const res = await fetchWithAuth(url, options);
+        if (!res) return;
+        if (res.ok) {
+          records = await res.json();
+          // 期間情報・日リスト・レコードマップ
+          const pr = calcPeriodRange(monthVal);
+          window.__periodRange = pr;
+          window.__dayList = enumerateDates(pr.start, pr.end);
+          window.__recordMap = {};
+          (records || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
+          // 有効な日ステータスを期間単位でフェッチ（本人のみ）
+          try {
+            const stRes = await fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`);
+            if (stRes && stRes.ok) {
+              const stData = await stRes.json();
+              window.__dayStatuses = {};
+              (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
             }
-            function parseTimeStr(str) {
-                // "HH:MM" or "YYYY-MM-DD HH:MM:SS" → {h, m}
-                if (!str) return null;
-                let t = str.trim();
-                if (t.length > 5) t = t.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
-                const [h, m] = t.split(":");
-                if (h === undefined || m === undefined) return null;
-                return { h: parseInt(h, 10), m: parseInt(m, 10) };
-            }
-            function calcTotalBreak(breaks) {
-                let total = 0;
-                for (const b of breaks) {
-                    const s = parseTimeStr(b.start);
-                    const e = parseTimeStr(b.end);
-                    if (s && e) {
-                        total += (e.h * 60 + e.m) - (s.h * 60 + s.m);
-                    }
-                }
-                return total;
-            }
-            // 勤怠ルール設定値・設定取得（重複定義を削除）
-            // ...既に上部で定義済みのためここは削除...
-            // 丸め関数
-            function roundMinutes(min) {
-                const unit = Number(settings.rounding_unit) || 1;
-                if (unit <= 1) return min;
-                if (settings.rounding_type === 'ceil') return Math.ceil(min / unit) * unit;
-                if (settings.rounding_type === 'round') return Math.round(min / unit) * unit;
-                return Math.floor(min / unit) * unit;
-            }
-            // 労働時間（分）計算
-            function calcWorkMin(clockIn, clockOut, breaks) {
-                const s = parseTimeStr(clockIn);
-                const e = parseTimeStr(clockOut);
-                if (!s || !e) return 0;
+          } catch (e) { window.__dayStatuses = {}; }
+          // ロック情報取得
+          try {
+            const lockRes = await fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`);
+            if (lockRes && lockRes.ok) {
+              const lockData = await lockRes.json();
+              window.__lockedRanges = lockData.locked_ranges || [];
+            } else { window.__lockedRanges = []; }
+          } catch (e) { window.__lockedRanges = []; }
+          // 有給（範囲）取得
+          try {
+            const plRes = await fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`);
+            if (plRes && plRes.ok) {
+              const plData = await plRes.json();
+              window.__paidLeave = {};
+              (plData.items || []).forEach(it => { if (it.date) window.__paidLeave[it.date] = it; });
+            } else { window.__paidLeave = {}; }
+          } catch (e) { window.__paidLeave = {}; }
+        } else {
+          records = [];
+          window.__dayStatuses = {};
+          window.__lockedRanges = [];
+          window.__paidLeave = {};
+        }
+        setYearLabel();
+        renderStatsBox();
+        render();
+        // 勤怠統計情報の表示
+        function renderStatsBox() {
+          let workDays = 0;
+          let totalWorkMin = 0;
+          let totalOverMin = 0;
+          let missingCount = 0;
+          const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+          const dayList = window.__dayList || [];
+          const now = new Date();
+          const pad = n => n.toString().padStart(2, '0');
+          const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+          for (const d of dayList) {
+            const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
+            if (st === 'off' || st === 'ignore') continue; // 集計から除外
+            const rec = window.__recordMap ? window.__recordMap[d] : null;
+            if (rec && rec.clockIn && rec.clockOut) {
+              workDays++;
+              const s = parseTimeStr(rec.clockIn);
+              const e = parseTimeStr(rec.clockOut);
+              if (s && e) {
                 let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
-                min -= calcTotalBreak(breaks);
-                if (min < 0) min = 0;
-                return roundMinutes(min);
+                min -= calcTotalBreak(rec.breaks || []);
+                if (min > 0) totalWorkMin += min;
+                if (min > baseMin) totalOverMin += min - baseMin;
+              }
+            } else {
+              // 未打刻件数（未来日は除外、有給は別扱い済み）
+              const isMissing = (!rec) && (st === 'work' || st === 'am_off' || st === 'pm_off');
+              const isPaid = !!(window.__paidLeave && window.__paidLeave[d]);
+              if (isMissing && !isPaid && d <= todayStr) missingCount++;
             }
-            const recordList = document.getElementById('recordList');
-            let expandedIdx = null;
-            let addPanelActive = false;
-            window.__dayStatuses = window.__dayStatuses || {}; // date -> {status, source, note}
+          }
+          const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
+          const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "";
+          document.getElementById("workDaysValue").textContent = workDays;
+          document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
+          document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
+          const missEl = document.getElementById("missingCountValue");
+          if (missEl) missEl.textContent = missingCount;
+        }
+      }
+      function parseTimeStr(str) {
+        // "HH:MM" or "YYYY-MM-DD HH:MM:SS" → {h, m}
+        if (!str) return null;
+        let t = str.trim();
+        if (t.length > 5) t = t.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+        const [h, m] = t.split(":");
+        if (h === undefined || m === undefined) return null;
+        return { h: parseInt(h, 10), m: parseInt(m, 10) };
+      }
+      function calcTotalBreak(breaks) {
+        let total = 0;
+        for (const b of breaks) {
+          const s = parseTimeStr(b.start);
+          const e = parseTimeStr(b.end);
+          if (s && e) {
+            total += (e.h * 60 + e.m) - (s.h * 60 + s.m);
+          }
+        }
+        return total;
+      }
+      // 勤怠ルール設定値・設定取得（重複定義を削除）
+      // ...既に上部で定義済みのためここは削除...
+      // 丸め関数
+      function roundMinutes(min) {
+        const unit = Number(settings.rounding_unit) || 1;
+        if (unit <= 1) return min;
+        if (settings.rounding_type === 'ceil') return Math.ceil(min / unit) * unit;
+        if (settings.rounding_type === 'round') return Math.round(min / unit) * unit;
+        return Math.floor(min / unit) * unit;
+      }
+      // 労働時間（分）計算
+      function calcWorkMin(clockIn, clockOut, breaks) {
+        const s = parseTimeStr(clockIn);
+        const e = parseTimeStr(clockOut);
+        if (!s || !e) return 0;
+        let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
+        min -= calcTotalBreak(breaks);
+        if (min < 0) min = 0;
+        return roundMinutes(min);
+      }
+      const recordList = document.getElementById('recordList');
+      let expandedIdx = null;
+      let addPanelActive = false;
+      window.__dayStatuses = window.__dayStatuses || {}; // date -> {status, source, note}
 
-            // 現在ログインユーザーID取得（分類UI用: admin APIは使わず自分のみ）
-            (async function () {
-                try {
-                    const who = await fetchWithAuth('api/check_login.php');
-                    if (who && who.ok) {
-                        const wj = await who.json();
-                        window.__currentUserId = wj.user_id;
-                        // 雇用区分フラグ（1=常勤, 0=パート）
-                        window.__fullTimeFlag = (wj && typeof wj.full_time !== 'undefined') ? Number(wj.full_time) : 1;
-                    }
-                } catch (e) { }
-            })();
-            document.getElementById('addRecordBtn').onclick = () => {
-                if (addPanelActive) return;
-                addPanelActive = true;
-                expandedIdx = null;
-                render();
-                // 新規追加パネルを先頭に挿入
-                const li = document.createElement('li');
-                li.className = 'record-row active';
-                const today = new Date();
-                const pad = n => n.toString().padStart(2, '0');
-                const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-                li.innerHTML = `
+      // 現在ログインユーザーID取得（分類UI用: admin APIは使わず自分のみ）
+      (async function () {
+        try {
+          const who = await fetchWithAuth('api/check_login.php');
+          if (who && who.ok) {
+            const wj = await who.json();
+            window.__currentUserId = wj.user_id;
+            // 雇用区分フラグ（1=常勤, 0=パート）
+            window.__fullTimeFlag = (wj && typeof wj.full_time !== 'undefined') ? Number(wj.full_time) : 1;
+          }
+        } catch (e) { }
+      })();
+      document.getElementById('addRecordBtn').onclick = () => {
+        if (addPanelActive) return;
+
+        addPanelActive = true;
+        expandedIdx = null;
+        render();
+        // 新規追加パネルを先頭に挿入
+        const li = document.createElement('li');
+        li.className = 'record-row active';
+        const today = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+        li.innerHTML = `
                 <div class="expand-panel">
                     <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${todayStr}"></label>
                     <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
                     <div class="edit-row">
-
-                        <label style="display: inline-grid;">始業 <input type="time" id="addIn"></label>
-                        <label style="display: inline-grid;">終業 <input type="time" id="addOut"></label>
-                        <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km</label></label>
+                      <label style="display: inline-grid;">始業
+                        <input type="time" id="addIn">
+                      </label>
+                      <label style="display: inline-grid;">終業
+                        <input type="time" id="addOut">
+                      </label>
+                      <label style="display: inline-grid;">車距離
+                        <label>
+                          <input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km
+                        </label>
+                      </label>
                     </div>
                     <div id="addClassification" style="margin-top:6px;"></div>
                     <div class="break-list">
@@ -1180,218 +1201,235 @@
                         <button class="default-btn cancel-btn">キャンセル</button>
                     </div>
                 </div>`;
-                // 休憩データ
-                const addRec = { date: todayStr, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
-                // 分類UIレンダリング
-                function renderAddClassification() {
-                    const wrap = li.querySelector('#addClassification');
-                    if (!wrap) return;
-                    wrap.innerHTML = classificationControls(addRec.date);
-                }
-                function updateLockWarn() {
-                    const warn = li.querySelector('#addLockWarn');
-                    if (!warn) return;
-                    if (isLocked(addRec.date)) { warn.style.display = 'block'; }
-                    else { warn.style.display = 'none'; }
-                }
-                // 休憩編集UI
-                const breakEditList = li.querySelector('#addBreakEditList');
-                function renderBreaks() {
-                    breakEditList.innerHTML = '';
-                    addRec.breaks.forEach((b, i) => {
-                        const row = document.createElement('div');
-                        row.className = 'break-edit-row';
-                        row.innerHTML = `
+        // 休憩データ
+        const addRec = { date: todayStr, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+        // 分類UIレンダリング
+        function renderAddClassification() {
+          const wrap = li.querySelector('#addClassification');
+          if (!wrap) return;
+          wrap.innerHTML = classificationControls(addRec.date);
+        }
+        function updateLockWarn() {
+          const warn = li.querySelector('#addLockWarn');
+          if (!warn) return;
+          if (isLocked(addRec.date)) { warn.style.display = 'block'; }
+          else { warn.style.display = 'none'; }
+        }
+        // 休憩編集UI
+        const breakEditList = li.querySelector('#addBreakEditList');
+        function renderBreaks() {
+          breakEditList.innerHTML = '';
+          addRec.breaks.forEach((b, i) => {
+            const row = document.createElement('div');
+            row.className = 'break-edit-row';
+            row.innerHTML = `
                         <span>${i + 1}.</span>
                         <input type="time" value="${b.start || ''}" class="break-start">
                         ～
                         <input type="time" value="${b.end || ''}" class="break-end">
                         <button type="button" title="削除">×</button>
                     `;
-                        const startInput = row.querySelector('.break-start');
-                        const endInput = row.querySelector('.break-end');
-                        startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-                        endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-                        row.querySelector('button').onclick = e => {
-                            e.stopPropagation();
-                            addRec.breaks.splice(i, 1);
-                            renderBreaks();
-                            updateSaveBtn();
-                        };
-                        breakEditList.appendChild(row);
-                    });
-                }
-                li.querySelector('.add-break-btn').onclick = () => {
-                    addRec.breaks.push({ start: '', end: '' });
-                    renderBreaks();
-                    updateSaveBtn();
-                };
-                // バリデーション
-                function toDateObj(dateStr, timeStr) {
-                    if (!dateStr || !timeStr) return null;
-                    return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
-                }
-                function validateInputs() {
-                    const dateVal = li.querySelector('#addDate').value;
-                    const inVal = li.querySelector('#addIn').value;
-                    const outVal = li.querySelector('#addOut').value;
-                    if (!dateVal || !inVal || !outVal) return false;
-                    // 期間ロック中は保存不可
-                    if (isLocked(dateVal)) return false;
-                    // 日付重複チェック
-                    if (records.some(r => r.date === dateVal)) return false;
-                    const inDate = toDateObj(dateVal, inVal);
-                    const outDate = toDateObj(dateVal, outVal);
-                    if (inDate && outDate && inDate >= outDate) return false;
-                    for (let i = 0; i < addRec.breaks.length; i++) {
-                        const b = addRec.breaks[i];
-                        const bStart = b.start ? toDateObj(dateVal, b.start) : null;
-                        const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
-                        if (!b.start || !b.end) return false;
-                        if (bStart && bEnd) {
-                            if (bStart >= bEnd) return false;
-                            if (inDate && bStart < inDate) return false;
-                            if (outDate && bEnd > outDate) return false;
-                        }
-                    }
-                    // 選択月以外は追加不可
-                    const monthVal = document.getElementById('monthSelect').value;
-                    if (!dateVal.startsWith(monthVal)) return false;
-                    return true;
-                }
-                function updateSaveBtn() {
-                    li.querySelector('.save-btn').disabled = !validateInputs();
-                }
-                li.querySelector('#addDate').addEventListener('input', e => {
-                    addRec.date = e.target.value;
-                    renderAddClassification();
-                    updateLockWarn();
-                    updateSaveBtn();
-                });
-                li.querySelector('#addIn').addEventListener('input', e => {
-                    addRec.clockIn = e.target.value;
-                    updateSaveBtn();
-                });
-                li.querySelector('#addOut').addEventListener('input', e => {
-                    addRec.clockOut = e.target.value;
-                    updateSaveBtn();
-                });
-                li.querySelector('#addVehicleDistance').addEventListener('input', e => {
-                    addRec.vehicleDistance = Number(e.target.value) || 0;
-                    updateSaveBtn();
-                });
-                renderBreaks();
-                renderAddClassification();
-                updateLockWarn();
-                // 保存
-                li.querySelector('.save-btn').onclick = async () => {
-                    if (!validateInputs()) {
-                        alert('入力内容に誤りがあります。');
-                        return;
-                    }
-                    // APIに新規追加
-                    const res = await fetch('api/attendance_update.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            date: addRec.date,
-                            clockIn: addRec.clockIn,
-                            clockOut: addRec.clockOut,
-                            breaks: addRec.breaks,
-                            vehicleDistance: addRec.vehicleDistance
-                        })
-                    });
-                    if (res.ok) {
-                        addPanelActive = false;
-                        const monthVal = document.getElementById('monthSelect').value;
-                        clearForceVisibleDate();
-                        if (shouldAutoBack()) { backNavigate(); return; }
-                        await loadRecordsByPeriod(monthVal);
-                    } else {
-                        alert('新規追加に失敗しました');
-                    }
-                };
-                // オーバーレイクリックで閉じる
-                document.getElementById('overlay').onclick = () => {
-                    addPanelActive = false;
-                    clearForceVisibleDate();
-                    render();
-                    hideOverlay();
-                    if (shouldAutoBack()) { backNavigate(); }
-                };
-                // キャンセル
-                li.querySelector('.cancel-btn').onclick = () => {
-                    addPanelActive = false;
-                    clearForceVisibleDate();
-                    render();
-                    hideOverlay();
-                    if (shouldAutoBack()) { backNavigate(); }
-                };
-                // 最上部に挿入
-                recordList.insertBefore(li, recordList.firstChild);
-                // オーバーレイ表示
-                showOverlay();
+            const startInput = row.querySelector('.break-start');
+            const endInput = row.querySelector('.break-end');
+            startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+            endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+            row.querySelector('button').onclick = e => {
+              e.stopPropagation();
+              addRec.breaks.splice(i, 1);
+              renderBreaks();
+              updateSaveBtn();
             };
-            function formatTime(str) {
-                if (!str) return '-';
-                if (str.length > 5) return str.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
-                if (str.length === 5) return str; // "HH:MM"
-                if (str.length === 2 || str.length === 1) return str.padStart(2, '0') + ':00'; // "9"→"09:00"
-                return '-';
+            breakEditList.appendChild(row);
+          });
+        }
+        li.querySelector('.add-break-btn').onclick = () => {
+          addRec.breaks.push({ start: '', end: '' });
+          renderBreaks();
+          updateSaveBtn();
+        };
+        // バリデーション
+        function toDateObj(dateStr, timeStr) {
+          if (!dateStr || !timeStr) return null;
+          return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
+        }
+        function validateInputs() {
+          const dateVal = li.querySelector('#addDate').value;
+          const inVal = li.querySelector('#addIn').value;
+          const outVal = li.querySelector('#addOut').value;
+          if (!dateVal || !inVal || !outVal) return false;
+          // 期間ロック中は保存不可
+          if (isLocked(dateVal)) return false;
+          // 日付重複チェック
+          if (records.some(r => r.date === dateVal)) return false;
+          const inDate = toDateObj(dateVal, inVal);
+          const outDate = toDateObj(dateVal, outVal);
+          if (inDate && outDate && inDate >= outDate) return false;
+          for (let i = 0; i < addRec.breaks.length; i++) {
+            const b = addRec.breaks[i];
+            const bStart = b.start ? toDateObj(dateVal, b.start) : null;
+            const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
+            if (!b.start || !b.end) return false;
+            if (bStart && bEnd) {
+              if (bStart >= bEnd) return false;
+              if (inDate && bStart < inDate) return false;
+              if (outDate && bEnd > outDate) return false;
             }
-            // フィルタ制御
-            // トグルフィルタ: 選択セット（work/off/paid/ignore/missing）
-            let __filterSet = (() => { try { return JSON.parse(localStorage.getItem('attListFilterSet') || 'null'); } catch (_) { return null; } })() || ['work', 'off', 'paid', 'ignore', 'missing'];
-            function saveFilterSet() { localStorage.setItem('attListFilterSet', JSON.stringify(__filterSet)); }
-            function toggleFilter(type) {
-                if (__filterSet.includes(type)) { __filterSet = __filterSet.filter(t => t !== type); } else { __filterSet.push(type); }
-                if (__filterSet.length === 0) { __filterSet = ['work']; } // 最低1個
-                saveFilterSet();
-                syncToggleUI();
-                render();
-            }
-            function syncToggleUI() {
-                const wrap = document.getElementById('listToggles');
-                if (!wrap) return;
-                wrap.querySelectorAll('.toggle-btn').forEach(btn => {
-                    const t = btn.getAttribute('data-type');
-                    const on = __filterSet.includes(t);
-                    btn.classList.toggle('active', on);
-                    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-                    btn.setAttribute('role', 'button');
-                });
-            }
-            function dayType(date) {
-                const st = (window.__dayStatuses && window.__dayStatuses[date]) ? window.__dayStatuses[date].status : 'work';
-                const hasRec = window.__recordMap && !!window.__recordMap[date];
-                if (window.__paidLeave && window.__paidLeave[date]) return 'paid';
-                if (st === 'off') return 'off';
-                if (st === 'ignore') return 'ignore';
-                if (!hasRec && (st === 'work' || st === 'am_off' || st === 'pm_off')) return 'missing';
-                return 'work';
-            }
-            function passFilter(date) {
-                // 深リンクやアラートからのジャンプ時は、対象日だけは常に表示してパネルを出せるようにする
-                if (window.__forceVisibleDate && date === window.__forceVisibleDate) return true;
-                // 互換のため、ハイライト日付でも許可（forceVisible導入前の動作を維持）
-                if (window.__highlightDate && date === window.__highlightDate) return true;
-                return __filterSet.includes(dayType(date));
-            }
-            // 強制表示の解除（パネルを閉じたタイミング等で呼ぶ）
-            function clearForceVisibleDate() { window.__forceVisibleDate = null; }
-            function openAddPanelFor(date, anchorLi) {
-                // 既存の追加パネルがあれば除去
-                const oldPanel = recordList.querySelector('li.record-row.active #addDate');
-                if (oldPanel) {
-                    const li = oldPanel.closest('li.record-row.active');
-                    if (li) li.remove();
-                }
-                // 追加パネルの表示フラグのみ切替（expandedIdx は変更しない）
-                addPanelActive = true;
-                // 新規追加パネル生成（既存トップ挿入ロジックをベースに行内挿入へ）
-                const li = document.createElement('li');
-                li.className = 'record-row active';
-                li.innerHTML = `
+          }
+          // 選択月以外は追加不可
+          const monthVal = document.getElementById('monthSelect').value;
+          if (!dateVal.startsWith(monthVal)) return false;
+          return true;
+        }
+        function updateSaveBtn() {
+          li.querySelector('.save-btn').disabled = !validateInputs();
+        }
+        li.querySelector('#addDate').addEventListener('input', e => {
+          addRec.date = e.target.value;
+          renderAddClassification();
+          updateLockWarn();
+          updateSaveBtn();
+        });
+        li.querySelector('#addIn').addEventListener('input', e => {
+          addRec.clockIn = e.target.value;
+          updateSaveBtn();
+        });
+        li.querySelector('#addOut').addEventListener('input', e => {
+          addRec.clockOut = e.target.value;
+          updateSaveBtn();
+        });
+        li.querySelector('#addVehicleDistance').addEventListener('input', e => {
+          addRec.vehicleDistance = Number(e.target.value) || 0;
+          updateSaveBtn();
+        });
+        renderBreaks();
+        renderAddClassification();
+        updateLockWarn();
+        // 保存
+        li.querySelector('.save-btn').onclick = async () => {
+          if (!validateInputs()) {
+            alert('入力内容に誤りがあります。');
+            return;
+          }
+          // APIに新規追加
+          const res = await fetch('api/attendance_update.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: addRec.date,
+              clockIn: addRec.clockIn,
+              clockOut: addRec.clockOut,
+              breaks: addRec.breaks,
+              vehicleDistance: addRec.vehicleDistance
+            })
+          });
+          if (res.ok) {
+            addPanelActive = false;
+            const monthVal = document.getElementById('monthSelect').value;
+            clearForceVisibleDate();
+            if (shouldAutoBack()) { backNavigate(); return; }
+            await loadRecordsByPeriod(monthVal);
+          } else {
+            alert('新規追加に失敗しました');
+          }
+        };
+        // オーバーレイクリックで閉じる
+        document.getElementById('overlay').onclick = () => {
+          addPanelActive = false;
+          clearForceVisibleDate();
+          render();
+          hideOverlay();
+          if (shouldAutoBack()) { backNavigate(); }
+        };
+        // キャンセル
+        li.querySelector('.cancel-btn').onclick = () => {
+          addPanelActive = false;
+          clearForceVisibleDate();
+          render();
+          hideOverlay();
+          if (shouldAutoBack()) { backNavigate(); }
+        };
+        // 最上部に挿入
+        recordList.insertBefore(li, recordList.firstChild);
+        // オーバーレイ表示
+        showOverlay();
+      };
+
+      function formatTime(str) {
+        if (!str) return '-';
+        if (str.length > 5) return str.slice(-8, -3); // "YYYY-MM-DD HH:MM:SS" → "HH:MM"
+        if (str.length === 5) return str; // "HH:MM"
+        if (str.length === 2 || str.length === 1) return str.padStart(2, '0') + ':00'; // "9"→"09:00"
+        return '-';
+      }
+      // フィルタ制御
+      // トグルフィルタ: 選択セット（work/off/paid/ignore/missing）
+      let __filterSet = (() => { try { return JSON.parse(localStorage.getItem('attListFilterSet') || 'null'); } catch (_) { return null; } })() || ['work', 'off', 'paid', 'ignore', 'missing'];
+      function saveFilterSet() { localStorage.setItem('attListFilterSet', JSON.stringify(__filterSet)); }
+      function toggleFilter(type) {
+        if (__filterSet.includes(type)) { __filterSet = __filterSet.filter(t => t !== type); } else { __filterSet.push(type); }
+        if (__filterSet.length === 0) { __filterSet = ['work']; } // 最低1個
+        saveFilterSet();
+        syncToggleUI();
+        render();
+      }
+      function syncToggleUI() {
+        const wrap = document.getElementById('listToggles');
+        if (!wrap) return;
+        wrap.querySelectorAll('.toggle-btn').forEach(btn => {
+          const t = btn.getAttribute('data-type');
+          const on = __filterSet.includes(t);
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          btn.setAttribute('role', 'button');
+        });
+      }
+      function dayType(date) {
+        const st = (window.__dayStatuses && window.__dayStatuses[date]) ? window.__dayStatuses[date].status : 'work';
+        const hasRec = window.__recordMap && !!window.__recordMap[date];
+        if (window.__paidLeave && window.__paidLeave[date]) return 'paid';
+        if (st === 'off') return 'off';
+        if (st === 'ignore') return 'ignore';
+        if (!hasRec && (st === 'work' || st === 'am_off' || st === 'pm_off')) return 'missing';
+        return 'work';
+      }
+
+      function passFilter(date) {
+        // 深リンクやアラートからのジャンプ時は、対象日だけは常に表示してパネルを出せるようにする
+        if (window.__forceVisibleDate && date === window.__forceVisibleDate) return true;
+        // 互換のため、ハイライト日付でも許可（forceVisible導入前の動作を維持）
+        if (window.__highlightDate && date === window.__highlightDate) return true;
+        // 未来日（未到達日）の未打刻は表示しない（有給などは例外: dayType が paid で保持）
+        const today = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+        if (dayType(date) === 'missing' && date > todayStr) return false;
+        return __filterSet.includes(dayType(date));
+      }
+
+      // 強制表示の解除（パネルを閉じたタイミング等で呼ぶ）
+      function clearForceVisibleDate() {
+        window.__forceVisibleDate = null;
+      }
+
+      function openAddPanelFor(date, anchorLi) {
+        // 既存の追加パネルがあれば除去
+        const oldPanel = recordList.querySelector('li.record-row.active #addDate');
+        if (oldPanel) {
+          const li = oldPanel.closest('li.record-row.active');
+          if (li) li.remove();
+        }
+        if (this.event) {
+          if (this.event.target.className === 'mini-off-btn') {
+            // ミニ全休ボタンからの追加は無視
+            return;
+          }
+        }
+        // 追加パネルの表示フラグのみ切替（expandedIdx は変更しない）
+        addPanelActive = true;
+        // 新規追加パネル生成（既存トップ挿入ロジックをベースに行内挿入へ）
+        const li = document.createElement('li');
+        li.className = 'record-row active';
+        li.innerHTML = `
                 <div class="expand-panel">
                     <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${date}"></label>
                     <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
@@ -1413,115 +1451,119 @@
                         <button class="default-btn cancel-btn">キャンセル</button>
                     </div>
                 </div>`;
-                const addRec = { date, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
-                function renderAddClassification() {
-                    const wrap = li.querySelector('#addClassification');
-                    if (!wrap) return; wrap.innerHTML = classificationControls(addRec.date);
-                }
-                function updateLockWarn() {
-                    const warn = li.querySelector('#addLockWarn'); if (!warn) return; warn.style.display = isLocked(addRec.date) ? 'block' : 'none';
-                }
-                const breakEditList = li.querySelector('#addBreakEditList');
-                function renderBreaks() {
-                    breakEditList.innerHTML = '';
-                    addRec.breaks.forEach((b, i) => {
-                        const row = document.createElement('div');
-                        row.className = 'break-edit-row';
-                        row.innerHTML = `
+        const addRec = { date, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+        function renderAddClassification() {
+          const wrap = li.querySelector('#addClassification');
+          if (!wrap) return; wrap.innerHTML = classificationControls(addRec.date);
+        }
+        function updateLockWarn() {
+          const warn = li.querySelector('#addLockWarn'); if (!warn) return; warn.style.display = isLocked(addRec.date) ? 'block' : 'none';
+        }
+        const breakEditList = li.querySelector('#addBreakEditList');
+        function renderBreaks() {
+          breakEditList.innerHTML = '';
+          addRec.breaks.forEach((b, i) => {
+            const row = document.createElement('div');
+            row.className = 'break-edit-row';
+            row.innerHTML = `
                             <span>${i + 1}.</span>
                             <input type="time" value="${b.start || ''}" class="break-start"> ～
                             <input type="time" value="${b.end || ''}" class="break-end">
                             <button type="button" title="削除">×</button>`;
-                        const startInput = row.querySelector('.break-start');
-                        const endInput = row.querySelector('.break-end');
-                        startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-                        endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-                        row.querySelector('button').onclick = e => { e.stopPropagation(); addRec.breaks.splice(i, 1); renderBreaks(); updateSaveBtn(); };
-                        breakEditList.appendChild(row);
-                    });
-                }
-                li.querySelector('.add-break-btn').onclick = () => { addRec.breaks.push({ start: '', end: '' }); renderBreaks(); updateSaveBtn(); };
-                function toDateObj(dateStr, timeStr) { if (!dateStr || !timeStr) return null; return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`); }
-                function validateInputs() {
-                    const dateVal = li.querySelector('#addDate').value;
-                    const inVal = li.querySelector('#addIn').value;
-                    const outVal = li.querySelector('#addOut').value;
-                    if (!dateVal || !inVal || !outVal) return false;
-                    if (isLocked(dateVal)) return false;
-                    if (records.some(r => r.date === dateVal)) return false;
-                    const inDate = toDateObj(dateVal, inVal); const outDate = toDateObj(dateVal, outVal);
-                    if (inDate && outDate && inDate >= outDate) return false;
-                    for (let i = 0; i < addRec.breaks.length; i++) {
-                        const b = addRec.breaks[i]; const bStart = b.start ? toDateObj(dateVal, b.start) : null; const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
-                        if (!b.start || !b.end) return false;
-                        if (bStart && bEnd) { if (bStart >= bEnd) return false; if (inDate && bStart < inDate) return false; if (outDate && bEnd > outDate) return false; }
-                    }
-                    const monthVal = document.getElementById('monthSelect').value; if (!dateVal.startsWith(monthVal)) return false; return true;
-                }
-                function updateSaveBtn() { li.querySelector('.save-btn').disabled = !validateInputs(); }
-                li.querySelector('#addDate').addEventListener('input', e => { addRec.date = e.target.value; renderAddClassification(); updateLockWarn(); updateSaveBtn(); });
-                li.querySelector('#addIn').addEventListener('input', e => { addRec.clockIn = e.target.value; updateSaveBtn(); });
-                li.querySelector('#addOut').addEventListener('input', e => { addRec.clockOut = e.target.value; updateSaveBtn(); });
-                li.querySelector('#addVehicleDistance').addEventListener('input', e => { addRec.vehicleDistance = Number(e.target.value) || 0; updateSaveBtn(); });
-                renderBreaks(); renderAddClassification(); updateLockWarn(); updateSaveBtn();
-                li.querySelector('.save-btn').onclick = async () => {
-                    if (!validateInputs()) { alert('入力内容に誤りがあります。'); return; }
-                    const res = await fetch('api/attendance_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: addRec.date, clockIn: addRec.clockIn, clockOut: addRec.clockOut, breaks: addRec.breaks, vehicleDistance: addRec.vehicleDistance }) });
-                    if (res.ok) { addPanelActive = false; const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal); } else { alert('新規追加に失敗しました'); }
-                };
-                document.getElementById('overlay').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                li.querySelector('.cancel-btn').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
-                if (anchorLi && anchorLi.parentNode === recordList) {
-                    if (anchorLi.nextSibling) recordList.insertBefore(li, anchorLi.nextSibling); else recordList.appendChild(li);
-                } else {
-                    recordList.insertBefore(li, recordList.firstChild);
-                }
-                showOverlay();
-                const inEl = li.querySelector('#addIn'); if (inEl) inEl.focus();
-            }
-            function render() {
-                recordList.innerHTML = '';
-                const dayList = window.__dayList || [];
-                dayList.forEach((d, idx) => {
-                    if (!passFilter(d)) return;
-                    const rec = window.__recordMap ? window.__recordMap[d] : null;
-                    const t = dayType(d);
-                    const li = document.createElement('li');
-                    li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
-                    if (t !== 'work') {
-                        const badgeSt = (window.__dayStatuses[d]?.status) || 'work';
-                        let timesHTML = `
+            const startInput = row.querySelector('.break-start');
+            const endInput = row.querySelector('.break-end');
+            startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+            endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+            row.querySelector('button').onclick = e => { e.stopPropagation(); addRec.breaks.splice(i, 1); renderBreaks(); updateSaveBtn(); };
+            breakEditList.appendChild(row);
+          });
+        }
+        li.querySelector('.add-break-btn').onclick = () => { addRec.breaks.push({ start: '', end: '' }); renderBreaks(); updateSaveBtn(); };
+        function toDateObj(dateStr, timeStr) { if (!dateStr || !timeStr) return null; return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`); }
+        function validateInputs() {
+          const dateVal = li.querySelector('#addDate').value;
+          const inVal = li.querySelector('#addIn').value;
+          const outVal = li.querySelector('#addOut').value;
+          if (!dateVal || !inVal || !outVal) return false;
+          if (isLocked(dateVal)) return false;
+          if (records.some(r => r.date === dateVal)) return false;
+          const inDate = toDateObj(dateVal, inVal); const outDate = toDateObj(dateVal, outVal);
+          if (inDate && outDate && inDate >= outDate) return false;
+          for (let i = 0; i < addRec.breaks.length; i++) {
+            const b = addRec.breaks[i]; const bStart = b.start ? toDateObj(dateVal, b.start) : null; const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
+            if (!b.start || !b.end) return false;
+            if (bStart && bEnd) { if (bStart >= bEnd) return false; if (inDate && bStart < inDate) return false; if (outDate && bEnd > outDate) return false; }
+          }
+          const monthVal = document.getElementById('monthSelect').value; if (!dateVal.startsWith(monthVal)) return false; return true;
+        }
+        function updateSaveBtn() { li.querySelector('.save-btn').disabled = !validateInputs(); }
+        li.querySelector('#addDate').addEventListener('input', e => { addRec.date = e.target.value; renderAddClassification(); updateLockWarn(); updateSaveBtn(); });
+        li.querySelector('#addIn').addEventListener('input', e => { addRec.clockIn = e.target.value; updateSaveBtn(); });
+        li.querySelector('#addOut').addEventListener('input', e => { addRec.clockOut = e.target.value; updateSaveBtn(); });
+        li.querySelector('#addVehicleDistance').addEventListener('input', e => { addRec.vehicleDistance = Number(e.target.value) || 0; updateSaveBtn(); });
+        renderBreaks(); renderAddClassification(); updateLockWarn(); updateSaveBtn();
+        li.querySelector('.save-btn').onclick = async () => {
+          if (!validateInputs()) { alert('入力内容に誤りがあります。'); return; }
+          const res = await fetch('api/attendance_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: addRec.date, clockIn: addRec.clockIn, clockOut: addRec.clockOut, breaks: addRec.breaks, vehicleDistance: addRec.vehicleDistance }) });
+          if (res.ok) { addPanelActive = false; const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal); } else { alert('新規追加に失敗しました'); }
+        };
+        document.getElementById('overlay').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+        li.querySelector('.cancel-btn').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+        // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
+        if (anchorLi && anchorLi.parentNode === recordList) {
+          if (anchorLi.nextSibling) recordList.insertBefore(li, anchorLi.nextSibling); else recordList.appendChild(li);
+        } else {
+          recordList.insertBefore(li, recordList.firstChild);
+        }
+        showOverlay();
+        const inEl = li.querySelector('#addIn'); if (inEl) inEl.focus();
+      }
+      function render() {
+        recordList.innerHTML = '';
+        const dayList = window.__dayList || [];
+        dayList.forEach((d, idx) => {
+          if (!passFilter(d)) return;
+          const rec = window.__recordMap ? window.__recordMap[d] : null;
+          const t = dayType(d);
+          const li = document.createElement('li');
+          li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
+          if (t !== 'work') {
+            const badgeSt = (window.__dayStatuses[d]?.status) || 'work';
+            let timesHTML = `
                             <div class="record-col"><div class="value"></div></div>
                             <div class="record-col"><div class="value"></div></div>
                             <div class="record-col"><div class="value"></div></div>
                             <div class="record-col"><div class="value"></div></div>`;
-                        if (t === 'missing') {
-                            timesHTML = `<div class="record-col"><div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;">（未）<button type='button' class='mini-add-btn' data-date='${d}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div>`;
-                        } else if (t === 'paid') {
-                            const info = window.__paidLeave[d];
-                            const hrs = info ? info.hours : null;
-                            const reason = info && info.reason ? info.reason : '';
-                            timesHTML = `<div class='record-col'><div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div>`;
-                        }
-                        const badgeCode = t === 'paid' ? 'paid' : badgeSt;
-                        li.innerHTML = `
+            if (t === 'missing') {
+              const locked = isLocked(d);
+              timesHTML = `<div class="record-col" style="min-width:unset"><div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;min-width:unset">（未）
+                  <button type='button' class='mini-add-btn' data-date='${d}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button>
+                  <button type='button' class='mini-off-btn' id='off-${d}' data-date='${d}' ${locked ? 'disabled title="ロック中"' : ''} style='font-size:.55em;padding:2px 6px;border:1px solid #ef9a9a;border-radius:4px;background:#fff;color:#c62828;cursor:pointer;'>全休</button>
+                  </div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div>`;
+            } else if (t === 'paid') {
+              const info = window.__paidLeave[d];
+              const hrs = info ? info.hours : null;
+              const reason = info && info.reason ? info.reason : '';
+              timesHTML = `<div class='record-col'><div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div>`;
+            }
+            const badgeCode = t === 'paid' ? 'paid' : badgeSt;
+            li.innerHTML = `
                         <div class="record-main">
                             <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[d]?.reason ? ('\n' + escapeHtml(window.__paidLeave[d].reason)) : '')) : badgeTitle(d)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span>`}</span></span>
                             <div class="record-times">${timesHTML}</div>
                         </div>`;
-                        li.onclick = (e) => {
-                            if (t === 'missing') { openAddPanelFor(d, li); return; }
-                            if (t === 'paid') { expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-                            expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
-                        };
-                    } else {
-                        const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
-                        const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
-                        const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-                        let overStr = '';
-                        if (workMin > baseMin) { const overMin = workMin - baseMin; overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`; }
-                        li.innerHTML = `
+            li.onclick = (e) => {
+              if (t === 'missing') { openAddPanelFor(d, li); return; }
+              if (t === 'paid') { expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+              expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
+            };
+          } else {
+            const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
+            const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
+            const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+            let overStr = '';
+            if (workMin > baseMin) { const overMin = workMin - baseMin; overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`; }
+            li.innerHTML = `
                         <div class="record-main">
                             <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[d]?.status) || 'work'}" title="${badgeTitle(d)}">${statusLabel((window.__dayStatuses[d]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span></span></span>
                             <div class="record-times">
@@ -1532,26 +1574,26 @@
                                 <div class="record-col"><div class="value">${rec.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div></div>
                             </div>
                         </div>`;
-                        li.onclick = (e) => {
-                            if (
-                                expandedIdx === idx &&
-                                e.target.closest('.record-row.active') &&
-                                !e.target.classList.contains('save-btn') &&
-                                !e.target.classList.contains('cancel-btn')
-                            ) return;
-                            if (addPanelActive) { addPanelActive = false; expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-                            if (expandedIdx !== null && expandedIdx !== idx) { expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-                            expandedIdx = expandedIdx === idx ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
-                        };
-                    }
-                    recordList.appendChild(li);
-                    if (expandedIdx === idx) {
-                        const locked = isLocked(d);
-                        const effSt = (window.__dayStatuses[d]?.status) || 'work';
-                        const panel = document.createElement('div');
-                        panel.className = 'expand-panel';
-                        if (t === 'paid') {
-                            panel.innerHTML = `
+            li.onclick = (e) => {
+              if (
+                expandedIdx === idx &&
+                e.target.closest('.record-row.active') &&
+                !e.target.classList.contains('save-btn') &&
+                !e.target.classList.contains('cancel-btn')
+              ) return;
+              if (addPanelActive) { addPanelActive = false; expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+              if (expandedIdx !== null && expandedIdx !== idx) { expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
+              expandedIdx = expandedIdx === idx ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
+            };
+          }
+          recordList.appendChild(li);
+          if (expandedIdx === idx) {
+            const locked = isLocked(d);
+            const effSt = (window.__dayStatuses[d]?.status) || 'work';
+            const panel = document.createElement('div');
+            panel.className = 'expand-panel';
+            if (t === 'paid') {
+              panel.innerHTML = `
                                                             <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;border-radius:6px;font-size:.85em;'>この日は有給（${window.__paidLeave[d]?.hours || ''}h）です</div>
                                                             <div style='display:grid;row-gap:6px;font-size:.95em;'>
                                                                 <div><b>日付:</b> ${d}</div>
@@ -1561,15 +1603,15 @@
                                                             <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
                                                                 <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
                                                             </div>`;
-                            li.appendChild(panel);
-                            const ov = document.getElementById('overlay');
-                            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            return;
-                        } else if (effSt === 'off') {
-                            // 全休 → 読み取り＋勤務へ戻す
-                            const canRestore = !locked;
-                            panel.innerHTML = `
+              li.appendChild(panel);
+              const ov = document.getElementById('overlay');
+              if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              return;
+            } else if (effSt === 'off') {
+              // 全休 → 読み取り＋勤務へ戻す
+              const canRestore = !locked;
+              panel.innerHTML = `
                               ${locked ? `<div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>` : ''}
                               <div style='display:grid;row-gap:6px;font-size:.95em;'>
                                 <div><b>日付:</b> ${d}</div>
@@ -1579,26 +1621,26 @@
                                 <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
                                 ${canRestore ? `<button class='default-btn restore-btn'>勤務へ戻す</button>` : ''}
                               </div>`;
-                            li.appendChild(panel);
-                            const ov = document.getElementById('overlay');
-                            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            const rb = panel.querySelector('.restore-btn');
-                            if (rb) rb.onclick = async e => {
-                                e.stopPropagation();
-                                try {
-                                    const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: d }) });
-                                    if (res && res.ok) {
-                                        const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal);
-                                        expandedIdx = null; render(); hideOverlay();
-                                    } else { alert('解除に失敗しました'); }
-                                } catch (_) { alert('解除エラー'); }
-                            };
-                            return;
-                        }
-                        if (!rec) {
-                            if (effSt === 'ignore') {
-                                panel.innerHTML = `
+              li.appendChild(panel);
+              const ov = document.getElementById('overlay');
+              if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              const rb = panel.querySelector('.restore-btn');
+              if (rb) rb.onclick = async e => {
+                e.stopPropagation();
+                try {
+                  const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: d }) });
+                  if (res && res.ok) {
+                    const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal);
+                    expandedIdx = null; render(); hideOverlay();
+                  } else { alert('解除に失敗しました'); }
+                } catch (_) { alert('解除エラー'); }
+              };
+              return;
+            }
+            if (!rec) {
+              if (effSt === 'ignore') {
+                panel.innerHTML = `
                                                                     <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #cfd8dc;background:#eceff1;color:#455a64;border-radius:6px;font-size:.85em;'>この日は集計外です（編集不可）</div>
                                                                     <div style='display:grid;row-gap:6px;font-size:.95em;'>
                                                                         <div><b>日付:</b> ${d}</div>
@@ -1607,18 +1649,18 @@
                                                                     <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
                                                                         <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
                                                                     </div>`;
-                                li.appendChild(panel);
-                                const ov = document.getElementById('overlay');
-                                if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                                panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            } else {
-                                openAddPanelFor(d, li);
-                            }
-                            return;
-                        }
-                        if (locked) {
-                            // ロック期間 → 読み取り専用表示（閉じる以外の操作を禁止）
-                            panel.innerHTML = `
+                li.appendChild(panel);
+                const ov = document.getElementById('overlay');
+                if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+                panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              } else {
+                openAddPanelFor(d, li);
+              }
+              return;
+            }
+            if (locked) {
+              // ロック期間 → 読み取り専用表示（閉じる以外の操作を禁止）
+              panel.innerHTML = `
                               <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>
                               <div style='display:grid;row-gap:6px;font-size:.95em;'>
                                 <div><b>日付:</b> ${d}</div>
@@ -1634,14 +1676,14 @@
                                 <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
                               </div>
                             `;
-                            li.appendChild(panel);
-                            const ov = document.getElementById('overlay');
-                            if (ov) { ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } }; }
-                            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-                            // スクロール位置維持のため何も追加せず終了
-                            return;
-                        } else {
-                            panel.innerHTML = `
+              li.appendChild(panel);
+              const ov = document.getElementById('overlay');
+              if (ov) { ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } }; }
+              panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
+              // スクロール位置維持のため何も追加せず終了
+              return;
+            } else {
+              panel.innerHTML = `
                             <div class="edit-row">
                                 <label style="display: inline-grid;">始業 <input type="time" value="${formatTime(rec.clockIn) !== '-' ? formatTime(rec.clockIn) : ''}" id="editIn"></label>
                                 <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
@@ -1661,450 +1703,459 @@
                                 <button class="default-btn cancel-btn">キャンセル</button>
                             </div>
                         `;
-                            li.appendChild(panel);
-                        }
-                        // 休憩編集UIの動的生成
-                        // 編集時も選択月以外は編集不可
-                        const monthVal = document.getElementById('monthSelect').value;
-                        // 選択月以外も編集可能にするため、disabled条件を削除
-                        const breakEditList = panel.querySelector('#breakEditList');
-                        // バリデーション関数
-                        function toDateObj(dateStr, timeStr) {
-                            if (!dateStr || !timeStr) return null;
-                            return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
-                        }
-                        function validateInputs() {
-                            const inVal = panel.querySelector('#editIn').value;
-                            const outVal = panel.querySelector('#editOut').value;
-                            const todayStr = (() => {
-                                const now = new Date();
-                                const pad = n => n.toString().padStart(2, '0');
-                                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                            })();
-                            const isToday = d === todayStr;
-                            const inDate = inVal ? toDateObj(d, inVal) : null;
-                            const outDate = outVal ? toDateObj(d, outVal) : null;
-                            if (!isToday) {
-                                if (!inVal || !outVal) return false;
-                            }
-                            if (inDate && outDate && inDate >= outDate) return false;
-                            const breaks = rec.breaks;
-                            for (let i = 0; i < breaks.length; i++) {
-                                const b = breaks[i];
-                                // b.start, b.endは日時文字列 or 空
-                                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
-                                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
-                                if (!isToday && (!b.start || !b.end)) return false;
-                                if (bStart && bEnd) {
-                                    if (bStart >= bEnd) return false;
-                                    if (inDate && bStart < inDate) return false;
-                                    if (outDate && bEnd > outDate) return false;
-                                }
-                            }
-                            return true;
-                        }
-                        // 入力欄のイベントで保存ボタンの活性/非活性を制御
-                        function updateSaveBtn() {
-                            const saveBtn = panel.querySelector('.save-btn');
-                            saveBtn.disabled = !validateInputs();
-                        }
-                        // 入力欄・休憩欄のイベントにバインド
-                        panel.querySelector('#editIn').addEventListener('input', updateSaveBtn);
-                        panel.querySelector('#editOut').addEventListener('input', updateSaveBtn);
-                        // 休憩欄は動的生成なのでrenderBreaks内でバインド
-                        function renderBreaks() {
-                            breakEditList.innerHTML = '';
-                            rec.breaks.forEach((b, i) => {
-                                const row = document.createElement('div');
-                                row.className = 'break-edit-row';
-                                row.innerHTML = `
+              li.appendChild(panel);
+            }
+            // 休憩編集UIの動的生成
+            // 編集時も選択月以外は編集不可
+            const monthVal = document.getElementById('monthSelect').value;
+            // 選択月以外も編集可能にするため、disabled条件を削除
+            const breakEditList = panel.querySelector('#breakEditList');
+            // バリデーション関数
+            function toDateObj(dateStr, timeStr) {
+              if (!dateStr || !timeStr) return null;
+              return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
+            }
+            function validateInputs() {
+              const inVal = panel.querySelector('#editIn').value;
+              const outVal = panel.querySelector('#editOut').value;
+              const todayStr = (() => {
+                const now = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+              })();
+              const isToday = d === todayStr;
+              const inDate = inVal ? toDateObj(d, inVal) : null;
+              const outDate = outVal ? toDateObj(d, outVal) : null;
+              if (!isToday) {
+                if (!inVal || !outVal) return false;
+              }
+              if (inDate && outDate && inDate >= outDate) return false;
+              const breaks = rec.breaks;
+              for (let i = 0; i < breaks.length; i++) {
+                const b = breaks[i];
+                // b.start, b.endは日時文字列 or 空
+                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
+                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
+                if (!isToday && (!b.start || !b.end)) return false;
+                if (bStart && bEnd) {
+                  if (bStart >= bEnd) return false;
+                  if (inDate && bStart < inDate) return false;
+                  if (outDate && bEnd > outDate) return false;
+                }
+              }
+              return true;
+            }
+            // 入力欄のイベントで保存ボタンの活性/非活性を制御
+            function updateSaveBtn() {
+              const saveBtn = panel.querySelector('.save-btn');
+              saveBtn.disabled = !validateInputs();
+            }
+            // 入力欄・休憩欄のイベントにバインド
+            panel.querySelector('#editIn').addEventListener('input', updateSaveBtn);
+            panel.querySelector('#editOut').addEventListener('input', updateSaveBtn);
+            // 休憩欄は動的生成なのでrenderBreaks内でバインド
+            function renderBreaks() {
+              breakEditList.innerHTML = '';
+              rec.breaks.forEach((b, i) => {
+                const row = document.createElement('div');
+                row.className = 'break-edit-row';
+                row.innerHTML = `
                 <span>${i + 1}.</span>
                 <input type="time" value="${b.start && b.start.length >= 5 ? b.start.slice(-8, -3) : ''}" class="break-start">
                 ～
                 <input type="time" value="${b.end && b.end.length >= 5 ? b.end.slice(-8, -3) : ''}" class="break-end">
                 <button type="button" title="削除">×</button>
               `;
-                                const startInput = row.querySelector('.break-start');
-                                const endInput = row.querySelector('.break-end');
-                                startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-                                endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-                                row.querySelector('button').onclick = e => {
-                                    e.stopPropagation();
-                                    rec.breaks.splice(i, 1);
-                                    renderBreaks();
-                                    updateSaveBtn();
-                                };
-                                breakEditList.appendChild(row);
-                            });
-                        }
-                        renderBreaks();
-                        panel.querySelector('.add-break-btn').onclick = e => {
-                            rec.breaks.push({ start: '', end: '' });
-                            renderBreaks();
-                        };
-                        // オーバーレイクリックで閉じる
-                        const ov = document.getElementById('overlay');
-                        if (ov) {
-                            ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); };
-                        }
-                        panel.querySelector('.save-btn').onclick = async e => {
-                            e.stopPropagation();
-                            // バリデーション: 当日かどうかで条件分岐
-                            const inVal = panel.querySelector('#editIn').value;
-                            const outVal = panel.querySelector('#editOut').value;
-                            const todayStr = (() => {
-                                const now = new Date();
-                                const pad = n => n.toString().padStart(2, '0');
-                                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                            })();
-                            const isToday = d === todayStr;
-                            const inDate = inVal ? toDateObj(d, inVal) : null;
-                            const outDate = outVal ? toDateObj(d, outVal) : null;
-                            // 当日以外は空欄NG
-                            if (!isToday) {
-                                if (!inVal || !outVal) {
-                                    alert('始業・終業時刻は必須です（当日以外）');
-                                    return;
-                                }
-                            }
-                            // 1. 始業・終業
-                            if (inDate && outDate) {
-                                if (inDate >= outDate) {
-                                    alert('終業時刻は始業時刻より後にしてください');
-                                    return;
-                                }
-                            }
-                            // 2. 休憩
-                            const breaks = rec.breaks;
-                            for (let i = 0; i < breaks.length; i++) {
-                                const b = breaks[i];
-                                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
-                                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
-                                if (!isToday && (!b.start || !b.end)) {
-                                    alert(`休憩${i + 1}の開始・終了時刻は必須です（当日以外）`);
-                                    return;
-                                }
-                                if (bStart && bEnd) {
-                                    if (bStart >= bEnd) {
-                                        alert(`休憩${i + 1}の終了時刻は開始時刻より後にしてください`);
-                                        return;
-                                    }
-                                    if (inDate && bStart < inDate) {
-                                        alert(`休憩${i + 1}の開始時刻は始業時刻以降にしてください`);
-                                        return;
-                                    }
-                                    if (outDate && bEnd > outDate) {
-                                        alert(`休憩${i + 1}の終了時刻は終業時刻以前にしてください`);
-                                        return;
-                                    }
-                                }
-                            }
-                            rec.clockIn = inVal;
-                            rec.clockOut = outVal;
-                            rec.vehicleDistance = Number(panel.querySelector('#editVehicleDistance').value) || 0;
-                            // 編集内容をAPIに送信
-                            const res = await fetch('api/attendance_update.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    date: d,
-                                    clockIn: rec.clockIn,
-                                    clockOut: rec.clockOut,
-                                    breaks: rec.breaks,
-                                    vehicleDistance: rec.vehicleDistance
-                                })
-                            });
-                            if (res.ok) {
-                                expandedIdx = null;
-                                // 再取得（日ステータス再反映）
-                                const monthVal = document.getElementById('monthSelect').value;
-                                clearForceVisibleDate();
-                                if (shouldAutoBack()) { backNavigate(); return; }
-                                await loadRecordsByPeriod(monthVal);
-                                render();
-                                hideOverlay();
-                            } else {
-                                alert('保存に失敗しました');
-                            }
-                        };
-                        panel.querySelector('.cancel-btn').onclick = e => {
-                            e.stopPropagation();
-                            expandedIdx = null;
-                            clearForceVisibleDate();
-                            render();
-                            hideOverlay();
-                            if (shouldAutoBack()) { backNavigate(); }
-                        };
-                        panel.querySelector('.delete-btn').onclick = async e => {
-                            e.stopPropagation();
-                            if (!confirm('この勤務記録を削除します。よろしいですか？')) return;
-                            // 削除API呼び出し（APIが未実装の場合はコメントアウト）
-                            const res = await fetch('api/attendance_delete.php', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ date: d })
-                            });
-                            if (res.ok) {
-                                expandedIdx = null;
-                                const monthVal = document.getElementById('monthSelect').value;
-                                clearForceVisibleDate();
-                                if (shouldAutoBack()) { backNavigate(); return; }
-                                await loadRecordsByPeriod(monthVal);
-                                hideOverlay();
-                            } else {
-                                alert('削除に失敗しました');
-                            }
-                        };
-                    }
-                    // ハイライト対象日付ならクラス付与
-                    if (window.__highlightDate && d === window.__highlightDate) {
-                        li.classList.add('highlight');
-                    }
-                });
-                // ハイライト行の自動展開は一度だけ。再帰レンダリングを避けつつ展開後にスクロール＆オーバーレイ表示。
-                if (window.__highlightDate && expandedIdx === null) {
-                    const dayList2 = window.__dayList || [];
-                    const targetIdx = dayList2.findIndex(d => d === window.__highlightDate);
-                    if (targetIdx >= 0) {
-                        expandedIdx = targetIdx;
-                        // ハイライトは展開・スクロール完了後に外す（早すぎるとフィルタで隠れる恐れ）
-                        // 次フレームで展開を反映し、その次のフレームでスクロール＆オーバーレイ表示（render のネスト回避）
-                        requestAnimationFrame(() => {
-                            render();
-                            requestAnimationFrame(() => {
-                                const lis = recordList.querySelectorAll('li.record-row');
-                                const tli = lis[targetIdx];
-                                if (tli && typeof tli.scrollIntoView === 'function') {
-                                    tli.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                                // 自動展開時は明示的にオーバーレイを表示して編集状態を示す
-                                if (typeof showOverlay === 'function') showOverlay();
-                                // 表示安定後にハイライト解除
-                                window.__highlightDate = null;
-                            });
-                        });
-                    }
-                }
+                const startInput = row.querySelector('.break-start');
+                const endInput = row.querySelector('.break-end');
+                startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
+                endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
+                row.querySelector('button').onclick = e => {
+                  e.stopPropagation();
+                  rec.breaks.splice(i, 1);
+                  renderBreaks();
+                  updateSaveBtn();
+                };
+                breakEditList.appendChild(row);
+              });
             }
-            // フィルタUI初期化（トグル）
-            (function initListToggles() {
-                const wrap = document.getElementById('listToggles');
-                if (!wrap) return;
-                syncToggleUI();
-                wrap.addEventListener('click', (e) => {
-                    const btn = e.target.closest('.toggle-btn');
-                    if (!btn) return;
-                    const type = btn.getAttribute('data-type');
-                    toggleFilter(type);
-                });
-            })();
-            // オーバーレイ制御
-            const __overlayEl = document.getElementById('overlay');
-            function showOverlay() { if (__overlayEl) __overlayEl.style.display = 'block'; }
-            function hideOverlay() { if (__overlayEl) __overlayEl.style.display = 'none'; }
-            function statusLabel(code) {
-                const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
-                switch (code) {
-                    case 'work': return '勤務';
-                    case 'off': return '全休';
-                    case 'am_off': return isFullTime ? '午前休' : '午前休（旧）';
-                    case 'pm_off': return isFullTime ? '午後休' : '午後休（旧）';
-                    case 'ignore': return '除外';
-                    default: return code;
-                }
+            renderBreaks();
+            panel.querySelector('.add-break-btn').onclick = e => {
+              rec.breaks.push({ start: '', end: '' });
+              renderBreaks();
+            };
+            // オーバーレイクリックで閉じる
+            const ov = document.getElementById('overlay');
+            if (ov) {
+              ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); };
             }
-            function badgeTitle(date) {
-                const st = window.__dayStatuses[date];
-                if (!st) return '勤務（既定）';
-                let base = statusLabel(st.status);
-                if (st.source === 'override') base += '（上書き）';
-                if ((window.__fullTimeFlag === 0) && (st.status === 'am_off' || st.status === 'pm_off')) {
-                    base += '\n※ パートは半休区分の新規/変更不可（既存データのみ表示）';
+            panel.querySelector('.save-btn').onclick = async e => {
+              e.stopPropagation();
+              // バリデーション: 当日かどうかで条件分岐
+              const inVal = panel.querySelector('#editIn').value;
+              const outVal = panel.querySelector('#editOut').value;
+              const todayStr = (() => {
+                const now = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+              })();
+              const isToday = d === todayStr;
+              const inDate = inVal ? toDateObj(d, inVal) : null;
+              const outDate = outVal ? toDateObj(d, outVal) : null;
+              // 当日以外は空欄NG
+              if (!isToday) {
+                if (!inVal || !outVal) {
+                  alert('始業・終業時刻は必須です（当日以外）');
+                  return;
                 }
-                if (st.note) base += `\n${st.note}`;
-                return base;
-            }
-            function classificationControls(date) {
-                // ロック判定: ロック期間内は表示しない
-                if (isLocked(date)) return '';
-                const current = (window.__dayStatuses[date]?.status) || 'work';
-                const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
-                // パートで現在 half-day が既に設定されている legacy ケース: 表示はするが警告とボタン抑制
-                const legacyHalf = (!isFullTime && (current === 'am_off' || current === 'pm_off'));
-                const opts = [
-                    { code: 'work', label: '勤務' },
-                    // パートは半休ボタンを表示しない
-                    ...(isFullTime ? [{ code: 'am_off', label: '午前休' }, { code: 'pm_off', label: '午後休' }] : []),
-                    { code: 'off', label: '全休' },
-                    { code: 'ignore', label: '除外' }
-                ];
-                let warn = '';
-                if (legacyHalf) {
-                    warn = `<div class="legacy-warn" style="flex-basis:100%;font-size:.55em;color:#e65100;background:#fff3e0;padding:4px 6px;border:1px solid #ffb74d;border-radius:4px;">過去の半休区分（${current === 'am_off' ? '午前休' : '午後休'}）: パート区分では今後変更/新規指定できません。クリアまたは全休へ変更可能。</div>`;
+              }
+              // 1. 始業・終業
+              if (inDate && outDate) {
+                if (inDate >= outDate) {
+                  alert('終業時刻は始業時刻より後にしてください');
+                  return;
                 }
-                return `<div class="classification-ui" data-date="${date}">
+              }
+              // 2. 休憩
+              const breaks = rec.breaks;
+              for (let i = 0; i < breaks.length; i++) {
+                const b = breaks[i];
+                const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
+                const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
+                if (!isToday && (!b.start || !b.end)) {
+                  alert(`休憩${i + 1}の開始・終了時刻は必須です（当日以外）`);
+                  return;
+                }
+                if (bStart && bEnd) {
+                  if (bStart >= bEnd) {
+                    alert(`休憩${i + 1}の終了時刻は開始時刻より後にしてください`);
+                    return;
+                  }
+                  if (inDate && bStart < inDate) {
+                    alert(`休憩${i + 1}の開始時刻は始業時刻以降にしてください`);
+                    return;
+                  }
+                  if (outDate && bEnd > outDate) {
+                    alert(`休憩${i + 1}の終了時刻は終業時刻以前にしてください`);
+                    return;
+                  }
+                }
+              }
+              rec.clockIn = inVal;
+              rec.clockOut = outVal;
+              rec.vehicleDistance = Number(panel.querySelector('#editVehicleDistance').value) || 0;
+              // 編集内容をAPIに送信
+              const res = await fetch('api/attendance_update.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  date: d,
+                  clockIn: rec.clockIn,
+                  clockOut: rec.clockOut,
+                  breaks: rec.breaks,
+                  vehicleDistance: rec.vehicleDistance
+                })
+              });
+              if (res.ok) {
+                expandedIdx = null;
+                // 再取得（日ステータス再反映）
+                const monthVal = document.getElementById('monthSelect').value;
+                clearForceVisibleDate();
+                if (shouldAutoBack()) { backNavigate(); return; }
+                await loadRecordsByPeriod(monthVal);
+                render();
+                hideOverlay();
+              } else {
+                alert('保存に失敗しました');
+              }
+            };
+            panel.querySelector('.cancel-btn').onclick = e => {
+              e.stopPropagation();
+              expandedIdx = null;
+              clearForceVisibleDate();
+              render();
+              hideOverlay();
+              if (shouldAutoBack()) { backNavigate(); }
+            };
+            panel.querySelector('.delete-btn').onclick = async e => {
+              e.stopPropagation();
+              if (!confirm('この勤務記録を削除します。よろしいですか？')) return;
+              // 削除API呼び出し（APIが未実装の場合はコメントアウト）
+              const res = await fetch('api/attendance_delete.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: d })
+              });
+              if (res.ok) {
+                expandedIdx = null;
+                const monthVal = document.getElementById('monthSelect').value;
+                clearForceVisibleDate();
+                if (shouldAutoBack()) { backNavigate(); return; }
+                await loadRecordsByPeriod(monthVal);
+                hideOverlay();
+              } else {
+                alert('削除に失敗しました');
+              }
+            };
+          }
+          // ハイライト対象日付ならクラス付与
+          if (window.__highlightDate && d === window.__highlightDate) {
+            li.classList.add('highlight');
+          }
+        });
+        // ハイライト行の自動展開は一度だけ。再帰レンダリングを避けつつ展開後にスクロール＆オーバーレイ表示。
+        if (window.__highlightDate && expandedIdx === null) {
+          const dayList2 = window.__dayList || [];
+          const targetIdx = dayList2.findIndex(d => d === window.__highlightDate);
+          if (targetIdx >= 0) {
+            expandedIdx = targetIdx;
+            // ハイライトは展開・スクロール完了後に外す（早すぎるとフィルタで隠れる恐れ）
+            // 次フレームで展開を反映し、その次のフレームでスクロール＆オーバーレイ表示（render のネスト回避）
+            requestAnimationFrame(() => {
+              render();
+              requestAnimationFrame(() => {
+                const lis = recordList.querySelectorAll('li.record-row');
+                const tli = lis[targetIdx];
+                if (tli && typeof tli.scrollIntoView === 'function') {
+                  tli.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                // 自動展開時は明示的にオーバーレイを表示して編集状態を示す
+                if (typeof showOverlay === 'function') showOverlay();
+                // 表示安定後にハイライト解除
+                window.__highlightDate = null;
+              });
+            });
+          }
+        }
+      }
+      // フィルタUI初期化（トグル）
+      (function initListToggles() {
+        const wrap = document.getElementById('listToggles');
+        if (!wrap) return;
+        syncToggleUI();
+        wrap.addEventListener('click', (e) => {
+          const btn = e.target.closest('.toggle-btn');
+          if (!btn) return;
+          const type = btn.getAttribute('data-type');
+          toggleFilter(type);
+        });
+      })();
+      // オーバーレイ制御
+      const __overlayEl = document.getElementById('overlay');
+      function showOverlay() { if (__overlayEl) __overlayEl.style.display = 'block'; }
+      function hideOverlay() { if (__overlayEl) __overlayEl.style.display = 'none'; }
+      function statusLabel(code) {
+        const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
+        switch (code) {
+          case 'work': return '勤務';
+          case 'off': return '全休';
+          case 'am_off': return isFullTime ? '午前休' : '午前休（旧）';
+          case 'pm_off': return isFullTime ? '午後休' : '午後休（旧）';
+          case 'ignore': return '除外';
+          default: return code;
+        }
+      }
+      function badgeTitle(date) {
+        const st = window.__dayStatuses[date];
+        if (!st) return '勤務（既定）';
+        let base = statusLabel(st.status);
+        if (st.source === 'override') base += '（上書き）';
+        if ((window.__fullTimeFlag === 0) && (st.status === 'am_off' || st.status === 'pm_off')) {
+          base += '\n※ パートは半休区分の新規/変更不可（既存データのみ表示）';
+        }
+        if (st.note) base += `\n${st.note}`;
+        return base;
+      }
+      function classificationControls(date) {
+        // ロック判定: ロック期間内は表示しない
+        if (isLocked(date)) return '';
+        const current = (window.__dayStatuses[date]?.status) || 'work';
+        const isFullTime = (typeof window.__fullTimeFlag === 'number') ? (window.__fullTimeFlag === 1) : true;
+        // パートで現在 half-day が既に設定されている legacy ケース: 表示はするが警告とボタン抑制
+        const legacyHalf = (!isFullTime && (current === 'am_off' || current === 'pm_off'));
+        const opts = [
+          { code: 'work', label: '勤務' },
+          // パートは半休ボタンを表示しない
+          ...(isFullTime ? [{ code: 'am_off', label: '午前休' }, { code: 'pm_off', label: '午後休' }] : []),
+          { code: 'off', label: '全休' },
+          { code: 'ignore', label: '除外' }
+        ];
+        let warn = '';
+        if (legacyHalf) {
+          warn = `<div class="legacy-warn" style="flex-basis:100%;font-size:.55em;color:#e65100;background:#fff3e0;padding:4px 6px;border:1px solid #ffb74d;border-radius:4px;">過去の半休区分（${current === 'am_off' ? '午前休' : '午後休'}）: パート区分では今後変更/新規指定できません。クリアまたは全休へ変更可能。</div>`;
+        }
+        return `<div class="classification-ui" data-date="${date}">
                     ${opts.map(o => `<button type="button" data-code="${o.code}" class="cls-btn ${o.code === current ? 'active' : ''}" ${legacyHalf && (o.code === 'am_off' || o.code === 'pm_off') ? 'disabled' : ''}>${o.label}</button>`).join('')}
                     <button type="button" data-clear="1" style="margin-left:6px;border:1px solid #b0bec5;background:#fafafa;color:#546e7a;">クリア</button>
                     ${warn}
                 </div>`;
-            }
-            // 分類ボタンのイベント委譲
-            document.addEventListener('click', async (e) => {
-                const btn = e.target.closest('.classification-ui button.cls-btn');
-                if (btn) {
-                    const wrap = btn.closest('.classification-ui');
-                    const date = wrap.getAttribute('data-date');
-                    const code = btn.getAttribute('data-code');
-                    // work は clear 相当（上書き不要）→ CLEAR API
-                    let apiCode = code;
-                    if (code === 'work') { // クリアして既定に戻す
-                        await classifyClear(date);
-                    } else {
-                        // map override codes
-                        apiCode = code === 'off' ? 'off_full' : (code === 'am_off' ? 'off_am' : (code === 'pm_off' ? 'off_pm' : (code === 'ignore' ? 'ignore' : 'working')));
-                        await classifySet(date, apiCode);
-                    }
-                }
-                const clr = e.target.closest('.classification-ui button[data-clear="1"]');
-                if (clr) {
-                    const wrap = clr.closest('.classification-ui');
-                    const date = wrap.getAttribute('data-date');
-                    await classifyClear(date);
-                }
-            });
-            async function classifySet(date, overrideCode) {
-                try {
-                    const res = await fetchWithAuth('api/day_status_self_set.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, status: overrideCode }) });
-                    if (res && res.ok) {
-                        const monthVal = document.getElementById('monthSelect').value;
-                        await loadRecordsByPeriod(monthVal);
-                    } else { alert('区分変更に失敗しました'); }
-                } catch (e) { alert('区分変更エラー'); }
-            }
-            async function classifyClear(date) {
-                try {
-                    const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) });
-                    if (res && res.ok) {
-                        const monthVal = document.getElementById('monthSelect').value;
-                        await loadRecordsByPeriod(monthVal);
-                    } else { alert('クリアに失敗しました'); }
-                } catch (e) { alert('クリアエラー'); }
-            }
-            function isLocked(date) {
-                if (!window.__lockedRanges) return false;
-                for (const r of window.__lockedRanges) {
-                    if (date >= r.start && date <= r.end) return true;
-                }
-                return false;
-            }
-            function formatDateMD(dateStr) {
-                // "YYYY-MM-DD" → "MM月DD日"
-                if (!dateStr) return '';
-                const parts = dateStr.split('-');
-                if (parts.length !== 3) return dateStr;
-                return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
-            }
-            // 年月をタイトル左に表示
-            function setYearLabel() {
-                const monthInput = document.getElementById('monthSelect');
-                if (monthInput && monthInput.value) {
-                    const [yy, mm] = monthInput.value.split('-');
-                    document.getElementById('yearLabel').textContent = `${yy}年${parseInt(mm, 10)}月度 `;
-                    return;
-                }
-                if (records.length > 0) {
-                    const ymd = records[0].date ? records[0].date.split('-') : [];
-                    if (ymd.length === 3) {
-                        document.getElementById('yearLabel').textContent = `${ymd[0]}年${parseInt(ymd[1], 10)}月度 `;
-                    } else {
-                        document.getElementById('yearLabel').textContent = '';
-                    }
-                } else {
-                    document.getElementById('yearLabel').textContent = '';
-                }
-            }
-            // 初回ロード
-            (async function () {
-                // 戻り導線の初期化＆ボタン描画
-                initBackNavFromUrl();
-                await loadSettings();
-                const now = new Date();
-                const pad = n => n.toString().padStart(2, '0');
-                const thisYm = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-                const monthInput = document.getElementById('monthSelect');
-                monthInput.addEventListener('change', function () { loadRecordsByPeriod(this.value); });
-                // クエリ: 指定日があればその年月に合わせて初期ロードし、新規追加パネルを開く
-                const urlParams = new URLSearchParams(window.location.search);
-                const qpDate = urlParams.get('date');
-                if (qpDate && /\d{4}-\d{2}-\d{2}/.test(qpDate)) {
-                    // ダッシュボードなどからの指定日遷移: ハイライト→自動展開（render 内で処理）
-                    window.__highlightDate = qpDate;
-                    // フィルタに関わらず対象日を表示させる（パネルが開くまで維持）
-                    window.__forceVisibleDate = qpDate;
-                    const targetYm = qpDate.slice(0, 7);
-                    monthInput.value = targetYm;
-                    await loadRecordsByPeriod(targetYm);
-                    renderBackButton();
-                    // 自動展開後はレンダ側でスクロール＆オーバーレイ表示を実施
-                } else {
-                    // 通常: 今月表示
-                    monthInput.value = thisYm;
-                    await loadRecordsByPeriod(thisYm);
-                    renderBackButton();
-                }
-            })();
+      }
+      // 分類ボタンのイベント委譲
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.classification-ui button.cls-btn');
+        if (btn) {
+          const wrap = btn.closest('.classification-ui');
+          const date = wrap.getAttribute('data-date');
+          const code = btn.getAttribute('data-code');
+          // work は clear 相当（上書き不要）→ CLEAR API
+          let apiCode = code;
+          if (code === 'work') { // クリアして既定に戻す
+            await classifyClear(date);
+          } else {
+            // map override codes
+            apiCode = code === 'off' ? 'off_full' : (code === 'am_off' ? 'off_am' : (code === 'pm_off' ? 'off_pm' : (code === 'ignore' ? 'ignore' : 'working')));
+            await classifySet(date, apiCode);
+          }
+        }
+        const clr = e.target.closest('.classification-ui button[data-clear="1"]');
+        if (clr) {
+          const wrap = clr.closest('.classification-ui');
+          const date = wrap.getAttribute('data-date');
+          await classifyClear(date);
+        }
+        // 欠落行: 全休クイックボタン
+        const offBtn = e.target.closest('.mini-off-btn');
+        if (offBtn) {
+          e.stopPropagation();
+          const date = offBtn.getAttribute('data-date');
+          if (offBtn.disabled) return;
+          await classifySet(date, 'off_full');
+          hideOverlay();
+        }
+      });
+      async function classifySet(date, overrideCode) {
+        try {
+          const res = await fetchWithAuth('api/day_status_self_set.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, status: overrideCode }) });
+          if (res && res.ok) {
+            const monthVal = document.getElementById('monthSelect').value;
+            await loadRecordsByPeriod(monthVal);
+          } else { alert('区分変更に失敗しました'); }
+        } catch (e) { alert('区分変更エラー'); }
+      }
+      async function classifyClear(date) {
+        try {
+          const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) });
+          if (res && res.ok) {
+            const monthVal = document.getElementById('monthSelect').value;
+            await loadRecordsByPeriod(monthVal);
+          } else { alert('クリアに失敗しました'); }
+        } catch (e) { alert('クリアエラー'); }
+      }
+      function isLocked(date) {
+        if (!window.__lockedRanges) return false;
+        for (const r of window.__lockedRanges) {
+          if (date >= r.start && date <= r.end) return true;
+        }
+        return false;
+      }
+      function formatDateMD(dateStr) {
+        // "YYYY-MM-DD" → "MM月DD日"
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+      }
+      // 年月をタイトル左に表示
+      function setYearLabel() {
+        const monthInput = document.getElementById('monthSelect');
+        if (monthInput && monthInput.value) {
+          const [yy, mm] = monthInput.value.split('-');
+          document.getElementById('yearLabel').textContent = `${yy}年${parseInt(mm, 10)}月度 `;
+          return;
+        }
+        if (records.length > 0) {
+          const ymd = records[0].date ? records[0].date.split('-') : [];
+          if (ymd.length === 3) {
+            document.getElementById('yearLabel').textContent = `${ymd[0]}年${parseInt(ymd[1], 10)}月度 `;
+          } else {
+            document.getElementById('yearLabel').textContent = '';
+          }
+        } else {
+          document.getElementById('yearLabel').textContent = '';
+        }
+      }
+      // 初回ロード
+      (async function () {
+        // 戻り導線の初期化＆ボタン描画
+        initBackNavFromUrl();
+        await loadSettings();
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const thisYm = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+        const monthInput = document.getElementById('monthSelect');
+        monthInput.addEventListener('change', function () { loadRecordsByPeriod(this.value); });
+        // クエリ: 指定日があればその年月に合わせて初期ロードし、新規追加パネルを開く
+        const urlParams = new URLSearchParams(window.location.search);
+        const qpDate = urlParams.get('date');
+        if (qpDate && /\d{4}-\d{2}-\d{2}/.test(qpDate)) {
+          // ダッシュボードなどからの指定日遷移: ハイライト→自動展開（render 内で処理）
+          window.__highlightDate = qpDate;
+          // フィルタに関わらず対象日を表示させる（パネルが開くまで維持）
+          window.__forceVisibleDate = qpDate;
+          const targetYm = qpDate.slice(0, 7);
+          monthInput.value = targetYm;
+          await loadRecordsByPeriod(targetYm);
+          renderBackButton();
+          // 自動展開後はレンダ側でスクロール＆オーバーレイ表示を実施
+        } else {
+          // 通常: 今月表示
+          monthInput.value = thisYm;
+          await loadRecordsByPeriod(thisYm);
+          renderBackButton();
+        }
+      })();
 
-            function adjustScrollAreaHeight() {
-                const body = document.body;
-                const header = document.querySelector('.fixed-header');
-                const footer = document.querySelector('.fixed-footer');
-                const container = document.querySelector('.container');
-                const scrollArea = document.querySelector('.scroll-area');
-                // ヘッダー・フッターの実際の高さを取得
-                const headerH = header ? header.getBoundingClientRect().height : 0;
-                const footerH = footer ? footer.getBoundingClientRect().height : 0;
-                const vh = body.clientHeight;
-                // 実際の高さで計算
-                //const headerPaddingVert = header ? (parseInt(getComputedStyle(header).paddingTop, 10) || 0) + (parseInt(getComputedStyle(header).paddingBottom, 10) || 0) : 0;
-                //const footerPaddingVert = footer ? (parseInt(getComputedStyle(footer).paddingTop, 10) || 0) : 0;
-                // マージン・パディングを考慮した最大高さ
-                const maxH = vh - headerH - footerH;
-                scrollArea.style.maxHeight = maxH + 'px';
-                scrollArea.style.height = maxH + 'px';
-                //document.getElementById("statsBox").textContent = `vh: ${parseInt(vh, 10)}px　hH: ${parseInt(headerH, 10)}px　fH: ${parseInt(footerH, 10)}px → ${parseInt(maxH, 10)}px`;
-                const scrollMainW = document.querySelector('.record-list').getBoundingClientRect().width
-                const scrollPaddingw = parseInt(getComputedStyle(document.querySelector('.record-list')).paddingInline, 10) * 2
-                document.getElementById('listLabel').style.maxWidth = (scrollMainW - scrollPaddingw) + 'px';
+      function adjustScrollAreaHeight() {
+        const body = document.body;
+        const header = document.querySelector('.fixed-header');
+        const footer = document.querySelector('.fixed-footer');
+        const container = document.querySelector('.container');
+        const scrollArea = document.querySelector('.scroll-area');
+        // ヘッダー・フッターの実際の高さを取得
+        const headerH = header ? header.getBoundingClientRect().height : 0;
+        const footerH = footer ? footer.getBoundingClientRect().height : 0;
+        const vh = body.clientHeight;
+        // 実際の高さで計算
+        //const headerPaddingVert = header ? (parseInt(getComputedStyle(header).paddingTop, 10) || 0) + (parseInt(getComputedStyle(header).paddingBottom, 10) || 0) : 0;
+        //const footerPaddingVert = footer ? (parseInt(getComputedStyle(footer).paddingTop, 10) || 0) : 0;
+        // マージン・パディングを考慮した最大高さ
+        const maxH = vh - headerH - footerH;
+        scrollArea.style.maxHeight = maxH + 'px';
+        scrollArea.style.height = maxH + 'px';
+        //document.getElementById("statsBox").textContent = `vh: ${parseInt(vh, 10)}px　hH: ${parseInt(headerH, 10)}px　fH: ${parseInt(footerH, 10)}px → ${parseInt(maxH, 10)}px`;
+        const scrollMainW = document.querySelector('.record-list').getBoundingClientRect().width
+        const scrollPaddingw = parseInt(getComputedStyle(document.querySelector('.record-list')).paddingInline, 10) * 2
+        document.getElementById('listLabel').style.maxWidth = (scrollMainW - scrollPaddingw) + 'px';
 
-            }
-            window.addEventListener('resize', adjustScrollAreaHeight);
-            window.addEventListener('DOMContentLoaded', adjustScrollAreaHeight);
-            // 管理者メニュー表示切り替え
-            fetch('api/check_login.php')
-                .then(res => res.json())
-                .then(data => {
-                    const isAdmin = !!data.is_admin;
-                    if (isAdmin) document.body.classList.add('is-admin');
-                    const menuAdmin = document.getElementById('menuAdmin');
-                    if (menuAdmin) menuAdmin.style.display = isAdmin ? 'block' : 'none';
-                });
+      }
+      window.addEventListener('resize', adjustScrollAreaHeight);
+      window.addEventListener('DOMContentLoaded', adjustScrollAreaHeight);
+      // 管理者メニュー表示切り替え
+      fetch('api/check_login.php')
+        .then(res => res.json())
+        .then(data => {
+          const isAdmin = !!data.is_admin;
+          if (isAdmin) document.body.classList.add('is-admin');
+          const menuAdmin = document.getElementById('menuAdmin');
+          if (menuAdmin) menuAdmin.style.display = isAdmin ? 'block' : 'none';
+        });
 
-            // 有給申請モーダル（最小実装）
-            function showPaidLeaveModal() {
-                const old = document.getElementById('paidLeaveModal');
-                if (old) old.remove();
+      // 有給申請モーダル（最小実装）
+      function showPaidLeaveModal() {
+        const old = document.getElementById('paidLeaveModal');
+        if (old) old.remove();
 
-                const monthVal = document.getElementById('monthSelect').value; // YYYY-MM
-                const now = new Date();
-                const pad = n => n.toString().padStart(2, '0');
-                const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                const defaultDate = todayStr.startsWith(monthVal) ? todayStr : `${monthVal}-01`;
-                const defaultHours = (Number(settings.work_hours || 0) + Number(settings.work_minutes || 0) / 60) || 8;
+        const monthVal = document.getElementById('monthSelect').value; // YYYY-MM
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const defaultDate = todayStr.startsWith(monthVal) ? todayStr : `${monthVal}-01`;
+        const defaultHours = (Number(settings.work_hours || 0) + Number(settings.work_minutes || 0) / 60) || 8;
 
-                const modal = document.createElement('div');
-                modal.id = 'paidLeaveModal';
-                modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;';
-                modal.innerHTML = `
+        const modal = document.createElement('div');
+        modal.id = 'paidLeaveModal';
+        modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
         <div style="background:#fff;padding:1.2em 1.2em 1em 1.2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:92vw;">
           <div style='font-size:1.2em;margin-bottom:0.8em;color:#1976d2;font-weight:bold;'>有給申請</div>
           <div style='display:grid;row-gap:0.6em;'>
@@ -2118,78 +2169,78 @@
             <button id='plSubmitBtn' class='footer-btn'>申請する</button>
           </div>
         </div>`;
-                document.body.appendChild(modal);
+        document.body.appendChild(modal);
 
-                const plDate = document.getElementById('plDate');
-                const plHours = document.getElementById('plHours');
-                const plReason = document.getElementById('plReason');
-                const plMsg = document.getElementById('plMsg');
-                const plSubmitBtn = document.getElementById('plSubmitBtn');
-                const plCancelBtn = document.getElementById('plCancelBtn');
+        const plDate = document.getElementById('plDate');
+        const plHours = document.getElementById('plHours');
+        const plReason = document.getElementById('plReason');
+        const plMsg = document.getElementById('plMsg');
+        const plSubmitBtn = document.getElementById('plSubmitBtn');
+        const plCancelBtn = document.getElementById('plCancelBtn');
 
-                plCancelBtn.onclick = () => modal.remove();
-                plSubmitBtn.onclick = async () => {
-                    plMsg.style.color = '#e53935';
-                    plMsg.textContent = '';
-                    const used_date = plDate.value;
-                    const hours = Number(plHours.value);
-                    const reason = plReason.value.trim();
-                    if (!used_date) { plMsg.textContent = '日付を入力してください'; return; }
-                    if (!(hours > 0)) { plMsg.textContent = '時間は0より大きい数で入力してください'; return; }
-                    // 送信
-                    plSubmitBtn.disabled = true; plCancelBtn.disabled = true;
-                    plMsg.style.color = '#1976d2';
-                    plMsg.textContent = '送信中…';
-                    try {
-                        const res = await fetchWithAuth('api/leave_requests_create.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ used_date, hours, reason })
-                        });
-                        if (!res) { throw new Error('未ログインまたはアクセス権限がありません'); }
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok || !data || data.error) { throw new Error((data && data.error) || '申請に失敗しました'); }
-                        plMsg.style.color = '#2e7d32';
-                        plMsg.textContent = data.notified ? '申請を送信しました（承認者へ通知しました）。' : '申請を送信しました。';
-                        setTimeout(() => modal.remove(), 1200);
-                    } catch (err) {
-                        plMsg.style.color = '#e53935';
-                        plMsg.textContent = err && err.message ? err.message : 'エラーが発生しました';
-                        plSubmitBtn.disabled = false; plCancelBtn.disabled = false;
-                    }
-                };
+        plCancelBtn.onclick = () => modal.remove();
+        plSubmitBtn.onclick = async () => {
+          plMsg.style.color = '#e53935';
+          plMsg.textContent = '';
+          const used_date = plDate.value;
+          const hours = Number(plHours.value);
+          const reason = plReason.value.trim();
+          if (!used_date) { plMsg.textContent = '日付を入力してください'; return; }
+          if (!(hours > 0)) { plMsg.textContent = '時間は0より大きい数で入力してください'; return; }
+          // 送信
+          plSubmitBtn.disabled = true; plCancelBtn.disabled = true;
+          plMsg.style.color = '#1976d2';
+          plMsg.textContent = '送信中…';
+          try {
+            const res = await fetchWithAuth('api/leave_requests_create.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ used_date, hours, reason })
+            });
+            if (!res) { throw new Error('未ログインまたはアクセス権限がありません'); }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data || data.error) { throw new Error((data && data.error) || '申請に失敗しました'); }
+            plMsg.style.color = '#2e7d32';
+            plMsg.textContent = data.notified ? '申請を送信しました（承認者へ通知しました）。' : '申請を送信しました。';
+            setTimeout(() => modal.remove(), 1200);
+          } catch (err) {
+            plMsg.style.color = '#e53935';
+            plMsg.textContent = err && err.message ? err.message : 'エラーが発生しました';
+            plSubmitBtn.disabled = false; plCancelBtn.disabled = false;
+          }
+        };
+      }
+
+      const paidLeaveBtn = document.getElementById('paidLeaveBtn');
+      if (paidLeaveBtn) paidLeaveBtn.addEventListener('click', showPaidLeaveModal);
+
+      // --- アプリ内通知（ハンバーガーバッジ） ---
+      async function refreshNotifCount() {
+        try {
+          const res = await fetchWithAuth('api/notifications_get.php?only_unread=1');
+          if (!res) return;
+          const data = await res.json();
+          if (data && data.ok) {
+            const unread = Number(data.unread || 0);
+            const badge = document.getElementById('menuNotifBadge');
+            if (badge) {
+              if (unread > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = unread > 99 ? '99+' : String(unread);
+              } else {
+                badge.style.display = 'none';
+                badge.textContent = '';
+              }
             }
-
-            const paidLeaveBtn = document.getElementById('paidLeaveBtn');
-            if (paidLeaveBtn) paidLeaveBtn.addEventListener('click', showPaidLeaveModal);
-
-            // --- アプリ内通知（ハンバーガーバッジ） ---
-            async function refreshNotifCount() {
-                try {
-                    const res = await fetchWithAuth('api/notifications_get.php?only_unread=1');
-                    if (!res) return;
-                    const data = await res.json();
-                    if (data && data.ok) {
-                        const unread = Number(data.unread || 0);
-                        const badge = document.getElementById('menuNotifBadge');
-                        if (badge) {
-                            if (unread > 0) {
-                                badge.style.display = 'inline-block';
-                                badge.textContent = unread > 99 ? '99+' : String(unread);
-                            } else {
-                                badge.style.display = 'none';
-                                badge.textContent = '';
-                            }
-                        }
-                    }
-                } catch (e) { }
-            }
-            async function openNotifModal() {
-                const old = document.getElementById('notifModal'); if (old) old.remove();
-                const wrap = document.createElement('div');
-                wrap.id = 'notifModal';
-                wrap.style = 'position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;';
-                wrap.innerHTML = `
+          }
+        } catch (e) { }
+      }
+      async function openNotifModal() {
+        const old = document.getElementById('notifModal'); if (old) old.remove();
+        const wrap = document.createElement('div');
+        wrap.id = 'notifModal';
+        wrap.style = 'position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;';
+        wrap.innerHTML = `
                 <div style='background:#fff;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:90vw;max-height:80vh;overflow:auto;'>
                   <div style='padding:0.8em 1em;border-bottom:1px solid #eee;color:#1976d2;font-weight:bold;'>お知らせ</div>
                   <div id='notifList' style='padding:0.6em 1em;min-width:260px;'></div>
@@ -2198,151 +2249,151 @@
                     <button id='closeNotif' class='footer-btn' style='background:#b0bec5;'>閉じる</button>
                   </div>
                 </div>`;
-                document.body.appendChild(wrap);
-                document.getElementById('closeNotif').onclick = () => wrap.remove();
-                document.getElementById('markRead').onclick = async () => { await fetchWithAuth('api/notifications_read.php', { method: 'POST' }); await refreshNotifCount(); wrap.remove(); };
-                try {
-                    const res = await fetchWithAuth('api/notifications_get.php');
-                    const data = await res.json();
-                    const list = document.getElementById('notifList');
-                    list.innerHTML = '';
-                    (data.items || []).forEach(it => {
-                        const div = document.createElement('div');
-                        div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
-                        const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
-                        const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body).replace(/\n/g, '<br>')}</div>` : '';
-                        const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
-                        const readBtn = it.status === 'unread'
-                            ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class=\"state\" style=\"font-size:0.85em;color:#e53935;\">未読</span></div>`
-                            : `<div style=\"margin-top:6px;\"><span class=\"state\" style=\"font-size:0.85em;color:#777;\">既読</span></div>`;
-                        div.innerHTML = title + body + link + `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ''}</div>` + readBtn;
-                        list.appendChild(div);
-                    });
-                    if (!list.innerHTML) { list.textContent = '通知はありません'; }
+        document.body.appendChild(wrap);
+        document.getElementById('closeNotif').onclick = () => wrap.remove();
+        document.getElementById('markRead').onclick = async () => { await fetchWithAuth('api/notifications_read.php', { method: 'POST' }); await refreshNotifCount(); wrap.remove(); };
+        try {
+          const res = await fetchWithAuth('api/notifications_get.php');
+          const data = await res.json();
+          const list = document.getElementById('notifList');
+          list.innerHTML = '';
+          (data.items || []).forEach(it => {
+            const div = document.createElement('div');
+            div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
+            const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
+            const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body).replace(/\n/g, '<br>')}</div>` : '';
+            const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
+            const readBtn = it.status === 'unread'
+              ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class=\"state\" style=\"font-size:0.85em;color:#e53935;\">未読</span></div>`
+              : `<div style=\"margin-top:6px;\"><span class=\"state\" style=\"font-size:0.85em;color:#777;\">既読</span></div>`;
+            div.innerHTML = title + body + link + `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ''}</div>` + readBtn;
+            list.appendChild(div);
+          });
+          if (!list.innerHTML) { list.textContent = '通知はありません'; }
 
-                    // 個別既読ハンドラ
-                    list.querySelectorAll('.mark-one').forEach(btn => {
-                        btn.addEventListener('click', async () => {
-                            const id = Number(btn.getAttribute('data-id'));
-                            btn.disabled = true;
-                            try {
-                                const res2 = await fetchWithAuth('api/notifications_read.php', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ ids: [id] })
-                                });
-                                if (!res2) throw new Error('auth');
-                                const data2 = await res2.json().catch(() => ({}));
-                                if (!res2.ok || !data2 || data2.error) throw new Error('failed');
-                                const container = btn.closest('div');
-                                if (container) {
-                                    const state = container.querySelector('.state');
-                                    if (state) { state.textContent = '既読'; state.style.color = '#777'; }
-                                }
-                                btn.remove();
-                                await refreshNotifCount();
-                            } catch (err) {
-                                btn.disabled = false;
-                                alert('既読にできませんでした');
-                            }
-                        });
-                    });
-                } catch (e) { }
-            }
-            function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
-
-            (function startNotif() { refreshNotifCount(); setInterval(refreshNotifCount, 60000); })();
-
-            // --- ハンバーガーメニュー動作 ---
-            const menuToggle = document.getElementById('menuToggle');
-            const sideMenu = document.getElementById('sideMenu');
-            const menuOverlay = document.getElementById('menuOverlay');
-            const menuOpenNotif = document.getElementById('menuOpenNotif');
-
-            // --- フォーカストラップ用ユーティリティ ---
-            let previousFocusedElement = null;
-            function getFocusableElements(container) {
-                const selectors = [
-                    'a[href]',
-                    'button:not([disabled])',
-                    'input:not([disabled])',
-                    'select:not([disabled])',
-                    'textarea:not([disabled])',
-                    '[tabindex]:not([tabindex="-1"])'
-                ].join(',');
-                return Array.from(container.querySelectorAll(selectors))
-                    .filter(el => el.offsetParent !== null || el === document.activeElement);
-            }
-            function focusFirstInMenu() {
-                const focusables = getFocusableElements(sideMenu);
-                if (focusables.length > 0) {
-                    focusables[0].focus();
-                } else {
-                    sideMenu.focus();
+          // 個別既読ハンドラ
+          list.querySelectorAll('.mark-one').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = Number(btn.getAttribute('data-id'));
+              btn.disabled = true;
+              try {
+                const res2 = await fetchWithAuth('api/notifications_read.php', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ids: [id] })
+                });
+                if (!res2) throw new Error('auth');
+                const data2 = await res2.json().catch(() => ({}));
+                if (!res2.ok || !data2 || data2.error) throw new Error('failed');
+                const container = btn.closest('div');
+                if (container) {
+                  const state = container.querySelector('.state');
+                  if (state) { state.textContent = '既読'; state.style.color = '#777'; }
                 }
-            }
-            function trapFocusKeydown(e) {
-                if (!sideMenu.classList.contains('open')) return;
-                if (e.key !== 'Tab') return;
-                const focusables = getFocusableElements(sideMenu);
-                if (focusables.length === 0) { e.preventDefault(); sideMenu.focus(); return; }
-                const first = focusables[0];
-                const last = focusables[focusables.length - 1];
-                const active = document.activeElement;
-                if (e.shiftKey) {
-                    if (active === first || !sideMenu.contains(active)) {
-                        e.preventDefault();
-                        last.focus();
-                    }
-                } else {
-                    if (active === last || !sideMenu.contains(active)) {
-                        e.preventDefault();
-                        first.focus();
-                    }
-                }
-            }
-            function openMenu() {
-                sideMenu.classList.add('open');
-                menuOverlay.style.display = 'block';
-                menuToggle.setAttribute('aria-expanded', 'true');
-                sideMenu.setAttribute('aria-hidden', 'false');
-                // A11y: 初期フォーカスとトラップ
-                previousFocusedElement = document.activeElement;
-                sideMenu.setAttribute('role', 'dialog');
-                sideMenu.setAttribute('aria-modal', 'true');
-                focusFirstInMenu();
-                document.addEventListener('keydown', trapFocusKeydown, true);
-            }
-            function closeMenu() {
-                sideMenu.classList.remove('open');
-                menuOverlay.style.display = 'none';
-                menuToggle.setAttribute('aria-expanded', 'false');
-                sideMenu.setAttribute('aria-hidden', 'true');
-                sideMenu.removeAttribute('aria-modal');
-                sideMenu.removeAttribute('role');
-                document.removeEventListener('keydown', trapFocusKeydown, true);
-                // 直前のフォーカスへ戻す
-                if (previousFocusedElement && document.contains(previousFocusedElement)) {
-                    previousFocusedElement.focus();
-                } else {
-                    menuToggle.focus();
-                }
-            }
-            menuToggle.addEventListener('click', () => {
-                const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
-                expanded ? closeMenu() : openMenu();
+                btn.remove();
+                await refreshNotifCount();
+              } catch (err) {
+                btn.disabled = false;
+                alert('既読にできませんでした');
+              }
             });
-            menuOverlay.addEventListener('click', closeMenu);
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-            if (menuOpenNotif) menuOpenNotif.onclick = () => { closeMenu(); openNotifModal(); };
+          });
+        } catch (e) { }
+      }
+      function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
 
-            // ログアウト
-            const menuLogout = document.getElementById('menuLogout');
-            if (menuLogout) menuLogout.onclick = async function () {
-                await fetchWithAuth('api/logout.php', { method: 'POST' });
-                window.location.href = 'login.html';
-            };
-        </script>
+      (function startNotif() { refreshNotifCount(); setInterval(refreshNotifCount, 60000); })();
+
+      // --- ハンバーガーメニュー動作 ---
+      const menuToggle = document.getElementById('menuToggle');
+      const sideMenu = document.getElementById('sideMenu');
+      const menuOverlay = document.getElementById('menuOverlay');
+      const menuOpenNotif = document.getElementById('menuOpenNotif');
+
+      // --- フォーカストラップ用ユーティリティ ---
+      let previousFocusedElement = null;
+      function getFocusableElements(container) {
+        const selectors = [
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])'
+        ].join(',');
+        return Array.from(container.querySelectorAll(selectors))
+          .filter(el => el.offsetParent !== null || el === document.activeElement);
+      }
+      function focusFirstInMenu() {
+        const focusables = getFocusableElements(sideMenu);
+        if (focusables.length > 0) {
+          focusables[0].focus();
+        } else {
+          sideMenu.focus();
+        }
+      }
+      function trapFocusKeydown(e) {
+        if (!sideMenu.classList.contains('open')) return;
+        if (e.key !== 'Tab') return;
+        const focusables = getFocusableElements(sideMenu);
+        if (focusables.length === 0) { e.preventDefault(); sideMenu.focus(); return; }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey) {
+          if (active === first || !sideMenu.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last || !sideMenu.contains(active)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+      function openMenu() {
+        sideMenu.classList.add('open');
+        menuOverlay.style.display = 'block';
+        menuToggle.setAttribute('aria-expanded', 'true');
+        sideMenu.setAttribute('aria-hidden', 'false');
+        // A11y: 初期フォーカスとトラップ
+        previousFocusedElement = document.activeElement;
+        sideMenu.setAttribute('role', 'dialog');
+        sideMenu.setAttribute('aria-modal', 'true');
+        focusFirstInMenu();
+        document.addEventListener('keydown', trapFocusKeydown, true);
+      }
+      function closeMenu() {
+        sideMenu.classList.remove('open');
+        menuOverlay.style.display = 'none';
+        menuToggle.setAttribute('aria-expanded', 'false');
+        sideMenu.setAttribute('aria-hidden', 'true');
+        sideMenu.removeAttribute('aria-modal');
+        sideMenu.removeAttribute('role');
+        document.removeEventListener('keydown', trapFocusKeydown, true);
+        // 直前のフォーカスへ戻す
+        if (previousFocusedElement && document.contains(previousFocusedElement)) {
+          previousFocusedElement.focus();
+        } else {
+          menuToggle.focus();
+        }
+      }
+      menuToggle.addEventListener('click', () => {
+        const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
+        expanded ? closeMenu() : openMenu();
+      });
+      menuOverlay.addEventListener('click', closeMenu);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+      if (menuOpenNotif) menuOpenNotif.onclick = () => { closeMenu(); openNotifModal(); };
+
+      // ログアウト
+      const menuLogout = document.getElementById('menuLogout');
+      if (menuLogout) menuLogout.onclick = async function () {
+        await fetchWithAuth('api/logout.php', { method: 'POST' });
+        window.location.href = 'login.html';
+      };
+    </script>
 </body>
 
 </html>
