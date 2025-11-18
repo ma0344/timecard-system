@@ -10,136 +10,88 @@
 
 ---
 
-## 現在の状態（2025-11-14 時点・更新）
+## 現在の状態（2025-11-05 時点・更新）
 
-<details><summary style="font-size:140%;"><b>完了</b></summary>
+- 完了
 
-    - 管理ダッシュボード（基本）
+  - 管理ダッシュボード（基本）
     - 有休 失効間近（30 日以内）カード（件数＋上位表示、再読み込みボタン）
     - 保留中の申請カード（最大 50 件）
-        - 各行クリックで管理者用詳細（`admin_request.html?id=…`）を新規タブで開く（トークン非露出）
-        - 各行に「承認」「却下」ボタンを配置し、ID ベースの管理者 API でワンクリック決裁
-    - 管理ダッシュボード（拡張・実装済み）
+      - 各行クリックで管理者用詳細（`admin_request.html?id=…`）を新規タブで開く（トークン非露出）
+      - 各行に「承認」「却下」ボタンを配置し、ID ベースの管理者 API でワンクリック決裁
+  - 管理ダッシュボード（拡張・実装済み）
     - 打刻アラートカード
-        - 種別トグル（未退勤=ON/未打刻=ON/勤務中=OFF、localStorage 永続化）
-        - 期間セレクタ（3/5/7 日、localStorage 永続化）
-        - 上書き（全休/午前/午後/無視）日は除外してから集計
-        - 未打刻は「過去日のみ」を対象（当日は含めない）
-        - ちらつき抑制のため、カード単独再描画（他カードは再ロードしない）
-        - UI: `.card-header` 内でタイトルと metric を分離して横並び
-        - 未打刻通知モーダルを分離し、複数日まとめて通知＋任意コメント（最大 500 文字）に対応
+      - 種別トグル（未退勤=ON/未打刻=ON/勤務中=OFF、localStorage 永続化）
+      - 期間セレクタ（3/5/7 日、localStorage 永続化）
+      - 上書き（全休/午前/午後/無視）日は除外してから集計
+      - 未打刻は「過去日のみ」を対象（当日は含めない）
+      - ちらつき抑制のため、カード単独再描画（他カードは再ロードしない）
+      - UI: `.card-header` 内でタイトルと metric を分離して横並び
     - 今日の勤務（一覧）テーブル
-        - 全ユーザー（visible=1）を一覧表示、行内で上書き操作（全休/午前/午後/無視/取消）とメモ入力
-        - 実績バッジ（未打刻/勤務中/休憩中/退勤済み）を表示
-        - 手動更新＋ 60 秒自動更新、フィルタ/ソート対応
-        - ボタンの active 状態で上書きの現在値を可視化
-    - 承認フロー（最小構成／Option A）
+      - 全ユーザー（visible=1）を一覧表示、行内で上書き操作（全休/午前/午後/無視/取消）とメモ入力
+      - 実績バッジ（未打刻/勤務中/休憩中/退勤済み）を表示
+      - 手動更新＋ 60 秒自動更新、フィルタ/ソート対応
+      - ボタンの active 状態で上書きの現在値を可視化
+  - 承認フロー（最小構成／Option A）
     - 申請作成 API: `api/leave_requests_create.php`（ワンタイムトークン生成・72h 有効・通知先にメール送信）
     - 承認フォーム: `approval.html`（トークン検証・承認/却下 UI）
     - 承認リンク照会 API: `api/leave_requests_approve_link.php`
     - 決裁 API（トークン）: `api/leave_requests_decide.php`（承認/却下・単回使用・期限検証）
     - 決裁 API（管理者/ID ベース）: `api/leave_requests_decide_admin.php`
     - 申請詳細（管理者）: `admin_request.html` + `api/leave_requests_get.php`
-    - 通知/SMTP
+  - 通知/SMTP
     - 通知設定 API: `api/notify_settings_get.php`, `api/notify_settings_save.php`（enabled, recipients CSV）
     - SMTP 設定・テスト: `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`（DNS/secure 対応）, `api/smtp_test_send_mail.php`（実送）
-    - コメント入力欄に残り文字数カウンタ（UX 向上）
-    - ユーザー向けエントリ
+  - ユーザー向けエントリ
 
     - 勤務記録一覧（`attendance_list.html`）に有給申請モーダルを追加（`#paidLeaveBtn`）
     - 打刻画面（`punch.html`）に「有給申請」ボタン＋モーダルを追加
 
-    - セキュリティ/監査（第一段 完了）
+  - セキュリティ/監査（第一段 完了）
     - トークン平文の保存停止（DB は `approve_token_hash` のみ保持、メールにはトークンを含める）
     - 互換照合（平文 or ハッシュ）での承認リンク維持
     - ダッシュボード/管理者決裁は ID ベースに移行（`approve_token` 非露出）
     - 監査ログ（`leave_request_audit`）に open/approve/reject を記録、決裁時の IP/UA 記録、管理者決裁では `approver_user_id` を保存
     - MySQL 8.0 互換マイグレーション（INFORMATION_SCHEMA + PREPARE 方式）
-    - レート制限（SEC-002）
+  - レート制限（SEC-002）
     - 各 API に IP× エンドポイントのレート制限を適用（POST 強制・Referer 緩和チェックを含む）
     - 設定は `app_settings.rate_limit` に保存し、管理画面から編集可能（承認リンク表示/決裁（トークン）/決裁（管理者））
-    - アプリ内通知（最小）
+  - アプリ内通知（最小）
     - 決裁時に申請者へ通知レコード生成、ユーザー画面でベル＋モーダル表示
     - 未読 0 件のときは通知ベルを非表示にする挙動に変更
     - 通知の個別既読に対応（モーダル内で各通知に「既読」ボタン、実行後に未読バッジを即時更新）
 
-- 一般ユーザー向け: My Day（個人ダッシュボード）MVP 完了（2025-11-10）
+- 進行中/保留（次段）
 
-  - ステータス帯（出勤/休憩/退勤）、クイックアクション表示制御
-  - 本人向けアラート（未退勤/未打刻）ピル＋日付一覧モーダル
-  - 今日のタイムライン（降順・折りたたみ）
-  - 今日のメモ（ローカル自動保存＋退勤時サーバー保存）
-  - 未読通知バッジ＋最新 3 件通知プレビュー（一行表示/未読優先）
+  - セキュリティ/監査の強化（継続）
+    - 初期対応: 監査ビュー/CSV エクスポート（`admin_audit.html` + `api/audit_list.php`）、RateLimit スナップショット可視化（`api/rate_limit_stats.php`）を追加
+    - 後続: 監査の検索条件拡充・ページング、RateLimit の履歴集計/可視化（必要なら別テーブル化）
+  - 決裁結果の申請者通知メール（承認/却下）【社内ポリシー決定まで保留】
+    - メールアドレスの取り扱いポリシー確定後に着手
+  - ダッシュボードの打刻アラート実装（継続: チューニングのみ）
+    - 実装済み: トグル＋期間セレクタ、上書き日除外、未打刻は過去日のみ、カード単独再描画、サーバー側フィルタ（`days`/トグルのクエリ化）
+    - ルール確定: `day_status_effective` に基づき「全休/無視」は除外、半休は対象（未打刻判定）
+    - 継続: パフォーマンス検討（軽負荷テスト・集計最適化）
+  - 勤怠記録に「休みの明示」記録を追加（全休/午前休/午後休/無視/勤務）
+    - 管理ダッシュボード「今日の勤務（一覧）」で上書きを登録・取消できるテーブル/API を実装済み。
+    - 今後: 勤怠画面・集計・アラート全体での連動を拡充し、説明ツールチップ/ヘルプを整備。
+  - CSV/PDF 出力（残高・最短失効・期限間近）
+  - 一般ユーザーの有給確認 UI 拡張（履歴・残高・最短失効の自己確認）
 
-- 一般ユーザー向け: My Day フォローアップ（2025-11-14）
+  - 着手順（メール保留を考慮）
+    1. セキュリティ/監査の強化（ビュー/エクスポート、RateLimit 可視化）
+    2. ダッシュボードの打刻アラート実装
+    3. CSV/PDF 出力
+    4. 一般ユーザーの有給確認 UI 拡張
 
-  - 本人向けアラートから対象日へディープリンクし、`attendance_list.html` 側でパネル自動展開
-  - ディープリンクに `back`/`backMode=auto` を付与して編集完了後に自動戻り（同一オリジンのみ）
-
-- 勤務記録一覧（`attendance_list.html`）強化（2025-11-14）
-
-  - 日ステータスのバッジ表示（work/off/am_off/pm_off/ignore, source=O 表示）
-  - 本人による当日分類（`api/day_status_self_set.php` / `api/day_status_self_clear.php`）
-  - 欠落日の強調（＋行内「＋」で新規追加パネルを即時表示）
-  - ディープリンク安定化（強制可視化＋遅延ハイライト解除）
-  - `back`/`backMode` による戻り導線（保存/キャンセル/閉じる/削除/復元後に自動戻り: auto）
-  - 期間ロックの読み取りを反映（`api/period_lock_effective_get.php`）
-  - 小修正（overlay 参照/ラベル整合）
-
-- 日単位ステータス基盤（effective 化）適用（2025-11-14）
-  - アラート API（`api/my_alerts.php`, `api/attendance_alerts.php`）は `day_status_effective` 参照へ切替
-  - 勤務記録一覧でも `day_status_effective` を参照（暫定 API `api/day_status_effective_get.php` を使用）
-
-</details>
-
----
-
-<details open><summary style="font-size:140%;"><b>進行中/保留（次段）</b></summary>
-
-#### 決裁結果の申請者通知メール（承認/却下）【社内ポリシー決定まで保留】
-
-- メールアドレスの取り扱いポリシー確定後に着手
-
-#### ダッシュボードの打刻アラート実装（残タスク）
-
-- 現状: トグル/期間セレクタ/上書き日除外/未打刻は過去日のみ/カード単独再描画/未打刻通知（複数日＋コメント）まで実装済み。
-- 残り:
-  - 「未打刻」の最終判定ルール（休日/公休/休暇/勤務不要日の扱い）確定
-  - サーバー側フィルタへ移行（days/トグルをクエリ化）
-  - パフォーマンス検討。
-
-#### 勤怠記録に「休みの明示」記録を追加（全休/午前休/午後休/無視/勤務）
-
-- 管理ダッシュボード「今日の勤務（一覧）」で上書きを登録・取消できるテーブル/API を実装済み。
-- 今後: 勤怠画面・集計・アラート全体での連動を拡充し、説明ツールチップ/ヘルプを整備。
-
-######
-
-#### CSV/PDF 出力（残高・最短失効・期限間近）
-
-#### 一般ユーザー向け UI/機能の拡張（概要）
-
-- My Day の任意改善バックログを `docs/ROADMAP_USER_UI.md` に追記（2025-11-10）
-- 詳細計画・優先度は上記ドキュメント参照
-
-## 着手順（メール保留を考慮）
-
-1. ダッシュボードの打刻アラート実装（最終ルール確定と性能検証）
-2. CSV/PDF 出力
-3. 一般ユーザーの有給確認 UI 拡張
-</details>
-
-## 主な API（実装済み）
-
-- ダッシュボード: `api/dashboard_summary.php`, `api/leave_requests_pending.php`
-- 打刻アラート: `api/attendance_alerts.php`
-- 申請/承認: `api/leave_requests_create.php`, `api/leave_requests_approve_link.php`, `api/leave_requests_decide.php`, `api/leave_requests_decide_admin.php`, `api/leave_requests_get.php`
-- 通知/SMTP: `api/notify_settings_get.php`, `api/notify_settings_save.php`, `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`, `api/smtp_test_send_mail.php`
-- 当日実績サマリ: `api/today_status_summary.php`
-- 日上書き状態: `api/day_status_get.php`, `api/day_status_set.php`, `api/day_status_clear.php`
-- 本人の自己区分変更: `api/day_status_self_set.php`, `api/day_status_self_clear.php`
-- 日ステータス（effective）: `api/day_status_effective_get.php`（暫定）
-- 期間ロック（effective）: `api/period_lock_effective_get.php`
+- 主な API（実装済み）
+  - ダッシュボード: `api/dashboard_summary.php`, `api/leave_requests_pending.php`
+  - 打刻アラート: `api/attendance_alerts.php`
+  - 申請/承認: `api/leave_requests_create.php`, `api/leave_requests_approve_link.php`, `api/leave_requests_decide.php`, `api/leave_requests_decide_admin.php`, `api/leave_requests_get.php`
+  - 通知/SMTP: `api/notify_settings_get.php`, `api/notify_settings_save.php`, `api/smtp_settings_get.php`, `api/smtp_settings_save.php`, `api/smtp_test_send.php`, `api/smtp_test_send_mail.php`
+  - 当日実績サマリ: `api/today_status_summary.php`
+  - 日ステータス（有効値・暫定）: `api/day_status_effective_get.php`
+  - 日上書き状態: `api/day_status_get.php`, `api/day_status_set.php`, `api/day_status_clear.php`
 
 ## フェーズ 3（短期・小粒から着手）
 
@@ -158,11 +110,11 @@
 - 受け入れ基準: 文字化けなし、ヘッダ行あり、小数 2 桁
 - 概算: CSV 1〜2 日、PDF 2〜4 日
 
-3. 一般ユーザー向け UI/機能（概要・詳細は別紙）【一部着手】
+3. 一般ユーザーの有給確認（`attendance_list.html` 拡張）【一部着手】
 
-- 要点: My Day（個人ダッシュボード）、勤怠修正申請、月次カレンダー、通知センター強化 等
+- 内容: 残高・最短失効・取得履歴（最新 50 件）・申請一覧（閲覧）
 - 権限: 本人のデータのみ
-- 概算: 各項目は `docs/ROADMAP_USER_UI.md` を参照
+- 概算: 1〜2 日
 
 4. 期限視認性の強化（既存一覧の拡張）【未着手】
 
@@ -187,7 +139,7 @@
 
 ## フェーズ 4（中期）
 
-7. 有給の取得申請・承認（最小構成）【最小版完了／残高整合・RateLimit は後続】
+6. 有給の取得申請・承認（最小構成）【最小版完了／残高整合・RateLimit は後続】
 
 - DB: `leave_requests` (id, user_id, used_date, hours, reason, status(pending/approved/rejected), approver_user_id, decided_at, created_at)
 - API:
@@ -201,15 +153,20 @@
   - 監査ログ（open/approve/reject）と管理者決裁（approver_user_id 記録）は実装済み
   - 残高整合・重複申請警告・RateLimit は次段で対応
 
-8. 打刻画面の情報再設計（概要）
+7. 打刻画面の情報再設計（給与算定期間の状況表示）
 
-- 表示: 期内サマリ等。詳細は `docs/ROADMAP_USER_UI.md` を参照
+- 表示: 期内の出勤日数/総労働時間/残り日数、直近の打刻異常
+- API: 既存 `timecard_status.php` を異常サマリ返却に拡張
+- 概算: 1〜2 日
 
-9. 退勤打刻漏れなどの通知（概要）
+8. 退勤打刻漏れなどの通知（ログイン後ポップアップ/打刻画面バナー）
 
-- 異常例と抑止要件等の詳細は `docs/ROADMAP_USER_UI.md` へ委譲
+- 異常例: 当日退勤未入力、連続 n 日未打刻、過去日の欠落
+- API: GET `/api/attendance_alerts?user_id=me`
+- 受け入れ基準: 1 日 1 回抑止（ローカル/軽量テーブル）
+- 概算: 2〜3 日
 
-10. 管理者へのメール通知（申請承認フォーム付き）【完了（Option A: 宛先手動設定）】
+9. 管理者へのメール通知（申請承認フォーム付き）【完了（Option A: 宛先手動設定）】
 
 - 目的: 有休申請の見逃し防止と承認作業の省力化（メールからフォームへ直リンク）
 - SMTP/設定: 管理画面に SMTP ホスト/ポート/ユーザー/暗号化方式/送信元の設定 UI、テスト送信
@@ -236,10 +193,6 @@
 - PDF 帳票の種類追加（勤務表、年間有休台帳など）
 - 申請の多段承認/代理申請
 - 一覧の仮想スクロール/ページング、サーバサイド検索
-- セキュリティ/監査の強化（後続）
-  - 初期対応: 監査ビュー/CSV エクスポート（`admin_audit.html` + `api/audit_list.php`）、RateLimit スナップショット可視化（`api/rate_limit_stats.php`）を拡張
-  - 後続: 監査の検索条件拡充・ページング、RateLimit の履歴集計/可視化（必要なら別テーブル化）
-- 通知モーダルの送信完了時に「対象ユーザーの未読通知数」をフロント側でも更新（視覚的なフィードバック強化）
 
 ### 将来（低優先の提案・バックログ）
 
@@ -328,18 +281,9 @@
 
 ## 次に実装する 3 件（候補／更新）
 
-- ダッシュボードの打刻アラート最終ルール確定（休日/公休/勤務不要日の扱いと性能検証）
-- 一般ユーザー向け UI/機能の拡張（詳細は `docs/ROADMAP_USER_UI.md`）
+- アラートのサーバー側フィルタ移行と最終ルール確定（未打刻の休日/公休/休暇/勤務不要日の扱いを定義、days/トグルをクエリ化）
+- セキュリティ/監査の強化（継続: 検索・ページング・RateLimit 可視化の拡充）
 - CSV エクスポート（残高/最短失効、期限間近）
-
----
-
-## 小改善タスク（短期）
-
-- 休日/公休日付のサーバー側統一ロジック化（未打刻判定からの除外処理）
-- 打刻アラートの SQL 最適化と必要 INDEX の再点検（期間/種別トグルを考慮）
-- アクセシビリティ: モーダル/FW ボタンのフォーカス可視化、キーボード操作の確認
-- 空状態/エラー時 UI の明示（カード/テーブルのメッセージ表現統一）
 
 ---
 
@@ -348,13 +292,3 @@
 - 本ファイル（`docs/ROADMAP.md`）を単一の真実源とし、変更は PR でレビュー
 - 必要に応じて GitHub Issues を起票してタスク化（リンクをこのファイルに追記）
 - マイルストーン/Projects への割当は担当者が更新
-
----
-
-## Copilot とまだ共有していない追加したい機能
-
-- ダッシュボード
-  - 打刻アラートのアイテムを展開式にし、対象の複数日から特定の日付を選択処理できるようにする
-  - ダッシュボードのカードを折りたためるようにする
-  - 勤務一覧を折りたためるようにする
-  - ボタンエリアを折りたためるようにする

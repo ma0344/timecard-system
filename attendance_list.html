@@ -96,7 +96,7 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      padding: 0.7em 0.5em 0.3em 0.5em;
+      padding: 0.5em 0.5em 0em 0.5em;
     }
 
     .fixed-footer {
@@ -151,17 +151,29 @@
 
     #statsBox {
       display: grid;
-      row-gap: 0.3em;
       box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
-      grid-auto-columns: 1fr;
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
       grid-auto-flow: column;
       height: auto;
       padding-top: 0.5em;
       padding-bottom: 0.8em;
-      font-size: 1.1em;
+      font-size: 1.8vh;
       color: #1976d2;
       font-weight: bold;
       text-align: center;
+    }
+
+    .statsBoxLabel {
+      display: grid;
+      grid-auto-columns: 1fr;
+      font-size: 2vh;
+    }
+
+    .statsBoxValue {
+      display: grid;
+      grid-auto-columns: 1fr;
+      font-size: 2vh
     }
 
     input[type="month" i] {
@@ -182,6 +194,19 @@
       height: 100%;
       display: flex;
       flex-direction: column;
+    }
+
+    .toggle-area {
+      display: flex;
+      column-gap: 0.5em;
+      justify-content: flex-end;
+      padding: 0 0.5em 0.4em 0.5em;
+    }
+
+    #listToggles {
+      display: flex;
+      gap: 0.5em;
+      flex-wrap: wrap;
     }
 
     .scroll-area {
@@ -844,16 +869,30 @@
       </div>
       <div id="header-btns" class="header-btns" style="display:none;"></div>
       <div id="statsBox">
-        <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
-        <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">合計労働時間</span>
-        <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超過勤務時間</span>
-        <span id="missingCountLabel" style="grid-row: 1; grid-column: 4;">未打刻</span>
-        <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
-        <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
-        <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
-        <span id="missingCountValue" style="grid-row: 2; grid-column: 4;"></span>
+        <div class="statsBoxLabel">
+          <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
+          <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">勤務時間</span>
+          <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超勤時間</span>
+          <span id="missingCountLabel" style="grid-row: 1; grid-column: 4;">未打刻</span>
+        </div>
+        <div class="statsBoxValue">
+          <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
+          <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
+          <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
+          <span id="missingCountValue" style="grid-row: 2; grid-column: 4;"></span>
+        </div>
       </div>
       <div class="listLabelBox">
+        <div class="toggle-area" id="toggleArea">
+          <label for="listToggles">表示切替:</label>
+          <div id="listToggles">
+            <button type="button" class="toggle-btn" data-type="work">勤務</button>
+            <button type="button" class="toggle-btn" data-type="off">全休</button>
+            <button type="button" class="toggle-btn" data-type="paid">有給</button>
+            <button type="button" class="toggle-btn" data-type="ignore">除外</button>
+            <button type="button" class="toggle-btn" data-type="missing">未</button>
+          </div>
+        </div>
         <div id="listLabel">
           <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
           <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
@@ -872,15 +911,6 @@
             <div class="record-col">
               <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
             </div>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;padding:0 0.5em 0.4em 0.5em;">
-          <div id="listToggles" style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" class="toggle-btn" data-type="work">勤務</button>
-            <button type="button" class="toggle-btn" data-type="off">全休</button>
-            <button type="button" class="toggle-btn" data-type="paid">有給</button>
-            <button type="button" class="toggle-btn" data-type="ignore">除外</button>
-            <button type="button" class="toggle-btn" data-type="missing">未</button>
           </div>
         </div>
       </div>
@@ -1538,7 +1568,7 @@
               const locked = isLocked(d);
               timesHTML = `<div class="record-col" style="min-width:unset"><div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;min-width:unset">（未）
                   <button type='button' class='mini-add-btn' data-date='${d}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button>
-                  <button type='button' class='mini-off-btn' id='off-${d}' data-date='${d}' ${locked ? 'disabled title="ロック中"' : ''} style='font-size:.55em;padding:2px 6px;border:1px solid #ef9a9a;border-radius:4px;background:#fff;color:#c62828;cursor:pointer;'>全休</button>
+                  <button type='button' class='mini-off-btn' id='off-${d}' data-date='${d}' ${locked ? 'disabled title="ロック中"' : ''} style='font-size:.55em;padding:2px 6px;border:1px solid #ef9a9a;border-radius:4px;background:#fff;color:#c62828;cursor:pointer;white-space:nowrap'>全休</button>
                   </div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div>`;
             } else if (t === 'paid') {
               const info = window.__paidLeave[d];

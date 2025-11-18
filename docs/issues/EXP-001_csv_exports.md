@@ -1,5 +1,10 @@
 # [EXP-001] CSV エクスポート（残高/最短失効、期限間近）
 
+ステータス: In Progress
+作成日: 2025-11-03
+担当: 未割当
+関連: api/paid_leave_expiring_report.php
+
 Meta
 
 - Milestone: Usability & alerts
@@ -29,4 +34,6 @@ Meta
 
 - [ ] CSV API 実装
 - [ ] ダウンロード UI
+- [ ] 文字コード/改行コードの選定と検証（Excel 互換: UTF-8 BOM もしくは Shift_JIS）
+- [ ] 数値/桁のフォーマット統一（時間は小数 2 桁、列ヘッダ固定）
 - [ ] 表示確認（Win/Mac）

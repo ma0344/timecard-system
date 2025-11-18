@@ -1,5 +1,10 @@
 # [SEC-002] レートリミットと妥当性強化（承認リンク/決裁）
 
+ステータス: In Progress
+作成日: 2025-11-03
+担当: 未割当
+関連:
+
 Meta
 
 Dependencies: SEC-001（完了）
@@ -17,13 +22,12 @@ Dependencies: SEC-001（完了）
 
 受け入れ基準
 
-チェックリスト
-チェックリスト
+- ### チェックリスト
 
-- [x] レート制御の実装（`request_rate_limit` テーブル、IP× エンドポイント）
-- [x] 閾値/期間の設定値化（app_settings.rate_limit で上書き可能）
-- [x] decide のメソッド/ヘッダ検査（POST 強制、Referer 同一ホスト時のみ許可）
-- [ ] 負荷/誤判定の簡易テスト（ToDo）
+  [x] レート制御の実装（`request_rate_limit` テーブル、IP× エンドポイント）
+  [x] 閾値/期間の設定値化（app_settings.rate_limit で上書き可能）
+  [x] decide のメソッド/ヘッダ検査（POST 強制、Referer 同一ホスト時のみ許可）
+  [ ] 負荷/誤判定の簡易テスト（ToDo）
 
 備考
 
