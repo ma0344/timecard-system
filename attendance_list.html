@@ -154,26 +154,107 @@
       box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
       grid-template-columns: 1fr;
       grid-template-rows: 1fr 1fr;
+      row-gap: 10px;
       grid-auto-flow: column;
       height: auto;
       padding-top: 0.5em;
       padding-bottom: 0.8em;
-      font-size: 1.8vh;
       color: #1976d2;
       font-weight: bold;
       text-align: center;
+      line-height: 28.8px;
     }
 
     .statsBoxLabel {
       display: grid;
       grid-auto-columns: 1fr;
-      font-size: 2vh;
+      font-size: 30px;
     }
 
     .statsBoxValue {
       display: grid;
       grid-auto-columns: 1fr;
-      font-size: 2vh
+      font-size: 30px;
+      line-height: 28.8px;
+    }
+
+    .flex-summary {
+      display: none;
+      margin: 0.4em 1rem 0.2em 1rem;
+      padding: 0.7em 1em;
+      background: #e8f1ff;
+      border: 1px solid #bbdefb;
+      border-radius: 10px;
+      color: #0d47a1;
+    }
+
+    .flex-summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .flex-summary-title {
+      font-weight: 600;
+    }
+
+    .flex-summary-sub {
+      font-size: 0.85rem;
+      color: #546e7a;
+    }
+
+    .flex-summary-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .flex-summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    .flex-summary-detail {
+      font-size: 0.8rem;
+      color: #455a64;
+      line-height: 1.5;
+    }
+
+    .flex-delta {
+      font-weight: 600;
+    }
+
+    .flex-delta.positive {
+      color: #1b5e20;
+    }
+
+    .flex-delta.negative {
+      color: #c62828;
+    }
+
+    .flex-delta.neutral {
+      color: #37474f;
+    }
+
+    @media (max-width: 600px) {
+      .statsBoxLabel {
+        font-size: 5vw;
+        line-height: 4.8vw;
+      }
+
+      .statsBoxValue {
+        font-size: 5vw;
+        line-height: 4.8vw;
+      }
+
+      .flex-summary {
+        margin: 0.4em 0.6em 0.2em 0.6em;
+      }
     }
 
     input[type="month" i] {
@@ -270,6 +351,30 @@
       margin: 0;
     }
 
+    /* 月区切りヘッダー（スクロール追従） */
+    .month-divider {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: #eceff1;
+      color: #37474f;
+      font-weight: 600;
+      border: 1px solid #cfd8dc;
+      border-left: none;
+      border-right: none;
+      padding: 4px 10px;
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      letter-spacing: .5px;
+      font-size: 1.1em;
+    }
+
+    .month-divider+.month-divider {
+      /* 連続挿入抑止（万一フィルタで空月など） */
+      margin-top: 0;
+    }
+
     .record-row {
       border-bottom: 1px solid #e0e0e0;
       padding: 0.7rem 0;
@@ -306,6 +411,7 @@
       flex: 1 1 0%;
       gap: 0;
       width: 100%;
+      white-space: nowrap;
     }
 
     .record-date {
@@ -678,60 +784,6 @@
       display: inline-flex;
     }
 
-    /* --- Hamburger Menu --- */
-    .hamburger {
-      background: rgba(25, 118, 210, 0.06);
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
-      position: relative;
-      cursor: pointer;
-      transition: background .15s ease-in-out;
-    }
-
-    .hamburger:focus {
-      outline: 2px solid #90caf9;
-      background: rgba(25, 118, 210, 0.08);
-    }
-
-    .hamburger:hover {
-      background: rgba(25, 118, 210, 0.14);
-    }
-
-    .hamburger .bar {
-      position: absolute;
-      left: 8px;
-      right: 8px;
-      height: 2px;
-      background: #1976d2;
-      transition: transform .2s ease, opacity .2s ease;
-    }
-
-    .hamburger .bar:nth-child(1) {
-      top: 12px;
-    }
-
-    .hamburger .bar:nth-child(2) {
-      top: 19px;
-    }
-
-    .hamburger .bar:nth-child(3) {
-      top: 26px;
-    }
-
-    .hamburger[aria-expanded="true"] .bar:nth-child(1) {
-      transform: translateY(7px) rotate(45deg);
-    }
-
-    .hamburger[aria-expanded="true"] .bar:nth-child(2) {
-      opacity: 0;
-    }
-
-    .hamburger[aria-expanded="true"] .bar:nth-child(3) {
-      transform: translateY(-7px) rotate(-45deg);
-    }
-
     .notif-badge {
       display: none;
       position: absolute;
@@ -882,6 +934,23 @@
           <span id="missingCountValue" style="grid-row: 2; grid-column: 4;"></span>
         </div>
       </div>
+      <div id="flexSummaryBox" class="flex-summary" aria-live="polite">
+        <div class="flex-summary-header">
+          <span class="flex-summary-title">フレックス</span>
+          <span id="flexSummaryMonth" class="flex-summary-sub"></span>
+        </div>
+        <div class="flex-summary-body">
+          <div class="flex-summary-line">
+            <span>今月</span>
+            <span id="flexSummaryCurrent" class="flex-delta neutral">±0:00</span>
+          </div>
+          <div id="flexSummaryTwoMonth" class="flex-summary-line" style="display:none;">
+            <span>清算2ヶ月</span>
+            <span id="flexSummaryTwoMonthDelta" class="flex-delta neutral">±0:00</span>
+          </div>
+          <div id="flexSummaryDetail" class="flex-summary-detail"></div>
+        </div>
+      </div>
       <div class="listLabelBox">
         <div class="toggle-area" id="toggleArea">
           <label for="listToggles">表示切替:</label>
@@ -997,6 +1066,130 @@
         work_hours: 8,
         work_minutes: 0
       };
+      const flexSummaryBox = document.getElementById('flexSummaryBox');
+      const flexSummaryMonth = document.getElementById('flexSummaryMonth');
+      const flexSummaryCurrent = document.getElementById('flexSummaryCurrent');
+      const flexSummaryTwoMonthRow = document.getElementById('flexSummaryTwoMonth');
+      const flexSummaryTwoMonthDelta = document.getElementById('flexSummaryTwoMonthDelta');
+      const flexSummaryDetail = document.getElementById('flexSummaryDetail');
+      let flexSummaryRequestToken = 0;
+
+      function flexMinutesToHM(minutes) {
+        const numeric = Number(minutes);
+        if (!Number.isFinite(numeric)) return '0:00';
+        const abs = Math.abs(Math.round(numeric));
+        const sign = numeric < 0 ? '-' : '';
+        const h = Math.floor(abs / 60);
+        const m = String(abs % 60).padStart(2, '0');
+        return `${sign}${h}:${m}`;
+      }
+
+      function flexFormatDelta(minutes) {
+        const numeric = Number(minutes);
+        if (!Number.isFinite(numeric) || numeric === 0) return '±0:00';
+        const abs = Math.abs(Math.round(numeric));
+        const h = Math.floor(abs / 60);
+        const m = String(abs % 60).padStart(2, '0');
+        return `${numeric > 0 ? '+' : '-'}${h}:${m}`;
+      }
+
+      function flexUpdateDelta(el, minutes) {
+        if (!el) return;
+        el.className = 'flex-delta';
+        const numeric = Number(minutes);
+        if (!Number.isFinite(numeric)) {
+          el.textContent = '--:--';
+          el.classList.add('neutral');
+          return;
+        }
+        if (numeric === 0) {
+          el.textContent = '±0:00';
+          el.classList.add('neutral');
+          return;
+        }
+        el.textContent = flexFormatDelta(numeric);
+        el.classList.add(numeric > 0 ? 'positive' : 'negative');
+      }
+
+      function flexDateLabel(iso) {
+        if (!iso || typeof iso !== 'string') return '';
+        const parts = iso.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return iso;
+        return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+      }
+
+      function flexPeriodRange(period) {
+        if (!period || !period.start || !period.end) return '';
+        const start = flexDateLabel(period.start);
+        const end = flexDateLabel(period.end);
+        return start && end ? `${start}〜${end}` : '';
+      }
+
+      function flexDescribeRounding(display) {
+        if (!display) return '';
+        const type = String(display.rounding_type || '').toLowerCase();
+        const unit = Number(display.rounding_unit);
+        const typeMap = { floor: '切り捨て', ceil: '切り上げ', nearest: '四捨五入', round: '四捨五入' };
+        const typeLabel = typeMap[type] || (type ? type : '');
+        const unitLabel = Number.isFinite(unit) && unit > 0 ? `${unit}分` : '';
+        if (typeLabel && unitLabel) return `${typeLabel} / ${unitLabel}`;
+        return typeLabel || unitLabel;
+      }
+
+      async function refreshFlexSummary(monthVal) {
+        if (!flexSummaryBox) return;
+        const token = ++flexSummaryRequestToken;
+        const query = monthVal ? `?month=${encodeURIComponent(monthVal)}` : '';
+        try {
+          const res = await fetchWithAuth(`api/flex_summary.php${query}`);
+          if (!res || !res.ok) throw new Error('flex fetch failed');
+          const data = await res.json();
+          if (token !== flexSummaryRequestToken) return;
+          if (!data || data.ok === false || data.is_full_time === false) {
+            flexSummaryBox.style.display = 'none';
+            flexSummaryBox.removeAttribute('data-has-data');
+            return;
+          }
+          flexSummaryBox.style.display = 'block';
+          flexSummaryBox.dataset.hasData = '1';
+          flexSummaryMonth.textContent = data.month_label || '';
+          flexUpdateDelta(flexSummaryCurrent, data.delta_minutes);
+          if (data.is_settlement_month && data.two_month) {
+            flexSummaryTwoMonthRow.style.display = 'flex';
+            flexUpdateDelta(flexSummaryTwoMonthDelta, data.two_month.delta_minutes);
+          } else {
+            flexSummaryTwoMonthRow.style.display = 'none';
+          }
+          const lines = [
+            `所定 ${flexMinutesToHM(data.legal_minutes)}`,
+            `実働 ${flexMinutesToHM(data.worked_minutes)}`,
+            `有給 ${flexMinutesToHM(data.paid_leave_minutes)}`,
+            `期間 ${flexPeriodRange(data.period)}`
+          ];
+          if (data.is_settlement_month && data.two_month) {
+            const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
+            if (labels) lines.push(`清算対象 ${labels}`);
+            lines.push(`2ヶ月所定 ${flexMinutesToHM(data.two_month.legal_minutes)}`);
+            lines.push(`2ヶ月実働 ${flexMinutesToHM(data.two_month.worked_minutes)}`);
+            lines.push(`2ヶ月有給 ${flexMinutesToHM(data.two_month.paid_leave_minutes)}`);
+          }
+          const roundingInfo = flexDescribeRounding(data.display);
+          if (roundingInfo) lines.push(`丸め ${roundingInfo}`);
+          flexSummaryDetail.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+        } catch (e) {
+          if (token !== flexSummaryRequestToken) return;
+          if (flexSummaryBox.dataset.hasData) {
+            flexSummaryMonth.textContent = '取得エラー';
+            flexSummaryCurrent.className = 'flex-delta neutral';
+            flexSummaryCurrent.textContent = '--:--';
+            flexSummaryTwoMonthRow.style.display = 'none';
+            flexSummaryDetail.textContent = '情報を取得できませんでした';
+            flexSummaryBox.removeAttribute('data-has-data');
+          } else {
+            flexSummaryBox.style.display = 'none';
+          }
+        }
+      }
       // 設定取得
       async function loadSettings() {
         const res = await fetchWithAuth('api/settings_get.php');
@@ -1091,6 +1284,7 @@
         setYearLabel();
         renderStatsBox();
         render();
+        await refreshFlexSummary(monthVal);
         // 勤怠統計情報の表示
         function renderStatsBox() {
           let workDays = 0;
@@ -1551,12 +1745,23 @@
       function render() {
         recordList.innerHTML = '';
         const dayList = window.__dayList || [];
+        let currentMonth = null; // YYYY-MM 単位で追跡し、変化時にヘッダー挿入
         dayList.forEach((d, idx) => {
           if (!passFilter(d)) return;
+          const monthPart = d.slice(0, 7); // YYYY-MM
+          if (monthPart !== currentMonth) {
+            currentMonth = monthPart;
+            const [yy, mm] = monthPart.split('-');
+            const monthLi = document.createElement('li');
+            monthLi.className = 'month-divider';
+            monthLi.textContent = `${yy}年${parseInt(mm, 10)}月`;
+            recordList.appendChild(monthLi);
+          }
           const rec = window.__recordMap ? window.__recordMap[d] : null;
           const t = dayType(d);
           const li = document.createElement('li');
           li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
+          const spanDate = formatDateDAtoSpan(formatDateDA(d));
           if (t !== 'work') {
             const badgeSt = (window.__dayStatuses[d]?.status) || 'work';
             let timesHTML = `
@@ -1577,9 +1782,10 @@
               timesHTML = `<div class='record-col'><div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div>`;
             }
             const badgeCode = t === 'paid' ? 'paid' : badgeSt;
+
             li.innerHTML = `
                         <div class="record-main">
-                            <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[d]?.reason ? ('\n' + escapeHtml(window.__paidLeave[d].reason)) : '')) : badgeTitle(d)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span>`}</span></span>
+                            <span class="record-date">${spanDate}<br><span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[d]?.reason ? ('\n' + escapeHtml(window.__paidLeave[d].reason)) : '')) : badgeTitle(d)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span>`}</span></span>
                             <div class="record-times">${timesHTML}</div>
                         </div>`;
             li.onclick = (e) => {
@@ -1595,7 +1801,7 @@
             if (workMin > baseMin) { const overMin = workMin - baseMin; overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`; }
             li.innerHTML = `
                         <div class="record-main">
-                            <span class="record-date">${formatDateMD(d)}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[d]?.status) || 'work'}" title="${badgeTitle(d)}">${statusLabel((window.__dayStatuses[d]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span></span></span>
+                            <span class="record-date">${spanDate}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[d]?.status) || 'work'}" title="${badgeTitle(d)}">${statusLabel((window.__dayStatuses[d]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span></span></span>
                             <div class="record-times">
                                 <div class="record-col"><div class="value">${formatTime(rec.clockIn)}</div></div>
                                 <div class="record-col"><div class="value">${formatTime(rec.clockOut)}</div></div>
@@ -2078,12 +2284,24 @@
         }
         return false;
       }
-      function formatDateMD(dateStr) {
-        // "YYYY-MM-DD" → "MM月DD日"
+      function formatDateDA(dateStr) {
+        // "YYYY-MM-DD" → "DD日（曜）"（月は月ヘッダーで表示）
         if (!dateStr) return '';
         const parts = dateStr.split('-');
         if (parts.length !== 3) return dateStr;
-        return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+        const day = parseInt(parts[2], 10);
+        const wd = ['日', '月', '火', '水', '木', '金', '土'][new Date(dateStr).getDay()];
+        return `${day}日（${wd}）`;
+      }
+
+      function formatDateDAtoSpan(dateStr) {
+        // dd日（曜）を受け取って分解し"dd<span style="font-size:0.5em;">日</span><（曜）"にする
+        if (!dateStr) return '';
+        const match = dateStr.match(/^(\d{1,2})(日)(（.）)$/);
+        if (!match) {
+          return dateStr;
+        }
+        return `<span style="font-size:1.1em;">${match[1]}</span><span style="font-size:0.5em;">日</span><span style="font-size:0.8em;">${match[3]}</span> `;
       }
       // 年月をタイトル左に表示
       function setYearLabel() {
@@ -2117,23 +2335,53 @@
         // クエリ: 指定日があればその年月に合わせて初期ロードし、新規追加パネルを開く
         const urlParams = new URLSearchParams(window.location.search);
         const qpDate = urlParams.get('date');
+        var targetYM = '';
         if (qpDate && /\d{4}-\d{2}-\d{2}/.test(qpDate)) {
           // ダッシュボードなどからの指定日遷移: ハイライト→自動展開（render 内で処理）
           window.__highlightDate = qpDate;
           // フィルタに関わらず対象日を表示させる（パネルが開くまで維持）
           window.__forceVisibleDate = qpDate;
-          const targetYm = qpDate.slice(0, 7);
-          monthInput.value = targetYm;
-          await loadRecordsByPeriod(targetYm);
-          renderBackButton();
+          targetYM = calculateDisplayMonthFromDate(qpDate);
           // 自動展開後はレンダ側でスクロール＆オーバーレイ表示を実施
         } else {
-          // 通常: 今月表示
-          monthInput.value = thisYm;
-          await loadRecordsByPeriod(thisYm);
-          renderBackButton();
+          // 通常表示
+          const dayNum = now.getDate();
+          const year = now.getFullYear();
+          const month = now.getMonth() + 1;
+          const dateStr = `${year}-${pad(month)}-${pad(dayNum)}`;
+          let displayMonth = month;
+          targetYM = calculateDisplayMonthFromDate(dateStr);
         }
+        monthInput.value = targetYM;
+        await loadRecordsByPeriod(targetYM);
+        renderBackButton();
       })();
+
+      // 入力日から表示対象月を計算して返す （YYYY-MM形式）
+      // period_endの属する月を基準に表示月を決定する変則月度式
+      // dateStr.getDate()が1日～settings.period_endまでは当月度表示
+      // dateStr.getDate()がsettings.period_endより大きければ翌月度表示
+      // 例: 2024-05-15, period_end=20 → 2024-05
+      //     2024-05-25, period_end=20 → 2024-06
+      function calculateDisplayMonthFromDate(dateStr) {
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return null;
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        const periodEnd = Number(settings.period_end || 0);
+        let displayYear = year;
+        let displayMonth = month;
+        if (day > periodEnd) {
+          // 翌月表示
+          displayMonth += 1;
+          if (displayMonth > 12) {
+            displayMonth = 1;
+            displayYear += 1;
+          }
+        }
+        return `${displayYear}-${displayMonth.toString().padStart(2, '0')}`;
+      }
 
       function adjustScrollAreaHeight() {
         const body = document.body;

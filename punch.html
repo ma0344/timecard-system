@@ -1,461 +1,389 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>タイムカード</title>
-    <link rel="stylesheet" href="css/common.css" />
-    <style>
-      body {
-        font-family: "Segoe UI", sans-serif;
-        background: #f5f6fa;
-        margin: 0;
-      }
 
-      .container {
-        max-width: 400px;
-        margin: 2rem auto;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-        padding: 1rem 2rem;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>タイムカード</title>
+  <link rel="stylesheet" href="css/common.css" />
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+    }
 
-      h2 {
-        text-align: start;
-        color: #1976d2;
-        margin: 0.4em 0;
-      }
+    .container {
+      max-width: 400px;
+      margin: 2rem auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+      padding: 1rem 2rem;
+    }
 
-      .user-name {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #1976d2;
-        font-size: 1.5em;
-        gap: 1em;
-        border-bottom: #1976d2;
-        border-width: thin;
-        border-bottom-style: inset;
-      }
+    h2 {
+      text-align: start;
+      color: #1976d2;
+      margin: 0.4em 0;
+    }
 
-      .clock_ {
-        text-align: center;
-        margin: 1rem 0;
-        letter-spacing: 0.1em;
-        display: flex;
-        align-items: flex-end;
-      }
+    .user-name {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #1976d2;
+      font-size: 1.5em;
+      gap: 1em;
+      border-bottom: #1976d2;
+      border-width: thin;
+      border-bottom-style: inset;
+    }
 
-      #clock-year {
-        font-size: 1.3rem;
-        color: #1976d2;
-        font-weight: bold;
-      }
+    .clock_ {
+      text-align: center;
+      margin: 1rem 0;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: flex-end;
+    }
 
-      #clock-date {
-        font-size: 1.3rem;
-        color: #1976d2;
-        font-weight: bold;
-      }
+    #clock-year {
+      font-size: 1.3rem;
+      color: #1976d2;
+      font-weight: bold;
+    }
 
-      #clock-time {
-        display: none;
-        font-size: 2.5rem;
-        font-weight: bold;
-      }
+    #clock-date {
+      font-size: 1.3rem;
+      color: #1976d2;
+      font-weight: bold;
+    }
 
-      .clock-group {
-        display: flex;
-        gap: 1rem;
-        width: 100%;
-        margin-top: 0.5em;
-        margin-bottom: 2.5em;
-        box-sizing: border-box;
-      }
+    #clock-time {
+      display: none;
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
 
-      .btn-group {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 1.6em 1em;
-        margin-bottom: 1rem;
-      }
+    .clock-group {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      margin-top: 0.5em;
+      margin-bottom: 2.5em;
+      box-sizing: border-box;
+    }
 
-      .btn-group button {
-        width: 100%;
-        height: 3.5em;
-        font-size: 2rem;
-        border: none;
-        border-radius: 4px;
-        background: #1976d2;
-        color: #fff;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 1.6em 1em;
+      margin-bottom: 1rem;
+    }
 
-      /* --- ボタン状態表示 --- */
-      .btn-group button.active {
-        background: #1976d2;
-        color: #fff;
-        cursor: pointer;
-      }
+    .btn-group button {
+      width: 100%;
+      height: 3.5em;
+      font-size: 2rem;
+      border: none;
+      border-radius: 4px;
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
 
-      .btn-group button.inactive {
-        background: #b0bec5;
-        color: #fff;
-        cursor: not-allowed;
-      }
+    /* --- ボタン状態表示 --- */
+    .btn-group button.active {
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+    }
 
-      .btn-group button.disabled {
-        background: #b0bec536;
-        color: #b0bec5;
-        cursor: not-allowed;
-      }
+    .btn-group button.inactive {
+      background: #b0bec5;
+      color: #fff;
+      cursor: not-allowed;
+    }
 
-      .btn-group button:disabled:not(.time-ready) {
-        color: #b0bec588;
-      }
+    .btn-group button.disabled {
+      background: #b0bec536;
+      color: #b0bec5;
+      cursor: not-allowed;
+    }
 
-      /* 時刻入力済みで押せるようになるボタン（例: 出勤前の出勤ボタン）は、
+    .btn-group button:disabled:not(.time-ready) {
+      color: #b0bec588;
+    }
+
+    /* 時刻入力済みで押せるようになるボタン（例: 出勤前の出勤ボタン）は、
            disabledでも白文字で表示 */
-      #clockInBtn:disabled.time-ready {
-        color: #fff;
-      }
+    #clockInBtn:disabled.time-ready {
+      color: #fff;
+    }
 
-      #clockOutBtn:disabled.time-ready {
-        color: #fff;
-      }
+    #clockOutBtn:disabled.time-ready {
+      color: #fff;
+    }
 
-      #breakStartBtn:disabled.time-ready {
-        color: #fff;
-      }
+    #breakStartBtn:disabled.time-ready {
+      color: #fff;
+    }
 
-      #breakEndBtn:disabled.time-ready {
-        color: #fff;
-      }
+    #breakEndBtn:disabled.time-ready {
+      color: #fff;
+    }
 
-      .expand {
-        margin-top: 0rem;
-        display: none;
-        width: 100%;
-        box-sizing: border-box;
-      }
+    .expand {
+      margin-top: 0rem;
+      display: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-      .expand.active {
-        display: block;
-        width: 100%;
-      }
+    .expand.active {
+      display: block;
+      width: 100%;
+    }
 
-      .expand #manualTime {
-        margin: 0 auto;
-        align-items: center;
-        text-align: center;
-      }
+    .expand #manualTime {
+      margin: 0 auto;
+      align-items: center;
+      text-align: center;
+    }
 
-      .expand input[type="time"] {
-        width: -webkit-fill-available;
-        /*max-width: 100%;*/
-        min-width: 0;
-        font-size: 4em;
-        border: 0px;
-        border-radius: 0.2em;
-        background: rgba(25, 118, 210, 0.226);
-        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-        color: #1976d2;
-        outline: none;
-        transition: border 0.2s, box-shadow 0.2s;
-        position: relative;
-        text-indent: 0;
-      }
+    .expand input[type="time"] {
+      width: -webkit-fill-available;
+      /*max-width: 100%;*/
+      min-width: 0;
+      font-size: 4em;
+      border: 0px;
+      border-radius: 0.2em;
+      background: rgba(25, 118, 210, 0.226);
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      color: #1976d2;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      position: relative;
+      text-indent: 0;
+    }
 
-      .expand input[type="time"]:focus {
-        border: 1.5px solid rgba(25, 118, 210, 0.08);
-        box-shadow: 0 0 0 2px #90caf991;
-        background: #fff;
-      }
+    .expand input[type="time"]:focus {
+      border: 1.5px solid rgba(25, 118, 210, 0.08);
+      box-shadow: 0 0 0 2px #90caf991;
+      background: #fff;
+    }
 
-      .error,
-      .success {
-        text-align: center;
-        margin-top: 1rem;
-      }
+    .error,
+    .success {
+      text-align: center;
+      margin-top: 1rem;
+    }
 
-      .error {
-        color: #d32f2f;
-      }
+    .error {
+      color: #d32f2f;
+    }
 
-      .success {
-        color: #388e3c;
-      }
+    .success {
+      color: #388e3c;
+    }
 
-      .logoutBtn {
-        background: #fff;
-        color: #1976d2;
-        border: 1.5px solid #1976d2;
-        border-radius: 4px;
-        padding: 0.4em 1.2em;
-        font-size: 14px;
-        cursor: pointer;
-        vertical-align: text-top;
-      }
+    .logoutBtn {
+      background: #fff;
+      color: #1976d2;
+      border: 1.5px solid #1976d2;
+      border-radius: 4px;
+      padding: 0.4em 1.2em;
+      font-size: 14px;
+      cursor: pointer;
+      vertical-align: text-top;
+    }
 
-      /* --- Hamburger Menu --- */
-      .hamburger {
-        background: rgba(25, 118, 210, 0.06);
-        border: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 6px;
-        position: relative;
-        cursor: pointer;
-        transition: background 0.15s ease-in-out;
-      }
+    .notif-badge {
+      display: none;
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      background: #e53935;
+      color: #fff;
+      min-width: 18px;
+      height: 18px;
+      padding: 0;
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+    }
 
-      .hamburger:focus {
-        outline: 2px solid #90caf9;
-        background: rgba(25, 118, 210, 0.08);
-      }
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      display: none;
+      z-index: 9998;
+    }
 
-      .hamburger:hover {
-        background: rgba(25, 118, 210, 0.14);
-      }
+    .menu-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: 78vw;
+      max-width: 320px;
+      background: #fff;
+      box-shadow: -2px 0 16px rgba(0, 0, 0, 0.15);
+      transform: translateX(100%);
+      transition: transform 0.2s ease;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
 
-      .hamburger .bar {
-        position: absolute;
-        left: 8px;
-        right: 8px;
-        height: 2px;
-        background: #1976d2;
-        transition: transform 0.2s ease, opacity 0.2s ease;
-      }
+    .menu-drawer.open {
+      transform: translateX(0);
+    }
 
-      .hamburger .bar:nth-child(1) {
-        top: 12px;
-      }
+    .menu-header {
+      padding: 1rem;
+      font-weight: bold;
+      color: #1976d2;
+      border-bottom: 1px solid #eee;
+    }
 
-      .hamburger .bar:nth-child(2) {
-        top: 19px;
-      }
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
 
-      .hamburger .bar:nth-child(3) {
-        top: 26px;
-      }
+    .menu-list li {
+      border-bottom: 1px solid #f0f0f0;
+    }
 
-      .hamburger[aria-expanded="true"] .bar:nth-child(1) {
-        transform: translateY(7px) rotate(45deg);
-      }
+    .menu-list a,
+    .menu-list button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+    }
 
-      .hamburger[aria-expanded="true"] .bar:nth-child(2) {
-        opacity: 0;
-      }
+    .menu-list a:hover,
+    .menu-list button:hover {
+      background: #f7f9fc;
+    }
+  </style>
+</head>
 
-      .hamburger[aria-expanded="true"] .bar:nth-child(3) {
-        transform: translateY(-7px) rotate(-45deg);
-      }
-
-      .notif-badge {
-        display: none;
-        position: absolute;
-        top: 4px;
-        right: 2px;
-        background: #e53935;
-        color: #fff;
-        min-width: 18px;
-        height: 18px;
-        padding: 0;
-        border-radius: 9px;
-        font-size: 12px;
-        line-height: 18px;
-        text-align: center;
-      }
-
-      .menu-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.25);
-        display: none;
-        z-index: 9998;
-      }
-
-      .menu-drawer {
-        position: fixed;
-        top: 0;
-        right: 0;
-        height: 100vh;
-        width: 78vw;
-        max-width: 320px;
-        background: #fff;
-        box-shadow: -2px 0 16px rgba(0, 0, 0, 0.15);
-        transform: translateX(100%);
-        transition: transform 0.2s ease;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .menu-drawer.open {
-        transform: translateX(0);
-      }
-
-      .menu-header {
-        padding: 1rem;
-        font-weight: bold;
-        color: #1976d2;
-        border-bottom: 1px solid #eee;
-      }
-
-      .menu-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .menu-list li {
-        border-bottom: 1px solid #f0f0f0;
-      }
-
-      .menu-list a,
-      .menu-list button {
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: transparent;
-        border: none;
-        padding: 0.9rem 1rem;
-        font-size: 1rem;
-        color: #333;
-        cursor: pointer;
-      }
-
-      .menu-list a:hover,
-      .menu-list button:hover {
-        background: #f7f9fc;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="container">
-      <div
-        style="
+<body>
+  <div class="container">
+    <div
+      style="
           display: flex;
           align-items: center;
           justify-content: space-between;
-        "
-      >
-        <h2>タイムカード</h2>
-        <button
-          id="menuToggle"
-          class="hamburger"
-          aria-label="メニュー"
-          aria-expanded="false"
-          aria-controls="sideMenu"
-        >
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span id="menuNotifBadge" class="notif-badge"></span>
-        </button>
-      </div>
-      <div class="clock-time-div">
-        <span id="clock-time" />
-      </div>
-      <div
-        style="
+        ">
+      <h2>タイムカード</h2>
+      <button
+        id="menuToggle"
+        class="hamburger"
+        aria-label="メニュー"
+        aria-expanded="false"
+        aria-controls="sideMenu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span id="menuNotifBadge" class="notif-badge"></span>
+      </button>
+    </div>
+    <div class="clock-time-div">
+      <span id="clock-time" />
+    </div>
+    <div
+      style="
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-top: 0.5em;
           margin-bottom: 1.3em;
-        "
-      >
-        <button class="logoutBtn" id="logoutBtn" style="display: none">
-          ログアウト
-        </button>
-        <div class="user-name">
-          <span id="userName"></span>
-        </div>
+        ">
+      <button class="logoutBtn" id="logoutBtn" style="display: none"> ログアウト </button>
+      <div class="user-name">
+        <span id="userName"></span>
       </div>
-      <div class="clock-group">
-        <div
-          style="
+    </div>
+    <div class="clock-group">
+      <div
+        style="
             font-size: 1.5em;
             display: flex;
             align-items: center;
             max-width: 4em;
             min-width: 4em;
-          "
-        >
-          <label for="manualTime">打刻時刻</label>
-        </div>
+          ">
+        <label for="manualTime">打刻時刻</label>
+      </div>
+      <div
+        class="expand"
+        id="manualInput"
+        style="display: flow; flex-grow: 1; text-align: center">
         <div
-          class="expand"
-          id="manualInput"
-          style="display: flow; flex-grow: 1; text-align: center"
-        >
-          <div
-            style="
+          style="
               display: flex;
               align-items: center;
               justify-content: end;
               gap: 6px;
-            "
-          >
-            <span id="clock-year"></span>
-            <span id="clock-date"></span>
-          </div>
-          <input type="time" id="manualTime" />
+            ">
+          <span id="clock-year"></span>
+          <span id="clock-date"></span>
         </div>
+        <input type="time" id="manualTime" />
       </div>
-      <div class="btn-group">
-        <button id="clockInBtn" style="grid-row: 1; grid-column: 1">
-          出勤
-        </button>
-        <button id="clockOutBtn" style="grid-row: 1; grid-column: 2" disabled>
-          退勤
-        </button>
-        <button id="breakStartBtn" style="grid-row: 2; grid-column: 1" disabled>
-          休憩始
-        </button>
-        <button id="breakEndBtn" style="grid-row: 2; grid-column: 2" disabled>
-          休憩終
-        </button>
-      </div>
-      <span
-        id="statusLabel"
-        style="
+    </div>
+    <div class="btn-group">
+      <button id="clockInBtn" style="grid-row: 1; grid-column: 1"> 出勤 </button>
+      <button id="clockOutBtn" style="grid-row: 1; grid-column: 2" disabled> 退勤 </button>
+      <button id="breakStartBtn" style="grid-row: 2; grid-column: 1" disabled> 休憩始 </button>
+      <button id="breakEndBtn" style="grid-row: 2; grid-column: 2" disabled> 休憩終 </button>
+    </div>
+    <span
+      id="statusLabel"
+      style="
           min-width: 5.5em;
           font-weight: bold;
           color: #1976d2;
           font-size: 1.7em;
           text-align: center;
-        "
-      ></span>
-      <p style="margin-top: 3em">※今日以外の勤務については勤務記録一覧から</p>
-      <div class="error" id="errorMsg"></div>
-      <div class="success" id="successMsg"></div>
-      <div
-        id="buttonContainer"
-        style="
+        "></span>
+    <p style="margin-top: 3em">※今日以外の勤務については勤務記録一覧から</p>
+    <div class="error" id="errorMsg"></div>
+    <div class="success" id="successMsg"></div>
+    <div
+      id="buttonContainer"
+      style="
           display: grid;
           grid-auto-columns: 1fr;
           grid-auto-flow: column;
           gap: 0.7em;
           margin-top: 1.5em;
-        "
-      >
-        <span
-          style="
+        ">
+      <span
+        style="
             display: flex;
             align-items: center;
             grid-row: 1/2;
             grid-column: 1/2;
-          "
-        >
-          <button
-            onclick="location.href='./attendance_list.html'"
-            style="
+          ">
+        <button
+          onclick="location.href='./attendance_list.html'"
+          style="
               flex: 1;
               padding: 0.8em;
               font-size: 1.1em;
@@ -463,23 +391,19 @@
               color: #fff;
               border: none;
               border-radius: 4px;
-            "
-          >
-            勤務・有給 管理
-          </button>
-        </span>
-        <span
-          style="
+            "> 勤務・有給 管理 </button>
+      </span>
+      <span
+        style="
             display: flex;
             align-items: center;
             grid-row: 1/2;
             grid-column: 2/3;
-          "
-        >
-          <button
-            id="openPaidLeave"
-            onclick="showPaidLeaveModal()"
-            style="
+          ">
+        <button
+          id="openPaidLeave"
+          onclick="showPaidLeaveModal()"
+          style="
               flex: 1;
               padding: 0.8em;
               font-size: 1.1em;
@@ -488,291 +412,286 @@
               border: none;
               border-radius: 4px;
               height: 100%;
-            "
-          >
-            有給申請
-          </button>
-        </span>
-      </div>
+            "> 有給申請 </button>
+      </span>
     </div>
-    <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
-    <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
-      <div class="menu-header">メニュー</div>
-      <ul class="menu-list">
-        <li>
-          <button type="button" id="menuOpenNotif">お知らせを開く</button>
-        </li>
-        <li><a href="punch.html">打刻画面へ</a></li>
-        <li><a href="attendance_list.html">勤務・有給 管理</a></li>
-        <li>
-          <a href="admin.html" id="menuAdmin" style="display: none"
-            >管理者メニュー</a
-          >
-        </li>
-        <li><button type="button" id="menuLogout">ログアウト</button></li>
-      </ul>
-    </nav>
-    <script>
-      // ページロード時にmanualTimeへ現在時刻（分単位）をセット
-      window.addEventListener("DOMContentLoaded", () => {
-        const now = new Date();
-        const pad = (n) => n.toString().padStart(2, "0");
-        const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        const manualTime = document.getElementById("manualTime");
-        if (manualTime) manualTime.value = timeStr;
-      });
-      // fetchWithAuth: 401/403時は自動ログアウト
-      async function fetchWithAuth(url, options) {
-        const res = await fetch(url, options);
-        if (res.status === 401 || res.status === 403) {
-          window.location.href = "login.html";
-          return null;
-        }
-        return res;
+  </div>
+  <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
+  <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
+    <div class="menu-header">メニュー</div>
+    <ul class="menu-list">
+      <li>
+        <button type="button" id="menuOpenNotif">お知らせを開く</button>
+      </li>
+      <li><a href="punch.html">打刻画面へ</a></li>
+      <li><a href="attendance_list.html">勤務・有給 管理</a></li>
+      <li>
+        <a href="admin.html" id="menuAdmin" style="display: none">管理者メニュー</a>
+      </li>
+      <li><button type="button" id="menuLogout">ログアウト</button></li>
+    </ul>
+  </nav>
+  <script>
+    // ページロード時にmanualTimeへ現在時刻（分単位）をセット
+    window.addEventListener("DOMContentLoaded", () => {
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const manualTime = document.getElementById("manualTime");
+      if (manualTime) manualTime.value = timeStr;
+    });
+    // fetchWithAuth: 401/403時は自動ログアウト
+    async function fetchWithAuth(url, options) {
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = "login.html";
+        return null;
       }
+      return res;
+    }
 
-      // ログインチェック
-      let userId = null;
-      let useVehicle = 1;
-      let isAdmin = false;
-      fetchWithAuth("api/check_login.php")
-        .then((res) => res && res.json())
-        .then((data) => {
-          if (!data || !data.loggedIn) {
-            window.location.href = "./login.html";
-          } else {
-            userId = data.user_id;
-            useVehicle = data.use_vehicle !== undefined ? data.use_vehicle : 1;
-            isAdmin = !!data.is_admin;
-            if (data.user_name) {
-              document.getElementById(
-                "userName"
-              ).textContent = `氏名：${data.user_name}`;
-            }
-            // 管理者メニュー項目の表示
-            const menuAdmin = document.getElementById("menuAdmin");
-            if (menuAdmin) menuAdmin.style.display = isAdmin ? "block" : "none";
-            // 追加: 打刻状態を取得してボタン状態に反映
-            fetchWithAuth("api/timecard_status.php")
-              .then((res) => res && res.json())
-              .then((status) => {
-                if (!status) return;
-                state.clockedIn = !!status.clockedIn;
-                state.clockedOut = !!status.clockedOut;
-                state.onBreak = !!status.onBreak;
-                state.clockInTime = status.clockInTime || null;
-                state.breakStartTime = status.breakStartTime || null;
-                state.breakEndTime = status.breakEndTime || null;
-                updateButtons();
-              });
-          }
-        });
-
-      // 現在時刻表示
-      function updateClock() {
-        const now = new Date();
-        const pad = (n) => n.toString().padStart(2, "0");
-        const yearStr = `${now.getFullYear()}年`;
-        const dateStr = `${pad(now.getMonth() + 1)}月${pad(now.getDate())}日`;
-        const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        document.getElementById("clock-year").textContent = yearStr;
-        document.getElementById("clock-date").textContent = dateStr;
-        document.getElementById("clock-time").textContent = timeStr;
-      }
-      setInterval(updateClock, 1000);
-      updateClock();
-
-      // ボタン状態管理
-      let state = { clockedIn: false, clockedOut: false, onBreak: false };
-      function updateButtons() {
-        const timeVal = document.getElementById("manualTime").value;
-        const hasTime = !!timeVal;
-        // 状態ラベル表示
-        const statusLabel = document.getElementById("statusLabel");
-        if (state.clockedOut) {
-          statusLabel.textContent = "退勤済み";
-        } else if (state.clockedIn && state.onBreak) {
-          statusLabel.textContent = "休憩中";
-        } else if (state.clockedIn) {
-          statusLabel.textContent = "出勤済み";
+    // ログインチェック
+    let userId = null;
+    let useVehicle = 1;
+    let isAdmin = false;
+    fetchWithAuth("api/check_login.php")
+      .then((res) => res && res.json())
+      .then((data) => {
+        if (!data || !data.loggedIn) {
+          window.location.href = "./login.html";
         } else {
-          statusLabel.textContent = "";
-        }
-        const btns = [
-          document.getElementById("clockInBtn"),
-          document.getElementById("clockOutBtn"),
-          document.getElementById("breakStartBtn"),
-          document.getElementById("breakEndBtn"),
-        ];
-        // まず全ボタンを完全非活性表示に
-        btns.forEach((btn) => {
-          btn.classList.remove("active", "inactive", "disabled");
-          btn.classList.add("disabled");
-          btn.disabled = true;
-        });
-        // 状態ごとに分岐
-        if (!hasTime) {
-          if (!state.clockedIn && !state.clockedOut) {
-            // 出勤前
-            clockInBtn.classList.remove("disabled");
-            clockInBtn.classList.add("inactive");
-            clockInBtn.disabled = false;
-          } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
-            // 勤務中（休憩中でない）
-            clockOutBtn.classList.remove("disabled");
-            clockOutBtn.classList.add("inactive");
-            clockOutBtn.disabled = false;
-            breakStartBtn.classList.remove("disabled");
-            breakStartBtn.classList.add("inactive");
-            breakStartBtn.disabled = false;
-          } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
-            // 休憩中
-            breakEndBtn.classList.remove("disabled");
-            breakEndBtn.classList.add("inactive");
-            breakEndBtn.disabled = false;
+          userId = data.user_id;
+          useVehicle = data.use_vehicle !== undefined ? data.use_vehicle : 1;
+          isAdmin = !!data.is_admin;
+          if (data.user_name) {
+            document.getElementById(
+              "userName"
+            ).textContent = `氏名：${data.user_name}`;
           }
-          // 退勤後は全て完全非活性表示のまま
-        } else {
-          if (!state.clockedIn && !state.clockedOut) {
-            // 出勤前
-            clockInBtn.classList.remove("disabled");
-            clockInBtn.classList.add("active");
-            clockInBtn.disabled = false;
-          } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
-            // 勤務中（休憩中でない）
-            clockOutBtn.classList.remove("disabled");
-            clockOutBtn.classList.add("active");
-            clockOutBtn.disabled = false;
-            breakStartBtn.classList.remove("disabled");
-            breakStartBtn.classList.add("active");
-            breakStartBtn.disabled = false;
-          } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
-            // 休憩中
-            breakEndBtn.classList.remove("disabled");
-            breakEndBtn.classList.add("active");
-            breakEndBtn.disabled = false;
-          } else if (state.clockedOut) {
-            // 退勤後
-            btns.forEach((btn) => {
-              btn.classList.remove("disabled");
-              btn.classList.add("inactive");
-              btn.disabled = true;
+          // 管理者メニュー項目の表示
+          const menuAdmin = document.getElementById("menuAdmin");
+          if (menuAdmin) menuAdmin.style.display = isAdmin ? "block" : "none";
+          // 追加: 打刻状態を取得してボタン状態に反映
+          fetchWithAuth("api/timecard_status.php")
+            .then((res) => res && res.json())
+            .then((status) => {
+              if (!status) return;
+              state.clockedIn = !!status.clockedIn;
+              state.clockedOut = !!status.clockedOut;
+              state.onBreak = !!status.onBreak;
+              state.clockInTime = status.clockInTime || null;
+              state.breakStartTime = status.breakStartTime || null;
+              state.breakEndTime = status.breakEndTime || null;
+              updateButtons();
             });
-          }
         }
-      }
-      // 時刻入力欄のイベントでボタン状態を更新
-      document
-        .getElementById("manualTime")
-        .addEventListener("input", updateButtons);
-      updateButtons();
+      });
 
-      function toMySQLDatetime(date) {
-        const pad = (n) => n.toString().padStart(2, "0");
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-          date.getDate()
-        )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
-          date.getSeconds()
-        )}`;
-      }
-      function toMySQLDatetimeFromLocal(localStr) {
-        // localStr: "YYYY-MM-DDTHH:MM"
-        const [date, time] = localStr.split("T");
-        return `${date} ${time}:00`;
-      }
+    // 現在時刻表示
+    function updateClock() {
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      const yearStr = `${now.getFullYear()}年`;
+      const dateStr = `${pad(now.getMonth() + 1)}月${pad(now.getDate())}日`;
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      document.getElementById("clock-year").textContent = yearStr;
+      document.getElementById("clock-date").textContent = dateStr;
+      document.getElementById("clock-time").textContent = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
-      // API通信
-      async function postAPI(endpoint, vehicleDistance) {
-        // 手入力常時ON
-        const manual = true;
-        let datetime;
-        const timeVal = document.getElementById("manualTime").value;
-        if (!timeVal) {
-          showError("手入力時刻を入力してください");
-          return false;
+    // ボタン状態管理
+    let state = { clockedIn: false, clockedOut: false, onBreak: false };
+    function updateButtons() {
+      const timeVal = document.getElementById("manualTime").value;
+      const hasTime = !!timeVal;
+      // 状態ラベル表示
+      const statusLabel = document.getElementById("statusLabel");
+      if (state.clockedOut) {
+        statusLabel.textContent = "退勤済み";
+      } else if (state.clockedIn && state.onBreak) {
+        statusLabel.textContent = "休憩中";
+      } else if (state.clockedIn) {
+        statusLabel.textContent = "出勤済み";
+      } else {
+        statusLabel.textContent = "";
+      }
+      const btns = [
+        document.getElementById("clockInBtn"),
+        document.getElementById("clockOutBtn"),
+        document.getElementById("breakStartBtn"),
+        document.getElementById("breakEndBtn"),
+      ];
+      // まず全ボタンを完全非活性表示に
+      btns.forEach((btn) => {
+        btn.classList.remove("active", "inactive", "disabled");
+        btn.classList.add("disabled");
+        btn.disabled = true;
+      });
+      // 状態ごとに分岐
+      if (!hasTime) {
+        if (!state.clockedIn && !state.clockedOut) {
+          // 出勤前
+          clockInBtn.classList.remove("disabled");
+          clockInBtn.classList.add("inactive");
+          clockInBtn.disabled = false;
+        } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
+          // 勤務中（休憩中でない）
+          clockOutBtn.classList.remove("disabled");
+          clockOutBtn.classList.add("inactive");
+          clockOutBtn.disabled = false;
+          breakStartBtn.classList.remove("disabled");
+          breakStartBtn.classList.add("inactive");
+          breakStartBtn.disabled = false;
+        } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
+          // 休憩中
+          breakEndBtn.classList.remove("disabled");
+          breakEndBtn.classList.add("inactive");
+          breakEndBtn.disabled = false;
         }
-        // 当日の日付＋手入力時刻
-        const now = new Date();
-        const pad = (n) => n.toString().padStart(2, "0");
-        const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-          now.getDate()
-        )}`;
-        datetime = `${dateStr} ${timeVal}:00`;
-        // 整合性チェック: 未来時刻は警告
-        const inputDate = new Date(`${dateStr}T${timeVal}`);
-        // if (inputDate > now) {
-        //     showError('未来の時刻は指定できません');
-        //     return false;
-        // }
-        // 追加: 前回打刻時刻より早い場合はエラー
-        let prevTime = null;
-        // 退勤時は出勤時刻・休憩開始・休憩終了のいずれかより前はNG
-        if (endpoint === "clock_out.php") {
-          if (state.clockInTime) prevTime = state.clockInTime;
-          // 休憩開始・終了時刻も比較
-          if (state.breakStartTime) {
-            const breakStart = new Date(
-              state.breakStartTime.replace(/-/g, "-").replace(" ", "T")
-            );
-            if (inputDate < breakStart) {
-              showError("退勤時刻は休憩開始時刻より前にできません");
-              return false;
-            }
-          }
-          if (state.breakEndTime) {
-            const breakEnd = new Date(
-              state.breakEndTime.replace(/-/g, "-").replace(" ", "T")
-            );
-            if (inputDate < breakEnd) {
-              showError("退勤時刻は休憩終了時刻より前にできません");
-              return false;
-            }
-          }
-        } else if (endpoint === "break_end.php" && state.breakStartTime) {
-          prevTime = state.breakStartTime;
-        } else if (endpoint === "break_start.php" && state.clockInTime) {
-          prevTime = state.clockInTime;
+        // 退勤後は全て完全非活性表示のまま
+      } else {
+        if (!state.clockedIn && !state.clockedOut) {
+          // 出勤前
+          clockInBtn.classList.remove("disabled");
+          clockInBtn.classList.add("active");
+          clockInBtn.disabled = false;
+        } else if (state.clockedIn && !state.clockedOut && !state.onBreak) {
+          // 勤務中（休憩中でない）
+          clockOutBtn.classList.remove("disabled");
+          clockOutBtn.classList.add("active");
+          clockOutBtn.disabled = false;
+          breakStartBtn.classList.remove("disabled");
+          breakStartBtn.classList.add("active");
+          breakStartBtn.disabled = false;
+        } else if (state.clockedIn && !state.clockedOut && state.onBreak) {
+          // 休憩中
+          breakEndBtn.classList.remove("disabled");
+          breakEndBtn.classList.add("active");
+          breakEndBtn.disabled = false;
+        } else if (state.clockedOut) {
+          // 退勤後
+          btns.forEach((btn) => {
+            btn.classList.remove("disabled");
+            btn.classList.add("inactive");
+            btn.disabled = true;
+          });
         }
-        if (prevTime) {
-          // prevTime: "YYYY-MM-DD HH:MM:SS" → Date
-          const prevDate = new Date(
-            prevTime.replace(/-/g, "-").replace(" ", "T")
+      }
+    }
+    // 時刻入力欄のイベントでボタン状態を更新
+    document
+      .getElementById("manualTime")
+      .addEventListener("input", updateButtons);
+    updateButtons();
+
+    function toMySQLDatetime(date) {
+      const pad = (n) => n.toString().padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+        date.getDate()
+      )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds()
+      )}`;
+    }
+    function toMySQLDatetimeFromLocal(localStr) {
+      // localStr: "YYYY-MM-DDTHH:MM"
+      const [date, time] = localStr.split("T");
+      return `${date} ${time}:00`;
+    }
+
+    // API通信
+    async function postAPI(endpoint, vehicleDistance) {
+      // 手入力常時ON
+      const manual = true;
+      let datetime;
+      const timeVal = document.getElementById("manualTime").value;
+      if (!timeVal) {
+        showError("手入力時刻を入力してください");
+        return false;
+      }
+      // 当日の日付＋手入力時刻
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+        now.getDate()
+      )}`;
+      datetime = `${dateStr} ${timeVal}:00`;
+      // 整合性チェック: 未来時刻は警告
+      const inputDate = new Date(`${dateStr}T${timeVal}`);
+      // if (inputDate > now) {
+      //     showError('未来の時刻は指定できません');
+      //     return false;
+      // }
+      // 追加: 前回打刻時刻より早い場合はエラー
+      let prevTime = null;
+      // 退勤時は出勤時刻・休憩開始・休憩終了のいずれかより前はNG
+      if (endpoint === "clock_out.php") {
+        if (state.clockInTime) prevTime = state.clockInTime;
+        // 休憩開始・終了時刻も比較
+        if (state.breakStartTime) {
+          const breakStart = new Date(
+            state.breakStartTime.replace(/-/g, "-").replace(" ", "T")
           );
-          if (inputDate < prevDate) {
-            showError("開始時刻・終了時刻の順序が正しくありません");
+          if (inputDate < breakStart) {
+            showError("退勤時刻は休憩開始時刻より前にできません");
             return false;
           }
         }
-        const body = { userId, datetime, manual };
-        if (endpoint === "api/clock_out.php" && vehicleDistance !== undefined) {
-          body.vehicle_distance = vehicleDistance;
+        if (state.breakEndTime) {
+          const breakEnd = new Date(
+            state.breakEndTime.replace(/-/g, "-").replace(" ", "T")
+          );
+          if (inputDate < breakEnd) {
+            showError("退勤時刻は休憩終了時刻より前にできません");
+            return false;
+          }
         }
-        const res = await fetchWithAuth(`${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res) return false;
-        const data = await res.json();
-        if (res.ok) {
-          showSuccess(data.message);
-          return true;
-        } else {
-          showError(data.message || "エラーが発生しました");
+      } else if (endpoint === "break_end.php" && state.breakStartTime) {
+        prevTime = state.breakStartTime;
+      } else if (endpoint === "break_start.php" && state.clockInTime) {
+        prevTime = state.clockInTime;
+      }
+      if (prevTime) {
+        // prevTime: "YYYY-MM-DD HH:MM:SS" → Date
+        const prevDate = new Date(
+          prevTime.replace(/-/g, "-").replace(" ", "T")
+        );
+        if (inputDate < prevDate) {
+          showError("開始時刻・終了時刻の順序が正しくありません");
           return false;
         }
       }
+      const body = { userId, datetime, manual };
+      if (endpoint === "api/clock_out.php" && vehicleDistance !== undefined) {
+        body.vehicle_distance = vehicleDistance;
+      }
+      const res = await fetchWithAuth(`${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res) return false;
+      const data = await res.json();
+      if (res.ok) {
+        showSuccess(data.message);
+        return true;
+      } else {
+        showError(data.message || "エラーが発生しました");
+        return false;
+      }
+    }
 
-      // 退勤時の自家用車距離入力モーダル
-      function showVehicleDistanceModal(onSubmit) {
-        // 既存モーダルがあれば削除
-        const old = document.getElementById("vehicleDistanceModal");
-        if (old) old.remove();
-        const modal = document.createElement("div");
-        modal.id = "vehicleDistanceModal";
-        modal.style =
-          "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;";
-        modal.innerHTML = `
+    // 退勤時の自家用車距離入力モーダル
+    function showVehicleDistanceModal(onSubmit) {
+      // 既存モーダルがあれば削除
+      const old = document.getElementById("vehicleDistanceModal");
+      if (old) old.remove();
+      const modal = document.createElement("div");
+      modal.id = "vehicleDistanceModal";
+      modal.style =
+        "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;";
+      modal.innerHTML = `
         <div style="background:#fff;padding:2em 2em 1.5em 2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:260px;max-width:90vw;text-align:center;">
           <div style='font-size:1.2em;margin-bottom:1em;color:#1976d2;'>自家用車の使用距離を入力してください（km）</div>
           <input id='vehicleDistanceInput' type='number' min='0' step='1' value='0' style='font-size:1.3em;width:7em;text-align:right;' placeholder='例: 12'> km
@@ -782,107 +701,107 @@
           </div>
         </div>
       `;
-        document.body.appendChild(modal);
-        const input = document.getElementById("vehicleDistanceInput");
-        input.focus();
-        input.select(); // 追加: 全選択状態にする
-        document.getElementById("vehicleDistanceOkBtn").onclick = () => {
-          const val = input.value;
-          if (val === "" || isNaN(val) || Number(val) < 0) {
-            alert("0以上の距離を入力してください");
-            return;
-          }
-          modal.remove();
-          onSubmit(Number(val));
-        };
-        document.getElementById("vehicleDistanceCancelBtn").onclick = () => {
-          modal.remove();
-        };
-      }
-      //テスト
-      // ボタンイベント
-      document.getElementById("clockInBtn").onclick = async () => {
-        if (await postAPI("api/clock_in.php")) {
-          state.clockedIn = true;
-          state.clockedOut = false;
-          state.onBreak = false;
-          updateButtons();
-          document.getElementById("manualTime").value = "";
-          updateButtons();
+      document.body.appendChild(modal);
+      const input = document.getElementById("vehicleDistanceInput");
+      input.focus();
+      input.select(); // 追加: 全選択状態にする
+      document.getElementById("vehicleDistanceOkBtn").onclick = () => {
+        const val = input.value;
+        if (val === "" || isNaN(val) || Number(val) < 0) {
+          alert("0以上の距離を入力してください");
+          return;
         }
+        modal.remove();
+        onSubmit(Number(val));
       };
-      document.getElementById("clockOutBtn").onclick = async () => {
-        if (useVehicle == 1) {
-          showVehicleDistanceModal(async (distance) => {
-            if (await postAPI("api/clock_out.php", distance)) {
-              state.clockedOut = true;
-              state.onBreak = false;
-              updateButtons();
-              document.getElementById("manualTime").value = "";
-              updateButtons();
-            }
-          });
-        } else {
-          if (await postAPI("api/clock_out.php")) {
+      document.getElementById("vehicleDistanceCancelBtn").onclick = () => {
+        modal.remove();
+      };
+    }
+    //テスト
+    // ボタンイベント
+    document.getElementById("clockInBtn").onclick = async () => {
+      if (await postAPI("api/clock_in.php")) {
+        state.clockedIn = true;
+        state.clockedOut = false;
+        state.onBreak = false;
+        updateButtons();
+        document.getElementById("manualTime").value = "";
+        updateButtons();
+      }
+    };
+    document.getElementById("clockOutBtn").onclick = async () => {
+      if (useVehicle == 1) {
+        showVehicleDistanceModal(async (distance) => {
+          if (await postAPI("api/clock_out.php", distance)) {
             state.clockedOut = true;
             state.onBreak = false;
             updateButtons();
             document.getElementById("manualTime").value = "";
             updateButtons();
           }
-        }
-      };
-      document.getElementById("breakStartBtn").onclick = async () => {
-        if (await postAPI("api/break_start.php")) {
-          state.onBreak = true;
-          updateButtons();
-          document.getElementById("manualTime").value = "";
-          updateButtons();
-        }
-      };
-      document.getElementById("breakEndBtn").onclick = async () => {
-        if (await postAPI("api/break_end.php")) {
+        });
+      } else {
+        if (await postAPI("api/clock_out.php")) {
+          state.clockedOut = true;
           state.onBreak = false;
           updateButtons();
           document.getElementById("manualTime").value = "";
           updateButtons();
         }
-      };
-
-      // ログアウトボタン処理
-      document.getElementById("logoutBtn").onclick = async function () {
-        await fetchWithAuth("api/logout.php", { method: "POST" });
-        window.location.href = "./login.html";
-      };
-      document.getElementById("menuLogout").onclick = async function () {
-        await fetchWithAuth("api/logout.php", { method: "POST" });
-        window.location.href = "./login.html";
-      };
-
-      function showError(msg) {
-        document.getElementById("errorMsg").textContent = msg;
-        document.getElementById("successMsg").textContent = "";
       }
-      function showSuccess(msg) {
-        document.getElementById("successMsg").textContent = msg;
-        document.getElementById("errorMsg").textContent = "";
+    };
+    document.getElementById("breakStartBtn").onclick = async () => {
+      if (await postAPI("api/break_start.php")) {
+        state.onBreak = true;
+        updateButtons();
+        document.getElementById("manualTime").value = "";
+        updateButtons();
       }
+    };
+    document.getElementById("breakEndBtn").onclick = async () => {
+      if (await postAPI("api/break_end.php")) {
+        state.onBreak = false;
+        updateButtons();
+        document.getElementById("manualTime").value = "";
+        updateButtons();
+      }
+    };
 
-      // 有給申請モーダル（最小実装）
-      function showPaidLeaveModal() {
-        const old = document.getElementById("paidLeaveModal");
-        if (old) old.remove();
-        const now = new Date();
-        const pad = (n) => n.toString().padStart(2, "0");
-        const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-          now.getDate()
-        )}`;
-        const defaultHours = 8; // シンプルに8h。必要なら設定値読込に拡張可
-        const modal = document.createElement("div");
-        modal.id = "paidLeaveModal";
-        modal.style =
-          "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;";
-        modal.innerHTML = `
+    // ログアウトボタン処理
+    document.getElementById("logoutBtn").onclick = async function () {
+      await fetchWithAuth("api/logout.php", { method: "POST" });
+      window.location.href = "./login.html";
+    };
+    document.getElementById("menuLogout").onclick = async function () {
+      await fetchWithAuth("api/logout.php", { method: "POST" });
+      window.location.href = "./login.html";
+    };
+
+    function showError(msg) {
+      document.getElementById("errorMsg").textContent = msg;
+      document.getElementById("successMsg").textContent = "";
+    }
+    function showSuccess(msg) {
+      document.getElementById("successMsg").textContent = msg;
+      document.getElementById("errorMsg").textContent = "";
+    }
+
+    // 有給申請モーダル（最小実装）
+    function showPaidLeaveModal() {
+      const old = document.getElementById("paidLeaveModal");
+      if (old) old.remove();
+      const now = new Date();
+      const pad = (n) => n.toString().padStart(2, "0");
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+        now.getDate()
+      )}`;
+      const defaultHours = 8; // シンプルに8h。必要なら設定値読込に拡張可
+      const modal = document.createElement("div");
+      modal.id = "paidLeaveModal";
+      modal.style =
+        "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;";
+      modal.innerHTML = `
         <div style="background:#fff;padding:1.2em 1.2em 1em 1.2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:92vw;">
           <div style='font-size:1.2em;margin-bottom:0.8em;color:#1976d2;font-weight:bold;'>有給申請</div>
           <div style='display:grid;row-gap:0.6em;'>
@@ -896,97 +815,97 @@
             <button id='plSubmitBtn' class='logoutBtn' style='background:#1976d2;color:#fff;border:none;'>申請する</button>
           </div>
         </div>`;
-        document.body.appendChild(modal);
+      document.body.appendChild(modal);
 
-        const plDate = document.getElementById("plDate");
-        const plHours = document.getElementById("plHours");
-        const plReason = document.getElementById("plReason");
-        const plMsg = document.getElementById("plMsg");
-        const plSubmitBtn = document.getElementById("plSubmitBtn");
-        const plCancelBtn = document.getElementById("plCancelBtn");
+      const plDate = document.getElementById("plDate");
+      const plHours = document.getElementById("plHours");
+      const plReason = document.getElementById("plReason");
+      const plMsg = document.getElementById("plMsg");
+      const plSubmitBtn = document.getElementById("plSubmitBtn");
+      const plCancelBtn = document.getElementById("plCancelBtn");
 
-        plCancelBtn.onclick = () => modal.remove();
-        plSubmitBtn.onclick = async () => {
-          plMsg.style.color = "#e53935";
-          plMsg.textContent = "";
-          const used_date = plDate.value;
-          const hours = Number(plHours.value);
-          const reason = plReason.value.trim();
-          if (!used_date) {
-            plMsg.textContent = "日付を入力してください";
-            return;
-          }
-          if (!(hours > 0)) {
-            plMsg.textContent = "時間は0より大きい数で入力してください";
-            return;
-          }
-          plSubmitBtn.disabled = true;
-          plCancelBtn.disabled = true;
-          plMsg.style.color = "#1976d2";
-          plMsg.textContent = "送信中…";
-          try {
-            const res = await fetchWithAuth("api/leave_requests_create.php", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ used_date, hours, reason }),
-            });
-            if (!res) {
-              throw new Error("未ログインまたはアクセス権限がありません");
-            }
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data || data.error) {
-              throw new Error((data && data.error) || "申請に失敗しました");
-            }
-            plMsg.style.color = "#2e7d32";
-            plMsg.textContent = data.notified
-              ? "申請を送信しました（承認者へ通知しました）。"
-              : "申請を送信しました。";
-            setTimeout(() => modal.remove(), 1200);
-          } catch (err) {
-            plMsg.style.color = "#e53935";
-            plMsg.textContent =
-              err && err.message ? err.message : "エラーが発生しました";
-            plSubmitBtn.disabled = false;
-            plCancelBtn.disabled = false;
-          }
-        };
-      }
-
-      document
-        .getElementById("openPaidLeave")
-        .addEventListener("click", showPaidLeaveModal);
-
-      // --- アプリ内通知（ハンバーガーバッジ） ---
-      async function refreshNotifCount() {
+      plCancelBtn.onclick = () => modal.remove();
+      plSubmitBtn.onclick = async () => {
+        plMsg.style.color = "#e53935";
+        plMsg.textContent = "";
+        const used_date = plDate.value;
+        const hours = Number(plHours.value);
+        const reason = plReason.value.trim();
+        if (!used_date) {
+          plMsg.textContent = "日付を入力してください";
+          return;
+        }
+        if (!(hours > 0)) {
+          plMsg.textContent = "時間は0より大きい数で入力してください";
+          return;
+        }
+        plSubmitBtn.disabled = true;
+        plCancelBtn.disabled = true;
+        plMsg.style.color = "#1976d2";
+        plMsg.textContent = "送信中…";
         try {
-          const res = await fetchWithAuth(
-            "api/notifications_get.php?only_unread=1"
-          );
-          if (!res) return;
-          const data = await res.json();
-          if (data && data.ok) {
-            const unread = Number(data.unread || 0);
-            const badge = document.getElementById("menuNotifBadge");
-            if (badge) {
-              if (unread > 0) {
-                badge.style.display = "inline-block";
-                badge.textContent = unread > 99 ? "99+" : String(unread);
-              } else {
-                badge.style.display = "none";
-                badge.textContent = "";
-              }
+          const res = await fetchWithAuth("api/leave_requests_create.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ used_date, hours, reason }),
+          });
+          if (!res) {
+            throw new Error("未ログインまたはアクセス権限がありません");
+          }
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data || data.error) {
+            throw new Error((data && data.error) || "申請に失敗しました");
+          }
+          plMsg.style.color = "#2e7d32";
+          plMsg.textContent = data.notified
+            ? "申請を送信しました（承認者へ通知しました）。"
+            : "申請を送信しました。";
+          setTimeout(() => modal.remove(), 1200);
+        } catch (err) {
+          plMsg.style.color = "#e53935";
+          plMsg.textContent =
+            err && err.message ? err.message : "エラーが発生しました";
+          plSubmitBtn.disabled = false;
+          plCancelBtn.disabled = false;
+        }
+      };
+    }
+
+    document
+      .getElementById("openPaidLeave")
+      .addEventListener("click", showPaidLeaveModal);
+
+    // --- アプリ内通知（ハンバーガーバッジ） ---
+    async function refreshNotifCount() {
+      try {
+        const res = await fetchWithAuth(
+          "api/notifications_get.php?only_unread=1"
+        );
+        if (!res) return;
+        const data = await res.json();
+        if (data && data.ok) {
+          const unread = Number(data.unread || 0);
+          const badge = document.getElementById("menuNotifBadge");
+          if (badge) {
+            if (unread > 0) {
+              badge.style.display = "inline-block";
+              badge.textContent = unread > 99 ? "99+" : String(unread);
+            } else {
+              badge.style.display = "none";
+              badge.textContent = "";
             }
           }
-        } catch (e) {}
-      }
-      async function openNotifModal() {
-        const old = document.getElementById("notifModal");
-        if (old) old.remove();
-        const wrap = document.createElement("div");
-        wrap.id = "notifModal";
-        wrap.style =
-          "position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;";
-        wrap.innerHTML = `
+        }
+      } catch (e) { }
+    }
+    async function openNotifModal() {
+      const old = document.getElementById("notifModal");
+      if (old) old.remove();
+      const wrap = document.createElement("div");
+      wrap.id = "notifModal";
+      wrap.style =
+        "position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;";
+      wrap.innerHTML = `
             <div style='background:#fff;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:90vw;max-height:80vh;overflow:auto;'>
               <div style='padding:0.8em 1em;border-bottom:1px solid #eee;color:#1976d2;font-weight:bold;'>お知らせ</div>
               <div id='notifList' style='padding:0.6em 1em;min-width:260px;'></div>
@@ -995,197 +914,197 @@
                 <button id='closeNotif' class='logoutBtn' style='background:#b0bec5;color:#fff;border:none;'>閉じる</button>
               </div>
             </div>`;
-        document.body.appendChild(wrap);
-        document.getElementById("closeNotif").onclick = () => wrap.remove();
-        document.getElementById("markRead").onclick = async () => {
-          await fetchWithAuth("api/notifications_read.php", { method: "POST" });
-          await refreshNotifCount();
-          wrap.remove();
-        };
-        try {
-          const res = await fetchWithAuth("api/notifications_get.php");
-          const data = await res.json();
-          const list = document.getElementById("notifList");
-          list.innerHTML = "";
-          (data.items || []).forEach((it) => {
-            const div = document.createElement("div");
-            div.style = "border-bottom:1px solid #eee;padding:0.5em 0;";
-            const title = `<div style="font-weight:600;color:#333;">${escapeHtml(
-              it.title || ""
-            )}</div>`;
-            const body = it.body
-              ? `<div style="color:#555;margin-top:2px;">${escapeHtml(
-                  it.body
-                ).replace(/\n/g, "<br>")}</div>`
-              : "";
-            const link = it.link
-              ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>`
-              : "";
-            const readBtn =
-              it.status === "unread"
-                ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class="state" style="font-size:0.85em;color:#e53935;">未読</span></div>`
-                : `<div style="margin-top:6px;"><span class="state" style="font-size:0.85em;color:#777;">既読</span></div>`;
-            div.innerHTML =
-              title +
-              body +
-              link +
-              `<div style="color:#999;font-size:0.85em;margin-top:2px;">${
-                it.created_at || ""
-              }</div>` +
-              readBtn;
-            list.appendChild(div);
-          });
-          if (!list.innerHTML) {
-            list.textContent = "通知はありません";
-          }
+      document.body.appendChild(wrap);
+      document.getElementById("closeNotif").onclick = () => wrap.remove();
+      document.getElementById("markRead").onclick = async () => {
+        await fetchWithAuth("api/notifications_read.php", { method: "POST" });
+        await refreshNotifCount();
+        wrap.remove();
+      };
+      try {
+        const res = await fetchWithAuth("api/notifications_get.php");
+        const data = await res.json();
+        const list = document.getElementById("notifList");
+        list.innerHTML = "";
+        (data.items || []).forEach((it) => {
+          const div = document.createElement("div");
+          div.style = "border-bottom:1px solid #eee;padding:0.5em 0;";
+          const title = `<div style="font-weight:600;color:#333;">${escapeHtml(
+            it.title || ""
+          )}</div>`;
+          const body = it.body
+            ? `<div style="color:#555;margin-top:2px;">${escapeHtml(
+              it.body
+            ).replace(/\n/g, "<br>")}</div>`
+            : "";
+          const link = it.link
+            ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>`
+            : "";
+          const readBtn =
+            it.status === "unread"
+              ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class="state" style="font-size:0.85em;color:#e53935;">未読</span></div>`
+              : `<div style="margin-top:6px;"><span class="state" style="font-size:0.85em;color:#777;">既読</span></div>`;
+          div.innerHTML =
+            title +
+            body +
+            link +
+            `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ""
+            }</div>` +
+            readBtn;
+          list.appendChild(div);
+        });
+        if (!list.innerHTML) {
+          list.textContent = "通知はありません";
+        }
 
-          // 個別既読ハンドラ
-          list.querySelectorAll(".mark-one").forEach((btn) => {
-            btn.addEventListener("click", async (e) => {
-              const id = Number(btn.getAttribute("data-id"));
-              btn.disabled = true;
-              try {
-                const res2 = await fetchWithAuth("api/notifications_read.php", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ ids: [id] }),
-                });
-                if (!res2) throw new Error("auth");
-                const data2 = await res2.json().catch(() => ({}));
-                if (!res2.ok || !data2 || data2.error)
-                  throw new Error("failed");
-                // 表示更新: 未読→既読
-                const container = btn.closest("div");
-                if (container) {
-                  const state = container.querySelector(".state");
-                  if (state) {
-                    state.textContent = "既読";
-                    state.style.color = "#777";
-                  }
+        // 個別既読ハンドラ
+        list.querySelectorAll(".mark-one").forEach((btn) => {
+          btn.addEventListener("click", async (e) => {
+            const id = Number(btn.getAttribute("data-id"));
+            btn.disabled = true;
+            try {
+              const res2 = await fetchWithAuth("api/notifications_read.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: [id] }),
+              });
+              if (!res2) throw new Error("auth");
+              const data2 = await res2.json().catch(() => ({}));
+              if (!res2.ok || !data2 || data2.error)
+                throw new Error("failed");
+              // 表示更新: 未読→既読
+              const container = btn.closest("div");
+              if (container) {
+                const state = container.querySelector(".state");
+                if (state) {
+                  state.textContent = "既読";
+                  state.style.color = "#777";
                 }
-                btn.remove();
-                await refreshNotifCount();
-              } catch (err) {
-                btn.disabled = false;
-                alert("既読にできませんでした");
               }
-            });
+              btn.remove();
+              await refreshNotifCount();
+            } catch (err) {
+              btn.disabled = false;
+              alert("既読にできませんでした");
+            }
           });
-        } catch (e) {}
-      }
-      function escapeHtml(s) {
-        const m = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        };
-        return String(s || "").replace(/[&<>"']/g, (c) => m[c]);
-      }
+        });
+      } catch (e) { }
+    }
+    function escapeHtml(s) {
+      const m = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
+      return String(s || "").replace(/[&<>"']/g, (c) => m[c]);
+    }
 
-      // 通知カウントのポーリング開始
-      (function startNotif() {
-        refreshNotifCount();
-        setInterval(refreshNotifCount, 60000);
-      })();
+    // 通知カウントのポーリング開始
+    (function startNotif() {
+      refreshNotifCount();
+      setInterval(refreshNotifCount, 60000);
+    })();
 
-      // --- ハンバーガーメニュー動作 ---
-      const menuToggle = document.getElementById("menuToggle");
-      const sideMenu = document.getElementById("sideMenu");
-      const menuOverlay = document.getElementById("menuOverlay");
-      const menuOpenNotif = document.getElementById("menuOpenNotif");
+    // --- ハンバーガーメニュー動作 ---
+    const menuToggle = document.getElementById("menuToggle");
+    const sideMenu = document.getElementById("sideMenu");
+    const menuOverlay = document.getElementById("menuOverlay");
+    const menuOpenNotif = document.getElementById("menuOpenNotif");
 
-      // --- フォーカストラップ用ユーティリティ ---
-      let previousFocusedElement = null;
-      function getFocusableElements(container) {
-        const selectors = [
-          "a[href]",
-          "button:not([disabled])",
-          "input:not([disabled])",
-          "select:not([disabled])",
-          "textarea:not([disabled])",
-          '[tabindex]:not([tabindex="-1"])',
-        ].join(",");
-        return Array.from(container.querySelectorAll(selectors)).filter(
-          (el) => el.offsetParent !== null || el === document.activeElement
-        );
+    // --- フォーカストラップ用ユーティリティ ---
+    let previousFocusedElement = null;
+    function getFocusableElements(container) {
+      const selectors = [
+        "a[href]",
+        "button:not([disabled])",
+        "input:not([disabled])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(",");
+      return Array.from(container.querySelectorAll(selectors)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement
+      );
+    }
+    function focusFirstInMenu() {
+      const focusables = getFocusableElements(sideMenu);
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        sideMenu.focus();
       }
-      function focusFirstInMenu() {
-        const focusables = getFocusableElements(sideMenu);
-        if (focusables.length > 0) {
-          focusables[0].focus();
-        } else {
-          sideMenu.focus();
-        }
+    }
+    function trapFocusKeydown(e) {
+      if (!sideMenu.classList.contains("open")) return;
+      if (e.key !== "Tab") return;
+      const focusables = getFocusableElements(sideMenu);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        sideMenu.focus();
+        return;
       }
-      function trapFocusKeydown(e) {
-        if (!sideMenu.classList.contains("open")) return;
-        if (e.key !== "Tab") return;
-        const focusables = getFocusableElements(sideMenu);
-        if (focusables.length === 0) {
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !sideMenu.contains(active)) {
           e.preventDefault();
-          sideMenu.focus();
-          return;
+          last.focus();
         }
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        const active = document.activeElement;
-        if (e.shiftKey) {
-          if (active === first || !sideMenu.contains(active)) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (active === last || !sideMenu.contains(active)) {
-            e.preventDefault();
-            first.focus();
-          }
+      } else {
+        if (active === last || !sideMenu.contains(active)) {
+          e.preventDefault();
+          first.focus();
         }
       }
-      function openMenu() {
-        sideMenu.classList.add("open");
-        menuOverlay.style.display = "block";
-        menuToggle.setAttribute("aria-expanded", "true");
-        sideMenu.setAttribute("aria-hidden", "false");
-        // A11y: 初期フォーカスとトラップ
-        previousFocusedElement = document.activeElement;
-        sideMenu.setAttribute("role", "dialog");
-        sideMenu.setAttribute("aria-modal", "true");
-        focusFirstInMenu();
-        document.addEventListener("keydown", trapFocusKeydown, true);
+    }
+    function openMenu() {
+      sideMenu.classList.add("open");
+      menuOverlay.style.display = "block";
+      menuToggle.setAttribute("aria-expanded", "true");
+      sideMenu.setAttribute("aria-hidden", "false");
+      // A11y: 初期フォーカスとトラップ
+      previousFocusedElement = document.activeElement;
+      sideMenu.setAttribute("role", "dialog");
+      sideMenu.setAttribute("aria-modal", "true");
+      focusFirstInMenu();
+      document.addEventListener("keydown", trapFocusKeydown, true);
+    }
+    function closeMenu() {
+      sideMenu.classList.remove("open");
+      menuOverlay.style.display = "none";
+      menuToggle.setAttribute("aria-expanded", "false");
+      sideMenu.setAttribute("aria-hidden", "true");
+      sideMenu.removeAttribute("aria-modal");
+      sideMenu.removeAttribute("role");
+      document.removeEventListener("keydown", trapFocusKeydown, true);
+      // 直前のフォーカスへ戻す
+      if (
+        previousFocusedElement &&
+        document.contains(previousFocusedElement)
+      ) {
+        previousFocusedElement.focus();
+      } else {
+        menuToggle.focus();
       }
-      function closeMenu() {
-        sideMenu.classList.remove("open");
-        menuOverlay.style.display = "none";
-        menuToggle.setAttribute("aria-expanded", "false");
-        sideMenu.setAttribute("aria-hidden", "true");
-        sideMenu.removeAttribute("aria-modal");
-        sideMenu.removeAttribute("role");
-        document.removeEventListener("keydown", trapFocusKeydown, true);
-        // 直前のフォーカスへ戻す
-        if (
-          previousFocusedElement &&
-          document.contains(previousFocusedElement)
-        ) {
-          previousFocusedElement.focus();
-        } else {
-          menuToggle.focus();
-        }
-      }
-      menuToggle.addEventListener("click", () => {
-        const expanded = menuToggle.getAttribute("aria-expanded") === "true";
-        expanded ? closeMenu() : openMenu();
-      });
-      menuOverlay.addEventListener("click", closeMenu);
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeMenu();
-      });
-      if (menuOpenNotif)
-        menuOpenNotif.onclick = () => {
-          closeMenu();
-          openNotifModal();
-        };
-    </script>
-  </body>
+    }
+    menuToggle.addEventListener("click", () => {
+      const expanded = menuToggle.getAttribute("aria-expanded") === "true";
+      expanded ? closeMenu() : openMenu();
+    });
+    menuOverlay.addEventListener("click", closeMenu);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMenu();
+    });
+    if (menuOpenNotif)
+      menuOpenNotif.onclick = () => {
+        closeMenu();
+        openNotifModal();
+      };
+  </script>
+</body>
+
 </html>

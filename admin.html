@@ -1,840 +1,777 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Icons"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=chat_add_on,edit"
-    />
-    <title>管理ダッシュボード</title>
-    <link rel="stylesheet" href="css/common.css" />
-    <style>
-      body {
-        font-family: "Segoe UI", sans-serif;
-        background: #f5f6fa;
-        margin: 0;
-      }
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Icons" />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=chat_add_on,edit" />
+  <title>管理ダッシュボード</title>
+  <link rel="stylesheet" href="css/common.css" />
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+      padding: 2.5rem 1.5rem;
+    }
+
+    h2 {
+      text-align: center;
+      color: #1976d2;
+      margin-bottom: 2.5rem;
+    }
+
+    h3.section-title {
+      color: #333;
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .admin-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .admin-btn {
+      width: 100%;
+      max-width: 11.8em;
+      min-width: 10em;
+      height: 2.5em;
+      font-size: 1.2em;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .admin-btn:active {
+      background: #1565c0;
+    }
+
+    /* Dashboard */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e6e8f0;
+      border-radius: 10px;
+      padding: 0.5rem 0.5rem 0.75rem 0.9rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      min-height: 300px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+
+    .card-header-right {
+      display: flex;
+      align-items: center;
+      gap: 0rem;
+    }
+
+    .card-title {
+      display: flex;
+      color: #444;
+      font-weight: 600;
+    }
+
+    /* small icon button for header refresh */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin-left: 6px;
+      border-radius: 6px;
+      border: 1px solid #e0e3e7;
+      background: #fff;
+      color: #1976d2;
+      cursor: pointer;
+      line-height: 1;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 18px;
+    }
+
+    .icon-btn:hover {
+      background: #f0f6ff;
+    }
+
+    .alert-desc {
+      display: grid;
+      grid-template-columns: auto auto;
+      grid-template-rows: auto auto;
+    }
+
+    .alert-message {
+      display: flex;
+      gap: 5px;
+      padding-right: 5px;
+      grid-row: 2 / 3;
+      grid-column: 1 / 2;
+    }
+
+    .alert-buttons {
+      display: flex;
+      grid-row: 1 / 3;
+      grid-column: 2 / 3;
+      margin: 0 3px 0 5px;
+      flex-direction: column;
+      margin-top: 4px;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .material-icons {
+      font-weight: bold;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+    }
+
+    .metric {
+      display: flex;
+      align-items: anchor-center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin: 0;
+      height: 1em;
+    }
+
+    .mini-list {
+      margin: 0.2rem 0 0 0;
+      padding-left: 0rem;
+      color: #333;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .mini-list li {
+      margin: 0.2rem 0;
+      display: block;
+    }
+
+    .mini-list li.clickable {
+      cursor: pointer;
+      user-select: none;
+      border-radius: 6px;
+      padding: 2px 0px;
+    }
+
+    .mini-list li.clickable:hover {
+      background: #f6faff;
+    }
+
+    .list-div {
+      display: block;
+      flex-direction: column;
+      gap: 0.1rem;
+      border-left: 4px solid #1976d2;
+      background: #eef6ff;
+      padding-left: 5px;
+    }
+
+    .list-div:hover {
+      background: #dceaff;
+    }
+
+    /* 打刻アラート用のバッジ連動スタイル */
+    .list-div.alert-div {
+      transition: background 0.15s ease;
+    }
+
+    /* info（勤務中） */
+    .list-div.alert-div.type-info {
+      border-left-color: #1976d2;
+      /* badge-info border */
+      background: #eef6ff;
+      /* badge-info bg */
+    }
+
+    .list-div.alert-div.type-info:hover {
+      background: #d7eafc;
+    }
+
+    /* warn（未退勤） */
+    .list-div.alert-div.type-warn {
+      border-left-color: #ffcc80;
+      /* badge-warn border */
+      background: #fff8ed;
+      /* badge-warn bg */
+    }
+
+    .list-div.alert-div.type-warn:hover {
+      background: #ffe6c8;
+    }
+
+    /* critical（未退勤） */
+    .list-div.alert-div.type-critical {
+      border-left-color: #ef9a9a;
+      /* badge-critical border */
+      background: #fff2f4;
+      /* badge-critical bg */
+    }
+
+    .list-div.alert-div.type-critical:hover {
+      background: #ffcdd2;
+    }
+
+    .refresh-btn {
+      height: 26px;
+      width: 26px;
+      background: none !important;
+      padding: 3px 0 !important;
+      margin-top: 4px;
+    }
+
+    .refresh-btn:hover {
+      background: #dceaff !important;
+    }
+
+    .refresh-icon {
+      width: 18px;
+      height: 18px;
+      opacity: 0.4;
+      border: none !important;
+      pointer-events: none;
+    }
+
+    .refresh-icon:hover {
+      opacity: 0.8;
+    }
+
+    .small-btn {
+      display: inline-block;
+      font-size: 0.9rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid #1976d2;
+      color: #1976d2;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .small-btn:hover {
+      background: #f0f6ff;
+    }
+
+    /* アクティブ強調（選択中の状態ボタン） */
+    .small-btn.active {
+      background: #1976d2;
+      color: #fff;
+      border-color: #1976d2;
+    }
+
+    /* アラート用トグル（バッジ風） */
+    .toggle-badges {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 6px 0;
+    }
+
+    .toggle-badge {
+      display: inline-block;
+      padding: 0 8px;
+      border-radius: 12px;
+      font-size: 0.78em;
+      line-height: 1.8em;
+      border: 1px solid transparent;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-badge.off {
+      opacity: 0.45;
+      filter: grayscale(0.2);
+      background: #f4f6f8;
+      color: #666;
+      border-color: #e0e3e7;
+    }
+
+    /* 今日の勤務（一覧）テーブル */
+    table.today-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0 2rem 0;
+      white-space: nowrap;
+    }
+
+    table.today-table th,
+    table.today-table td {
+      border-bottom: 1px solid #e6e8f0;
+      padding: 6px 8px;
+      vertical-align: middle;
+    }
+
+    table.today-table th {
+      text-align: left;
+      color: #555;
+      background: #fafbff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .row-actions .small-btn {
+      padding: 0.2rem 0.5rem;
+    }
+
+    .row-note {
+      min-width: 12em;
+      max-width: 18em;
+    }
+
+    .row-msg {
+      font-size: 0.85em;
+      color: #666;
+      min-width: 7em;
+    }
+
+    @media (max-width: 600px) {
       .container {
-        max-width: 960px;
-        margin: 2rem auto;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-        padding: 2.5rem 1.5rem;
-      }
-
-      h2 {
-        text-align: center;
-        color: #1976d2;
-        margin-bottom: 2.5rem;
-      }
-
-      h3.section-title {
-        color: #333;
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        font-weight: 600;
+        padding: 1rem 0.2rem;
       }
 
       .admin-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-items: center;
-        margin-bottom: 2rem;
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
       }
 
       .admin-btn {
-        width: 100%;
-        max-width: 11.8em;
-        min-width: 10em;
-        height: 2.5em;
-        font-size: 1.2em;
-        background: #1976d2;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-        cursor: pointer;
-        transition: background 0.2s;
+        height: 60px;
+        font-size: 1em;
       }
 
-      .admin-btn:active {
-        background: #1565c0;
-      }
-
-      /* Dashboard */
       .dash-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin-bottom: 2rem;
+        grid-template-columns: 1fr;
       }
+    }
+  </style>
+</head>
 
-      .card {
-        background: #fff;
-        border: 1px solid #e6e8f0;
-        border-radius: 10px;
-        padding: 0.5rem 0.5rem 0.75rem 0.9rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        min-height: 300px;
-      }
-
-      .card-header {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        margin-bottom: 0.6rem;
-      }
-
-      .card-header-right {
-        display: flex;
-        align-items: center;
-        gap: 0rem;
-      }
-
-      .card-title {
-        display: flex;
-        color: #444;
-        font-weight: 600;
-      }
-
-      /* small icon button for header refresh */
-      .icon-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        margin-left: 6px;
-        border-radius: 6px;
-        border: 1px solid #e0e3e7;
-        background: #fff;
-        color: #1976d2;
-        cursor: pointer;
-        line-height: 1;
-        font-family: "Segoe UI", sans-serif;
-        font-size: 18px;
-      }
-
-      .icon-btn:hover {
-        background: #f0f6ff;
-      }
-
-      .alert-desc {
-        display: grid;
-        grid-template-columns: auto auto;
-        grid-template-rows: auto auto;
-      }
-
-      .alert-message {
-        display: flex;
-        gap: 5px;
-        padding-right: 5px;
-        grid-row: 2 / 3;
-        grid-column: 1 / 2;
-      }
-
-      .alert-buttons {
-        display: flex;
-        grid-row: 1 / 3;
-        grid-column: 2 / 3;
-        margin: 0 3px 0 5px;
-        flex-direction: column;
-        margin-top: 4px;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .material-icons {
-        font-weight: bold;
-      }
-
-      .material-symbols-outlined {
-        font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
-      }
-
-      .metric {
-        display: flex;
-        align-items: anchor-center;
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1976d2;
-        margin: 0;
-        height: 1em;
-      }
-
-      .mini-list {
-        margin: 0.2rem 0 0 0;
-        padding-left: 0rem;
-        color: #333;
-        max-height: 180px;
-        overflow: auto;
-      }
-
-      .mini-list li {
-        margin: 0.2rem 0;
-        display: block;
-      }
-
-      .mini-list li.clickable {
-        cursor: pointer;
-        user-select: none;
-        border-radius: 6px;
-        padding: 2px 0px;
-      }
-
-      .mini-list li.clickable:hover {
-        background: #f6faff;
-      }
-
-      .list-div {
-        display: block;
-        flex-direction: column;
-        gap: 0.1rem;
-        border-left: 4px solid #1976d2;
-        background: #eef6ff;
-        padding-left: 5px;
-      }
-
-      .list-div:hover {
-        background: #dceaff;
-      }
-
-      /* 打刻アラート用のバッジ連動スタイル */
-      .list-div.alert-div {
-        transition: background 0.15s ease;
-      }
-
-      /* info（勤務中） */
-      .list-div.alert-div.type-info {
-        border-left-color: #1976d2;
-        /* badge-info border */
-        background: #eef6ff;
-        /* badge-info bg */
-      }
-
-      .list-div.alert-div.type-info:hover {
-        background: #d7eafc;
-      }
-
-      /* warn（未退勤） */
-      .list-div.alert-div.type-warn {
-        border-left-color: #ffcc80;
-        /* badge-warn border */
-        background: #fff8ed;
-        /* badge-warn bg */
-      }
-
-      .list-div.alert-div.type-warn:hover {
-        background: #ffe6c8;
-      }
-
-      /* critical（未退勤） */
-      .list-div.alert-div.type-critical {
-        border-left-color: #ef9a9a;
-        /* badge-critical border */
-        background: #fff2f4;
-        /* badge-critical bg */
-      }
-
-      .list-div.alert-div.type-critical:hover {
-        background: #ffcdd2;
-      }
-
-      .refresh-btn {
-        height: 26px;
-        width: 26px;
-        background: none !important;
-        padding: 3px 0 !important;
-        margin-top: 4px;
-      }
-
-      .refresh-btn:hover {
-        background: #dceaff !important;
-      }
-
-      .refresh-icon {
-        width: 18px;
-        height: 18px;
-        opacity: 0.4;
-        border: none !important;
-        pointer-events: none;
-      }
-
-      .refresh-icon:hover {
-        opacity: 0.8;
-      }
-
-      .small-btn {
-        display: inline-block;
-        font-size: 0.9rem;
-        padding: 0.25rem 0.6rem;
-        border: 1px solid #1976d2;
-        color: #1976d2;
-        background: #fff;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-
-      .small-btn:hover {
-        background: #f0f6ff;
-      }
-
-      /* アクティブ強調（選択中の状態ボタン） */
-      .small-btn.active {
-        background: #1976d2;
-        color: #fff;
-        border-color: #1976d2;
-      }
-
-      /* アラート用トグル（バッジ風） */
-      .toggle-badges {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-        flex-wrap: wrap;
-        margin: 6px 0;
-      }
-
-      .toggle-badge {
-        display: inline-block;
-        padding: 0 8px;
-        border-radius: 12px;
-        font-size: 0.78em;
-        line-height: 1.8em;
-        border: 1px solid transparent;
-        cursor: pointer;
-        user-select: none;
-      }
-
-      .toggle-badge.off {
-        opacity: 0.45;
-        filter: grayscale(0.2);
-        background: #f4f6f8;
-        color: #666;
-        border-color: #e0e3e7;
-      }
-
-      .muted {
-        opacity: 0.7;
-      }
-
-      /* 今日の勤務（一覧）テーブル */
-      table.today-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0.5rem 0 2rem 0;
-        white-space: nowrap;
-      }
-
-      table.today-table th,
-      table.today-table td {
-        border-bottom: 1px solid #e6e8f0;
-        padding: 6px 8px;
-        vertical-align: middle;
-      }
-
-      table.today-table th {
-        text-align: left;
-        color: #555;
-        background: #fafbff;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-
-      .row-actions .small-btn {
-        padding: 0.2rem 0.5rem;
-      }
-
-      .row-note {
-        min-width: 12em;
-        max-width: 18em;
-      }
-
-      .row-msg {
-        font-size: 0.85em;
-        color: #666;
-        min-width: 7em;
-      }
-
-      @media (max-width: 600px) {
-        .container {
-          padding: 1rem 0.2rem;
-        }
-
-        .admin-grid {
-          grid-template-columns: 1fr;
-          gap: 1.2rem;
-        }
-
-        .admin-btn {
-          height: 60px;
-          font-size: 1em;
-        }
-
-        .dash-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="container">
-      <h2>管理ダッシュボード</h2>
-      <div class="dash-grid">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">有休 失効間近（30日以内）</div>
-            <div class="card-header-right">
-              <div class="metric" id="expiringCount">-</div>
-              <div style="display: flex; align-items: end; height: 30px">
-                <button
-                  class="icon-btn"
-                  id="refreshBtn"
-                  title="再読み込み"
-                  aria-label="再読み込み"
-                >
-                  <i class="material-icons" style="pointer-events: none"
-                    >refresh</i
-                  >
-                </button>
-              </div>
+<body>
+  <div class="container">
+    <h2>管理ダッシュボード</h2>
+    <div class="dash-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">有休 失効間近（30日以内）</div>
+          <div class="card-header-right">
+            <div class="metric" id="expiringCount">-</div>
+            <div style="display: flex; align-items: end; height: 30px">
+              <button
+                class="icon-btn"
+                id="refreshBtn"
+                title="再読み込み"
+                aria-label="再読み込み">
+                <i class="material-icons" style="pointer-events: none">refresh</i>
+              </button>
             </div>
           </div>
-          <ul class="mini-list" id="expiringList"></ul>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">保留中の申請</div>
-            <div class="card-header-right">
-              <div class="metric" id="pendingCount">-</div>
-              <div style="display: flex; align-items: end; height: 30px">
-                <button
-                  class="icon-btn"
-                  id="refreshPendingBtn"
-                  title="再読み込み"
-                  aria-label="再読み込み"
-                >
-                  <i class="material-icons" style="pointer-events: none"
-                    >refresh</i
-                  >
-                </button>
-              </div>
+        <ul class="mini-list" id="expiringList"></ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">保留中の申請</div>
+          <div class="card-header-right">
+            <div class="metric" id="pendingCount">-</div>
+            <div style="display: flex; align-items: end; height: 30px">
+              <button
+                class="icon-btn"
+                id="refreshPendingBtn"
+                title="再読み込み"
+                aria-label="再読み込み">
+                <i class="material-icons" style="pointer-events: none">refresh</i>
+              </button>
             </div>
           </div>
-          <ul class="mini-list" id="pendingList" style="max-height: 295px"></ul>
         </div>
-        <div class="card">
-          <!-- 打刻アラートカード -->
-          <!-- カードヘッダー -->
-          <div class="card-header">
-            <div class="card-title">打刻アラート</div>
-            <div class="card-header-right">
-              <div class="metric" id="alertsCount">-</div>
-              <div style="display: flex; align-items: end; height: 30px">
-                <button
-                  class="icon-btn"
-                  id="refreshAlertsBtn"
-                  title="再読み込み"
-                  aria-label="再読み込み"
-                >
-                  <i class="material-icons" style="pointer-events: none"
-                    >refresh</i
-                  >
-                </button>
-              </div>
+        <ul class="mini-list" id="pendingList" style="max-height: 295px"></ul>
+      </div>
+      <div class="card">
+        <!-- 打刻アラートカード -->
+        <!-- カードヘッダー -->
+        <div class="card-header">
+          <div class="card-title">打刻アラート</div>
+          <div class="card-header-right">
+            <div class="metric" id="alertsCount">-</div>
+            <div style="display: flex; align-items: end; height: 30px">
+              <button
+                class="icon-btn"
+                id="refreshAlertsBtn"
+                title="再読み込み"
+                aria-label="再読み込み">
+                <i class="material-icons" style="pointer-events: none">refresh</i>
+              </button>
             </div>
           </div>
-          <div class="toggle-badges" id="alertsToggles">
-            <span
-              class="toggle-badge badge-critical"
-              data-type="past_incomplete"
-              >未退勤</span
-            >
-            <span class="toggle-badge badge-warn" data-type="missing"
-              >未打刻</span
-            >
-            <span class="toggle-badge badge-info off" data-type="working"
-              >勤務中</span
-            >
-          </div>
-          <div style="margin: 0.5rem 0">
-            <label
-              >期間
-              <select id="alertsDays" style="margin-left: 0.25rem">
-                <option value="3">3日</option>
-                <option value="5">5日</option>
-                <option value="7">7日</option>
-              </select>
-            </label>
-          </div>
-          <ul class="mini-list" id="alertsList" style="max-height: 245px">
-            <!-- <li>アラート内容</li> -->
-            <!-- loadAlertsCardで生成される -->
-          </ul>
         </div>
-      </div>
-      <h3 class="section-title">メニュー</h3>
-      <div class="admin-grid">
-        <button class="admin-btn" onclick="location.href='./admin_users.html'">
-          ユーザー管理
-        </button>
-        <button
-          class="admin-btn"
-          onclick="location.href='./admin_attendance.html'"
-        >
-          勤怠管理
-        </button>
-        <button
-          class="admin-btn"
-          onclick="location.href='./admin_period_locks.html'"
-        >
-          期間ロック管理
-        </button>
-        <button
-          class="admin-btn"
-          onclick="location.href='./admin_settings.html'"
-        >
-          設定
-        </button>
-        <button class="admin-btn" onclick="location.href='./admin_audit.html'">
-          監査/レート制限
-        </button>
-        <button
-          class="admin-btn"
-          onclick="location.href='./myday_dashboard.html'"
-        >
-          個人ダッシュボード
-        </button>
-        <button class="admin-btn" onclick="location.href='./punch.html'">
-          打刻画面
-        </button>
-        <!-- 必要に応じてボタン追加可 -->
-      </div>
-      <h3 class="section-title">今日の勤務（一覧）</h3>
-      <div class="today-toolbar">
-        <label
-          >フィルタ
-          <select id="todayFilter">
-            <option value="all">すべて</option>
-            <option value="ov_any">上書きあり</option>
-            <option value="ov_ignore">無視のみ</option>
-            <option value="ov_off_full">全休のみ</option>
-            <option value="ov_off_am">午前休のみ</option>
-            <option value="ov_off_pm">午後休のみ</option>
-            <option value="ac_no_record">実績: 未打刻</option>
-            <option value="ac_working">実績: 勤務中</option>
-            <option value="ac_on_break">実績: 休憩中</option>
-            <option value="ac_done">実績: 退勤済み</option>
-          </select>
-        </label>
-        <label
-          >並び替え
-          <select id="todaySort">
-            <option value="default">デフォルト</option>
-            <option value="ov_first">上書きあり→なし</option>
-            <option value="ac_severity">
-              実績: 未打刻→勤務中→休憩中→退勤済み
-            </option>
-            <option value="name_asc">名前（昇順）</option>
-          </select>
-        </label>
-        <label
-          ><input type="checkbox" id="todayAutoRefresh" checked />
-          自動更新(60s)</label
-        >
-        <button class="icon-btn" id="todayRefreshBtn">
-          <i class="material-icons" style="pointer-events: none">refresh</i>
-        </button>
-      </div>
-      <div style="overflow: auto">
-        <table class="today-table" id="todayTable">
-          <thead>
-            <tr>
-              <th style="width: 26%">ユーザー</th>
-              <th>操作</th>
-              <th style="width: 34%">メモ</th>
-              <th style="width: 16%">状態</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="toggle-badges" id="alertsToggles">
+          <span
+            class="toggle-badge badge-critical"
+            data-type="past_incomplete">未退勤</span>
+          <span class="toggle-badge badge-warn" data-type="missing">未打刻</span>
+          <span class="toggle-badge badge-info off" data-type="working">勤務中</span>
+        </div>
+        <div style="margin: 0.5rem 0">
+          <label>期間 <select id="alertsDays" style="margin-left: 0.25rem">
+              <option value="3">3日</option>
+              <option value="5">5日</option>
+              <option value="7">7日</option>
+            </select>
+          </label>
+        </div>
+        <ul class="mini-list" id="alertsList" style="max-height: 245px">
+          <!-- <li>アラート内容</li> -->
+          <!-- loadAlertsCardで生成される -->
+        </ul>
       </div>
     </div>
-    <script>
-      // fetchWithAuth: 401/403時は自動ログアウト
-      async function fetchWithAuth(url, options) {
-        const res = await fetch(url, options);
-        if (res.status === 401 || res.status === 403) {
-          window.location.href = "login.html";
-          return null;
-        }
-        return res;
+    <h3 class="section-title">メニュー</h3>
+    <div class="admin-grid">
+      <button class="admin-btn" onclick="location.href='./admin_users.html'"> ユーザー管理 </button>
+      <button
+        class="admin-btn"
+        onclick="location.href='./admin_attendance.html'"> 勤怠管理 </button>
+      <button
+        class="admin-btn"
+        onclick="location.href='./admin_period_locks.html'"> 期間ロック管理 </button>
+      <button
+        class="admin-btn"
+        onclick="location.href='./admin_settings.html'"> 設定 </button>
+      <button class="admin-btn" onclick="location.href='./admin_audit.html'"> 監査/レート制限 </button>
+      <button
+        class="admin-btn"
+        onclick="location.href='./myday_dashboard.html'"> 個人ダッシュボード </button>
+      <button class="admin-btn" onclick="location.href='./punch.html'"> 打刻画面 </button>
+      <!-- 必要に応じてボタン追加可 -->
+    </div>
+    <h3 class="section-title">今日の勤務（一覧）</h3>
+    <div class="today-toolbar">
+      <label>フィルタ <select id="todayFilter">
+          <option value="all">すべて</option>
+          <option value="ov_any">上書きあり</option>
+          <option value="ov_ignore">無視のみ</option>
+          <option value="ov_off_full">全休のみ</option>
+          <option value="ov_off_am">午前休のみ</option>
+          <option value="ov_off_pm">午後休のみ</option>
+          <option value="ac_no_record">実績: 未打刻</option>
+          <option value="ac_working">実績: 勤務中</option>
+          <option value="ac_on_break">実績: 休憩中</option>
+          <option value="ac_done">実績: 退勤済み</option>
+        </select>
+      </label>
+      <label>並び替え <select id="todaySort">
+          <option value="default">デフォルト</option>
+          <option value="ov_first">上書きあり→なし</option>
+          <option value="ac_severity"> 実績: 未打刻→勤務中→休憩中→退勤済み </option>
+          <option value="name_asc">名前（昇順）</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="todayAutoRefresh" checked /> 自動更新(60s)</label>
+      <button class="icon-btn" id="todayRefreshBtn">
+        <i class="material-icons" style="pointer-events: none">refresh</i>
+      </button>
+    </div>
+    <div style="overflow: auto">
+      <table class="today-table" id="todayTable">
+        <thead>
+          <tr>
+            <th style="width: 26%">ユーザー</th>
+            <th>操作</th>
+            <th style="width: 34%">メモ</th>
+            <th style="width: 16%">状態</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    // fetchWithAuth: 401/403時は自動ログアウト
+    async function fetchWithAuth(url, options) {
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = "login.html";
+        return null;
       }
-      // 管理者権限チェック（URL直打ち対策）
-      fetchWithAuth("api/check_login.php")
-        .then((res) => res && res.json())
-        .then((data) => {
-          if (!data || !data.loggedIn) {
-            window.location.href = "./login.html";
-          } else if (!data.is_admin) {
-            alert("管理者権限がありません");
-            window.location.href = "./punch.html";
-          } else {
-            // ダッシュボード読み込み
-            loadDashboard();
-            initTodayTable();
-          }
-        });
+      return res;
+    }
+    // 管理者権限チェック（URL直打ち対策）
+    fetchWithAuth("api/check_login.php")
+      .then((res) => res && res.json())
+      .then((data) => {
+        if (!data || !data.loggedIn) {
+          window.location.href = "./login.html";
+        } else if (!data.is_admin) {
+          alert("管理者権限がありません");
+          window.location.href = "./punch.html";
+        } else {
+          // ダッシュボード読み込み
+          loadDashboard();
+          initTodayTable();
+        }
+      });
 
-      async function loadDashboard() {
-        const countEl = document.getElementById("expiringCount");
-        const listEl = document.getElementById("expiringList");
-        if (!countEl || !listEl) return;
-        countEl.textContent = "⋯";
-        listEl.innerHTML = "";
-        const res = await fetchWithAuth("api/dashboard_summary.php");
-        if (!res) return;
-        try {
-          const data = await res.json();
-          if (!data || data.error) throw new Error("API error");
-          const exp = data.expiring_30d || { count: 0, top: [] };
-          countEl.textContent = String(exp.count);
-          const items = (exp.top || []).slice(0, 8);
-          for (const it of items) {
-            const li = document.createElement("li");
-            const days = it.days_left;
-            const dateStr = it.next_expire_date;
-            const bal =
-              typeof it.balance_hours === "number"
-                ? it.balance_hours.toFixed(1)
-                : String(it.balance_hours);
-            li.innerHTML = `<div class="list-div"><a href="admin_users.html#user-${
-              it.user_id
+    async function loadDashboard() {
+      const countEl = document.getElementById("expiringCount");
+      const listEl = document.getElementById("expiringList");
+      if (!countEl || !listEl) return;
+      countEl.textContent = "⋯";
+      listEl.innerHTML = "";
+      const res = await fetchWithAuth("api/dashboard_summary.php");
+      if (!res) return;
+      try {
+        const data = await res.json();
+        if (!data || data.error) throw new Error("API error");
+        const exp = data.expiring_30d || { count: 0, top: [] };
+        countEl.textContent = String(exp.count);
+        const items = (exp.top || []).slice(0, 8);
+        for (const it of items) {
+          const li = document.createElement("li");
+          const days = it.days_left;
+          const dateStr = it.next_expire_date;
+          const bal =
+            typeof it.balance_hours === "number"
+              ? it.balance_hours.toFixed(1)
+              : String(it.balance_hours);
+          li.innerHTML = `<div class="list-div"><a href="admin_users.html#user-${it.user_id
             }" title="ユーザー詳細へ">${escapeHtml(
               it.name
             )}</a> — ${dateStr}（あと${days}日） 残${bal}h</div>`;
-            listEl.appendChild(li);
-          }
-          if (items.length === 0) {
-            const li = document.createElement("li");
-            li.textContent = "対象なし";
-            listEl.appendChild(li);
-          }
-        } catch (e) {
-          countEl.textContent = "-";
-          const li = document.createElement("li");
-          li.textContent = "読み込みに失敗しました";
           listEl.appendChild(li);
         }
+        if (items.length === 0) {
+          const li = document.createElement("li");
+          li.textContent = "対象なし";
+          listEl.appendChild(li);
+        }
+      } catch (e) {
+        countEl.textContent = "-";
+        const li = document.createElement("li");
+        li.textContent = "読み込みに失敗しました";
+        listEl.appendChild(li);
+      }
 
-        // 保留中申請
-        const pCountEl = document.getElementById("pendingCount");
-        const pListEl = document.getElementById("pendingList");
-        if (pCountEl && pListEl) {
-          pCountEl.textContent = "…";
-          pListEl.innerHTML = "";
-          const res2 = await fetchWithAuth("api/leave_requests_pending.php");
-          if (res2) {
-            try {
-              const data2 = await res2.json();
-              const count = data2 && data2.ok ? data2.count || 0 : 0;
-              pCountEl.textContent = String(count);
-              const items = (data2.items || []).slice(0, 8);
-              for (const it of items) {
-                const li = document.createElement("li");
-                const div = document.createElement("div");
-                const h =
-                  typeof it.hours === "number"
-                    ? it.hours.toFixed(1)
-                    : String(it.hours ?? "");
-                const created = it.created_at
-                  ? new Date(it.created_at.replace(" ", "T"))
-                  : null;
-                const createdStr = created
-                  ? formatDateMD(created.toLocaleDateString())
-                  : "";
-                const token = null; // tokenはAPIから除去済み
-                const reqId = it.id;
-                const reason = it.reason
-                  ? "(" + escapeHtml(it.reason) + ")"
-                  : "";
-                const actions = `
+      // 保留中申請
+      const pCountEl = document.getElementById("pendingCount");
+      const pListEl = document.getElementById("pendingList");
+      if (pCountEl && pListEl) {
+        pCountEl.textContent = "…";
+        pListEl.innerHTML = "";
+        const res2 = await fetchWithAuth("api/leave_requests_pending.php");
+        if (res2) {
+          try {
+            const data2 = await res2.json();
+            const count = data2 && data2.ok ? data2.count || 0 : 0;
+            pCountEl.textContent = String(count);
+            const items = (data2.items || []).slice(0, 8);
+            for (const it of items) {
+              const li = document.createElement("li");
+              const div = document.createElement("div");
+              const h =
+                typeof it.hours === "number"
+                  ? it.hours.toFixed(1)
+                  : String(it.hours ?? "");
+              const created = it.created_at
+                ? new Date(it.created_at.replace(" ", "T"))
+                : null;
+              const createdStr = created
+                ? formatDateMD(created.toLocaleDateString())
+                : "";
+              const token = null; // tokenはAPIから除去済み
+              const reqId = it.id;
+              const reason = it.reason
+                ? "(" + escapeHtml(it.reason) + ")"
+                : "";
+              const actions = `
                                 <button class="small-btn js-approve" data-id="${reqId}" style="margin-left:0.5em; padding:revert;">承認</button>
                                 <button class="small-btn js-reject" data-id="${reqId}" style="margin-left:0em;border-color:#e53935;color:#e53935;padding:revert;">却下</button>
                             `;
 
-                li.innerHTML = `<div class="list-div"><a href="admin_users.html#user-${
-                  it.user_id
+              li.innerHTML = `<div class="list-div"><a href="admin_users.html#user-${it.user_id
                 }" title="ユーザー詳細へ">${escapeHtml(
                   it.name
                 )}</a> / 申請  ${createdStr}<br> ${formatDateMD(
                   it.used_date
                 )} ${h}h ${reason} <span style="color:#666;"></span>${actions}</div>`;
-                // 行クリックで管理者用の詳細ページを開く
-                if (reqId) {
-                  li.dataset.requestId = String(reqId);
-                  li.classList.add("clickable");
-                }
-                pListEl.appendChild(li);
+              // 行クリックで管理者用の詳細ページを開く
+              if (reqId) {
+                li.dataset.requestId = String(reqId);
+                li.classList.add("clickable");
               }
-              if (items.length === 0) {
-                const li = document.createElement("li");
-                li.textContent = "対象なし";
-                pListEl.appendChild(li);
-              }
-            } catch (e) {
-              pCountEl.textContent = "-";
-              const li = document.createElement("li");
-              li.textContent = "読み込みに失敗しました";
               pListEl.appendChild(li);
             }
+            if (items.length === 0) {
+              const li = document.createElement("li");
+              li.textContent = "対象なし";
+              pListEl.appendChild(li);
+            }
+          } catch (e) {
+            pCountEl.textContent = "-";
+            const li = document.createElement("li");
+            li.textContent = "読み込みに失敗しました";
+            pListEl.appendChild(li);
           }
         }
-
-        // 打刻アラートカード
-        await loadAlertsCard();
       }
 
-      // 打刻アラートのみを再描画する関数（ちらつき抑制）
-      async function loadAlertsCard() {
-        const aCountEl = document.getElementById("alertsCount");
-        const aListEl = document.getElementById("alertsList");
-        if (!(aCountEl && aListEl)) return;
-        aCountEl.textContent = "…";
-        aListEl.innerHTML = "";
-        const daysParam = getAlertsDays();
-        const prefs = getAlertToggles();
-        const inc = [];
-        if (prefs.working) inc.push("working");
-        if (prefs.past_incomplete) inc.push("past_incomplete");
-        if (prefs.missing) inc.push("missing");
-        const includeParam = inc.join(",");
-        const res = await fetchWithAuth(
-          `api/attendance_alerts.php?limit=50&days=${daysParam}&n=3&include=${encodeURIComponent(
-            includeParam
-          )}&missing_dates=1`
-        );
-        if (!res) return;
-        try {
-          const data = await res.json();
-          const items = [];
-          (data.items?.today_no_clock_out || []).forEach((it) => {
-            items.push({
-              type: "勤務中",
-              user_id: it.user_id,
-              user_name: it.name,
-              text: `出勤:${(it.clock_in || "").slice(11, 16)}`,
-              class: "info",
-              date:
-                it.work_date ||
-                (it.clock_in ? String(it.clock_in).slice(0, 10) : ""),
-              range_start: it.work_date || "",
-              range_end: it.work_date || "",
-            });
+      // 打刻アラートカード
+      await loadAlertsCard();
+    }
+
+    // 打刻アラートのみを再描画する関数（ちらつき抑制）
+    async function loadAlertsCard() {
+      const aCountEl = document.getElementById("alertsCount");
+      const aListEl = document.getElementById("alertsList");
+      if (!(aCountEl && aListEl)) return;
+      aCountEl.textContent = "…";
+      aListEl.innerHTML = "";
+      const daysParam = getAlertsDays();
+      const prefs = getAlertToggles();
+      const inc = [];
+      if (prefs.working) inc.push("working");
+      if (prefs.past_incomplete) inc.push("past_incomplete");
+      if (prefs.missing) inc.push("missing");
+      const includeParam = inc.join(",");
+      const res = await fetchWithAuth(
+        `api/attendance_alerts.php?limit=50&days=${daysParam}&n=3&include=${encodeURIComponent(
+          includeParam
+        )}&missing_dates=1`
+      );
+      if (!res) return;
+      try {
+        const data = await res.json();
+        const items = [];
+        (data.items?.today_no_clock_out || []).forEach((it) => {
+          items.push({
+            type: "勤務中",
+            user_id: it.user_id,
+            user_name: it.name,
+            text: `出勤:${(it.clock_in || "").slice(11, 16)}`,
+            class: "info",
+            date:
+              it.work_date ||
+              (it.clock_in ? String(it.clock_in).slice(0, 10) : ""),
+            range_start: it.work_date || "",
+            range_end: it.work_date || "",
           });
-          (data.items?.past_incomplete || []).forEach((it) => {
-            items.push({
-              type: "未退勤",
-              user_id: it.user_id,
-              user_name: it.name,
-              text: `${it.work_date} 出勤:${(it.clock_in || "").slice(11, 16)}`,
-              class: "critical",
-              date: it.work_date,
-              range_start: it.work_date,
-              range_end: it.work_date,
-            });
+        });
+        (data.items?.past_incomplete || []).forEach((it) => {
+          items.push({
+            type: "未退勤",
+            user_id: it.user_id,
+            user_name: it.name,
+            text: `${it.work_date} 出勤:${(it.clock_in || "").slice(11, 16)}`,
+            class: "critical",
+            date: it.work_date,
+            range_start: it.work_date,
+            range_end: it.work_date,
           });
-          (data.items?.recent_missing_users || []).forEach((it) => {
-            items.push({
-              type: "未打刻",
-              user_id: it.user_id,
-              user_name: it.name,
-              text: `${it.range_start || ""}〜${
-                it.range_end || ""
+        });
+        (data.items?.recent_missing_users || []).forEach((it) => {
+          items.push({
+            type: "未打刻",
+            user_id: it.user_id,
+            user_name: it.name,
+            text: `${it.range_start || ""}〜${it.range_end || ""
               } の間に ${Number(it.missing_days ?? it.missing ?? 0)}度の未打刻`,
-              class: "warn",
-              date: "",
-              range_start: it.range_start || "",
-              range_end: it.range_end || "",
-              missing_dates: Array.isArray(it.missing_dates)
-                ? it.missing_dates
-                : [],
-            });
+            class: "warn",
+            date: "",
+            range_start: it.range_start || "",
+            range_end: it.range_end || "",
+            missing_dates: Array.isArray(it.missing_dates)
+              ? it.missing_dates
+              : [],
           });
+        });
 
-          const filtered = items.filter((it) => {
-            if (it.type === "未退勤") return prefs.past_incomplete;
-            if (it.type === "未打刻") return prefs.missing;
-            if (it.type === "勤務中") return prefs.working;
-            return true;
-          });
-          aCountEl.textContent = String(filtered.length);
+        const filtered = items.filter((it) => {
+          if (it.type === "未退勤") return prefs.past_incomplete;
+          if (it.type === "未打刻") return prefs.missing;
+          if (it.type === "勤務中") return prefs.working;
+          return true;
+        });
+        aCountEl.textContent = String(filtered.length);
 
-          filtered.slice(0, 8).forEach((it) => {
-            const li = document.createElement("li");
-            li.classList.add("clickable");
-            const canOverride = it.type === "未打刻" || it.type === "未退勤";
-            const showNotify =
-              it.type === "未打刻" &&
-              Array.isArray(it.missing_dates) &&
-              it.missing_dates.length > 0;
-            const btnHtml = canOverride
-              ? `
+        filtered.slice(0, 8).forEach((it) => {
+          const li = document.createElement("li");
+          li.classList.add("clickable");
+          const canOverride = it.type === "未打刻" || it.type === "未退勤";
+          const showNotify =
+            it.type === "未打刻" &&
+            Array.isArray(it.missing_dates) &&
+            it.missing_dates.length > 0;
+          const btnHtml = canOverride
+            ? `
                         <div class="alert-buttons">
-                            <button class="small-btn js-override-alert" id="override-${
-                              it.user_id
-                            }-${
-                  it.date
-                }" style="padding: 1px;font-size: 0;" data-user-id="${
-                  it.user_id
-                }" data-user-name="${escapeHtml(it.user_name)}" data-date="${
-                  it.date || ""
-                }" data-range-start="${it.range_start || ""}" data-range-end="${
-                  it.range_end || ""
-                }" data-missing-dates="${encodeURIComponent(
-                  JSON.stringify(it.missing_dates || [])
-                )}">
+                            <button class="small-btn js-override-alert" id="override-${it.user_id
+            }-${it.date
+            }" style="padding: 1px;font-size: 0;" data-user-id="${it.user_id
+            }" data-user-name="${escapeHtml(it.user_name)}" data-date="${it.date || ""
+            }" data-range-start="${it.range_start || ""}" data-range-end="${it.range_end || ""
+            }" data-missing-dates="${encodeURIComponent(
+              JSON.stringify(it.missing_dates || [])
+            )}">
                                 <i class="material-icons material-symbols-outlined" style="pointer-events: none;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">edit</i>
                             </button>
-                            <button class="small-btn js-notify-missing" id="message-${
-                              it.user_id
-                            }-${
-                  it.date
-                }" style="padding: 1px;font-size: 0;" data-user-id="${
-                  it.user_id
-                }" data-user-name="${escapeHtml(it.user_name)}" data-date="${
-                  it.date || ""
-                }" data-range-start="${it.range_start || ""}" data-range-end="${
-                  it.range_end || ""
-                }" data-missing-dates="${encodeURIComponent(
-                  JSON.stringify(it.missing_dates || [])
-                )}">
+                            <button class="small-btn js-notify-missing" id="message-${it.user_id
+            }-${it.date
+            }" style="padding: 1px;font-size: 0;" data-user-id="${it.user_id
+            }" data-user-name="${escapeHtml(it.user_name)}" data-date="${it.date || ""
+            }" data-range-start="${it.range_start || ""}" data-range-end="${it.range_end || ""
+            }" data-missing-dates="${encodeURIComponent(
+              JSON.stringify(it.missing_dates || [])
+            )}">
                                 <i class="material-icons material-symbols-outlined" style="pointer-events: none;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">chat_add_on</i>
                             </button>
                         </div>`
-              : "";
-            const text = it.text + btnHtml;
-            li.innerHTML = `
+            : "";
+          const text = it.text + btnHtml;
+          li.innerHTML = `
                 <div class="list-div alert-div type-${it.class}">
                     <div class="alert-desc">
                         <div style="grid-column: 1 / 2;grid-row: 1 / 2;">
                             <b style="vertical-align: top;">${escapeHtml(
-                              it.user_name
-                            )}</b>
-                            <span class="badge badge-${
-                              it.class
-                            }" style="white-space: nowrap; margin-left: 0.5em;">${escapeHtml(
+            it.user_name
+          )}</b>
+                            <span class="badge badge-${it.class
+            }" style="white-space: nowrap; margin-left: 0.5em;">${escapeHtml(
               it.type
             )}</span>
                         </div>
@@ -843,548 +780,540 @@
                     ${btnHtml}
 
                 </div>`;
-            li.addEventListener("click", (ev) => {
-              const btn =
-                ev.target && ev.target.closest
-                  ? ev.target.closest("button")
-                  : null;
-              // ボタン（⋯ / 通知 など）をクリックした場合は詳細画面を開かない
-              if (btn) return;
-              if (!it.user_id) return;
-              const d = it.date || new Date().toISOString().slice(0, 10);
-              const url = `admin_attendance.html?user_id=${encodeURIComponent(
-                it.user_id
-              )}&date=${encodeURIComponent(d)}#open=edit`;
-              window.open(url, "_blank");
-            });
-            aListEl.appendChild(li);
+          li.addEventListener("click", (ev) => {
+            const btn =
+              ev.target && ev.target.closest
+                ? ev.target.closest("button")
+                : null;
+            // ボタン（⋯ / 通知 など）をクリックした場合は詳細画面を開かない
+            if (btn) return;
+            if (!it.user_id) return;
+            const d = it.date || new Date().toISOString().slice(0, 10);
+            const url = `admin_attendance.html?user_id=${encodeURIComponent(
+              it.user_id
+            )}&date=${encodeURIComponent(d)}#open=edit`;
+            window.open(url, "_blank");
           });
-
-          if (filtered.length === 0) {
-            const li = document.createElement("li");
-            li.textContent = "対象なし";
-            aListEl.appendChild(li);
-          }
-        } catch (e) {
-          aCountEl.textContent = "-";
-          const li = document.createElement("li");
-          li.textContent = "読み込みに失敗しました";
           aListEl.appendChild(li);
+        });
+
+        if (filtered.length === 0) {
+          const li = document.createElement("li");
+          li.textContent = "対象なし";
+          aListEl.appendChild(li);
+        }
+      } catch (e) {
+        aCountEl.textContent = "-";
+        const li = document.createElement("li");
+        li.textContent = "読み込みに失敗しました";
+        aListEl.appendChild(li);
+      }
+    }
+
+    // 今日の勤務（一覧）
+    async function initTodayTable() {
+      const table = document.getElementById("todayTable");
+      if (!table) return;
+      const tbody = table.querySelector("tbody");
+      const filterSel = document.getElementById("todayFilter");
+      const sortSel = document.getElementById("todaySort");
+      const btnRefresh = document.getElementById("todayRefreshBtn");
+      const autoCb = document.getElementById("todayAutoRefresh");
+
+      let users = [];
+      let overrides = {};
+      let actuals = {};
+      let timerId = null;
+      let loading = false;
+
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="muted">読み込み中…</td></tr>';
+
+      async function loadUsersIfNeeded() {
+        if (users.length) return;
+        try {
+          const res = await fetchWithAuth("api/admin_user_list.php");
+          if (!res) return;
+          const arr = await res.json();
+          users = (arr || []).filter((u) => u.visible == 1);
+        } catch (e) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="danger">ユーザー読込に失敗しました</td></tr>';
         }
       }
 
-      // 今日の勤務（一覧）
-      async function initTodayTable() {
-        const table = document.getElementById("todayTable");
-        if (!table) return;
-        const tbody = table.querySelector("tbody");
-        const filterSel = document.getElementById("todayFilter");
-        const sortSel = document.getElementById("todaySort");
-        const btnRefresh = document.getElementById("todayRefreshBtn");
-        const autoCb = document.getElementById("todayAutoRefresh");
-
-        let users = [];
-        let overrides = {};
-        let actuals = {};
-        let timerId = null;
-        let loading = false;
-
-        tbody.innerHTML =
-          '<tr><td colspan="4" class="muted">読み込み中…</td></tr>';
-
-        async function loadUsersIfNeeded() {
-          if (users.length) return;
-          try {
-            const res = await fetchWithAuth("api/admin_user_list.php");
-            if (!res) return;
-            const arr = await res.json();
-            users = (arr || []).filter((u) => u.visible == 1);
-          } catch (e) {
-            tbody.innerHTML =
-              '<tr><td colspan="4" class="danger">ユーザー読込に失敗しました</td></tr>';
+      async function loadTodayOverrides() {
+        const today = todayYmd();
+        overrides = {};
+        try {
+          const res2 = await fetchWithAuth(
+            `api/day_status_get.php?start=${today}&end=${today}`
+          );
+          if (res2 && res2.ok) {
+            const data2 = await res2.json();
+            (data2.items || []).forEach((it) => {
+              overrides[it.user_id] = it;
+            });
           }
+        } catch (e) {
+          /* noop */
         }
+      }
 
-        async function loadTodayOverrides() {
-          const today = todayYmd();
-          overrides = {};
-          try {
-            const res2 = await fetchWithAuth(
-              `api/day_status_get.php?start=${today}&end=${today}`
-            );
-            if (res2 && res2.ok) {
-              const data2 = await res2.json();
-              (data2.items || []).forEach((it) => {
-                overrides[it.user_id] = it;
-              });
-            }
-          } catch (e) {
-            /* noop */
+      async function loadTodayActuals() {
+        actuals = {};
+        try {
+          const res3 = await fetchWithAuth("api/today_status_summary.php");
+          if (res3 && res3.ok) {
+            const data3 = await res3.json();
+            (data3.items || []).forEach((it) => {
+              actuals[it.user_id] = it;
+            });
           }
+        } catch (e) {
+          /* noop */
         }
+      }
 
-        async function loadTodayActuals() {
-          actuals = {};
-          try {
-            const res3 = await fetchWithAuth("api/today_status_summary.php");
-            if (res3 && res3.ok) {
-              const data3 = await res3.json();
-              (data3.items || []).forEach((it) => {
-                actuals[it.user_id] = it;
-              });
-            }
-          } catch (e) {
-            /* noop */
+      function renderTable() {
+        const frag = document.createDocumentFragment();
+        // 構造体にまとめてからフィルタ/ソート
+        let rows = users.map((u) => {
+          const ov = overrides[u.id] || null;
+          const ovStatus = ov ? String(ov.status) : "no_override";
+          const ac = actuals[u.id] || null;
+          const acStatus = ac ? String(ac.status) : "";
+          return { u, ov, ovStatus, ac, acStatus };
+        });
+        // フィルタ
+        const f = filterSel.value;
+        rows = rows.filter((r) => {
+          switch (f) {
+            case "ov_any":
+              return !!r.ovStatus;
+            case "ov_ignore":
+              return r.ovStatus === "ignore";
+            case "ov_off_full":
+              return r.ovStatus === "off_full";
+            case "ov_off_am":
+              return r.ovStatus === "off_am";
+            case "ov_off_pm":
+              return r.ovStatus === "off_pm";
+            case "ac_no_record":
+              return r.acStatus === "no_record";
+            case "ac_working":
+              return r.acStatus === "working";
+            case "ac_on_break":
+              return r.acStatus === "on_break";
+            case "ac_done":
+              return r.acStatus === "done";
+            default:
+              return true;
           }
-        }
+        });
+        // ソート
+        const s = sortSel.value;
+        rows.sort((a, b) => {
+          if (s === "ov_first") {
+            const av = a.ovStatus ? 0 : 1;
+            const bv = b.ovStatus ? 0 : 1;
+            if (av !== bv) return av - bv;
+            return a.u.name.localeCompare(b.u.name, "ja");
+          } else if (s === "ac_severity") {
+            const rank = {
+              no_record: 0,
+              working: 1,
+              on_break: 2,
+              done: 3,
+              off_am: 4,
+              off_pm: 4,
+              off_full: 4,
+              ignore: 5,
+            };
+            const av = rank[a.acStatus] ?? 99;
+            const bv = rank[b.acStatus] ?? 99;
+            if (av !== bv) return av - bv;
+            return a.u.name.localeCompare(b.u.name, "ja");
+          } else if (s === "name_asc") {
+            return a.u.name.localeCompare(b.u.name, "ja");
+          }
+          return a.u.id - b.u.id; // default
+        });
 
-        function renderTable() {
-          const frag = document.createDocumentFragment();
-          // 構造体にまとめてからフィルタ/ソート
-          let rows = users.map((u) => {
-            const ov = overrides[u.id] || null;
-            const ovStatus = ov ? String(ov.status) : "no_override";
-            const ac = actuals[u.id] || null;
-            const acStatus = ac ? String(ac.status) : "";
-            return { u, ov, ovStatus, ac, acStatus };
-          });
-          // フィルタ
-          const f = filterSel.value;
-          rows = rows.filter((r) => {
-            switch (f) {
-              case "ov_any":
-                return !!r.ovStatus;
-              case "ov_ignore":
-                return r.ovStatus === "ignore";
-              case "ov_off_full":
-                return r.ovStatus === "off_full";
-              case "ov_off_am":
-                return r.ovStatus === "off_am";
-              case "ov_off_pm":
-                return r.ovStatus === "off_pm";
-              case "ac_no_record":
-                return r.acStatus === "no_record";
-              case "ac_working":
-                return r.acStatus === "working";
-              case "ac_on_break":
-                return r.acStatus === "on_break";
-              case "ac_done":
-                return r.acStatus === "done";
-              default:
-                return true;
-            }
-          });
-          // ソート
-          const s = sortSel.value;
-          rows.sort((a, b) => {
-            if (s === "ov_first") {
-              const av = a.ovStatus ? 0 : 1;
-              const bv = b.ovStatus ? 0 : 1;
-              if (av !== bv) return av - bv;
-              return a.u.name.localeCompare(b.u.name, "ja");
-            } else if (s === "ac_severity") {
-              const rank = {
-                no_record: 0,
-                working: 1,
-                on_break: 2,
-                done: 3,
-                off_am: 4,
-                off_pm: 4,
-                off_full: 4,
-                ignore: 5,
-              };
-              const av = rank[a.acStatus] ?? 99;
-              const bv = rank[b.acStatus] ?? 99;
-              if (av !== bv) return av - bv;
-              return a.u.name.localeCompare(b.u.name, "ja");
-            } else if (s === "name_asc") {
-              return a.u.name.localeCompare(b.u.name, "ja");
-            }
-            return a.u.id - b.u.id; // default
-          });
-
-          rows.forEach(({ u, ov, ovStatus, ac, acStatus }) => {
-            const tr = document.createElement("tr");
-            tr.dataset.userId = String(u.id);
-            tr.dataset.override = ovStatus;
-            const acLabel = actualStatusLabelWithOV(acStatus, ovStatus);
-            const acBadge = `<span class="badge ${badgeclassForActualWithOverride(
-              acStatus,
-              ovStatus
-            )}">${acLabel}</span>`;
-            tr.innerHTML = `
-                        <td><a href="admin_users.html#user-${
-                          u.id
-                        }" title="ユーザー詳細へ">${escapeHtml(u.name)}</a></td>
+        rows.forEach(({ u, ov, ovStatus, ac, acStatus }) => {
+          const tr = document.createElement("tr");
+          tr.dataset.userId = String(u.id);
+          tr.dataset.override = ovStatus;
+          const acLabel = actualStatusLabelWithOV(acStatus, ovStatus);
+          const acBadge = `<span class="badge ${badgeclassForActualWithOverride(
+            acStatus,
+            ovStatus
+          )}">${acLabel}</span>`;
+          tr.innerHTML = `
+                        <td><a href="admin_users.html#user-${u.id
+            }" title="ユーザー詳細へ">${escapeHtml(u.name)}</a></td>
                         <td class="row-actions">
-                            <button class="small-btn js-set ${
-                              ovStatus === "off_full" ? "active" : ""
-                            }" data-status="off_full">全休</button>
-                            <button class="small-btn js-set ${
-                              ovStatus === "off_am" ? "active" : ""
-                            }" data-status="off_am">午前休</button>
-                            <button class="small-btn js-set ${
-                              ovStatus === "off_pm" ? "active" : ""
-                            }" data-status="off_pm">午後休</button>
-                            <button class="small-btn js-set ${
-                              ovStatus === "ignore" ? "active" : ""
-                            }" data-status="ignore">無視</button>
+                            <button class="small-btn js-set ${ovStatus === "off_full" ? "active" : ""
+            }" data-status="off_full">全休</button>
+                            <button class="small-btn js-set ${ovStatus === "off_am" ? "active" : ""
+            }" data-status="off_am">午前休</button>
+                            <button class="small-btn js-set ${ovStatus === "off_pm" ? "active" : ""
+            }" data-status="off_pm">午後休</button>
+                            <button class="small-btn js-set ${ovStatus === "ignore" ? "active" : ""
+            }" data-status="ignore">無視</button>
                             <button class="small-btn js-clear" style="border-color:#999;color:#666;">取消</button>
                         </td>
                         <td>
-                            <input class="row-note" type="text" placeholder="メモ（任意）" value="${
-                              ov && ov.note ? escapeHtml(ov.note) : ""
-                            }">
+                            <input class="row-note" type="text" placeholder="メモ（任意）" value="${ov && ov.note ? escapeHtml(ov.note) : ""
+            }">
                         </td>
                         <td class="status-cell">${acBadge}<span class="row-msg" style="margin-left:6px;"></span></td>
                     `;
-            frag.appendChild(tr);
-          });
-          tbody.innerHTML = "";
-          tbody.appendChild(frag);
+          frag.appendChild(tr);
+        });
+        tbody.innerHTML = "";
+        tbody.appendChild(frag);
+      }
+
+      async function reload() {
+        if (loading) return;
+        loading = true;
+        tbody.innerHTML =
+          '<tr><td colspan="4" class="muted">読み込み中…</td></tr>';
+        await loadUsersIfNeeded();
+        await Promise.all([loadTodayOverrides(), loadTodayActuals()]);
+        renderTable();
+        loading = false;
+      }
+
+      // 初回ロード
+      await reload();
+
+      // 手動更新
+      btnRefresh.addEventListener("click", reload);
+      filterSel.addEventListener("change", () => renderTable());
+      sortSel.addEventListener("change", () => renderTable());
+
+      // 自動更新
+      function ensureTimer() {
+        if (autoCb.checked && !timerId) {
+          timerId = setInterval(reload, 60000);
+        } else if (!autoCb.checked && timerId) {
+          clearInterval(timerId);
+          timerId = null;
         }
+      }
+      autoCb.addEventListener("change", ensureTimer);
+      ensureTimer();
 
-        async function reload() {
-          if (loading) return;
-          loading = true;
-          tbody.innerHTML =
-            '<tr><td colspan="4" class="muted">読み込み中…</td></tr>';
-          await loadUsersIfNeeded();
-          await Promise.all([loadTodayOverrides(), loadTodayActuals()]);
-          renderTable();
-          loading = false;
-        }
-
-        // 初回ロード
-        await reload();
-
-        // 手動更新
-        btnRefresh.addEventListener("click", reload);
-        filterSel.addEventListener("change", () => renderTable());
-        sortSel.addEventListener("change", () => renderTable());
-
-        // 自動更新
-        function ensureTimer() {
-          if (autoCb.checked && !timerId) {
-            timerId = setInterval(reload, 60000);
-          } else if (!autoCb.checked && timerId) {
-            clearInterval(timerId);
-            timerId = null;
-          }
-        }
-        autoCb.addEventListener("change", ensureTimer);
-        ensureTimer();
-
-        // 4) クリック処理（委譲）
-        tbody.addEventListener(
-          "click",
-          async (e) => {
-            const btn = e.target.closest("button");
-            if (!btn) return;
-            const tr = btn.closest("tr");
-            const userId = parseInt(tr.dataset.userId, 10);
-            const note = tr.querySelector(".row-note").value.trim();
-            const msg = tr.querySelector(".row-msg");
-            const today = todayYmd();
-            msg.textContent = "処理中…";
-            try {
-              if (btn.classList.contains("js-set")) {
-                const status = btn.getAttribute("data-status");
-                const res = await fetchWithAuth("api/day_status_set.php", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    user_id: userId,
-                    date: today,
-                    status,
-                    note,
-                  }),
-                });
-                if (res && res.ok) {
-                  updateRowButtons(tr, status);
-                  msg.textContent = "保存しました";
-                } else {
-                  msg.textContent = "保存に失敗しました";
-                }
-              } else if (btn.classList.contains("js-clear")) {
-                const res = await fetchWithAuth("api/day_status_clear.php", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ user_id: userId, date: today }),
-                });
-                if (res && res.ok) {
-                  updateRowButtons(tr, null);
-                  msg.textContent = "取消しました";
-                } else {
-                  msg.textContent = "取消に失敗しました";
-                }
+      // 4) クリック処理（委譲）
+      tbody.addEventListener(
+        "click",
+        async (e) => {
+          const btn = e.target.closest("button");
+          if (!btn) return;
+          const tr = btn.closest("tr");
+          const userId = parseInt(tr.dataset.userId, 10);
+          const note = tr.querySelector(".row-note").value.trim();
+          const msg = tr.querySelector(".row-msg");
+          const today = todayYmd();
+          msg.textContent = "処理中…";
+          try {
+            if (btn.classList.contains("js-set")) {
+              const status = btn.getAttribute("data-status");
+              const res = await fetchWithAuth("api/day_status_set.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: userId,
+                  date: today,
+                  status,
+                  note,
+                }),
+              });
+              if (res && res.ok) {
+                updateRowButtons(tr, status);
+                msg.textContent = "保存しました";
+              } else {
+                msg.textContent = "保存に失敗しました";
               }
-            } catch (err) {
-              msg.textContent = "エラーが発生しました";
+            } else if (btn.classList.contains("js-clear")) {
+              const res = await fetchWithAuth("api/day_status_clear.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId, date: today }),
+              });
+              if (res && res.ok) {
+                updateRowButtons(tr, null);
+                msg.textContent = "取消しました";
+              } else {
+                msg.textContent = "取消に失敗しました";
+              }
             }
-          },
-          { passive: true }
+          } catch (err) {
+            msg.textContent = "エラーが発生しました";
+          }
+        },
+        { passive: true }
+      );
+    }
+
+    // アラートトグルの状態管理（localStorage永続化）
+    function getAlertToggles() {
+      try {
+        const saved = JSON.parse(
+          localStorage.getItem("alertsToggles") || "{}"
         );
+        return {
+          past_incomplete: saved.past_incomplete !== false, // default ON
+          missing: saved.missing !== false, // default ON
+          working: !!saved.working, // default OFF
+        };
+      } catch {
+        return { past_incomplete: true, missing: true, working: false };
       }
+    }
+    function setAlertToggles(p) {
+      localStorage.setItem("alertsToggles", JSON.stringify(p));
+    }
 
-      // アラートトグルの状態管理（localStorage永続化）
-      function getAlertToggles() {
-        try {
-          const saved = JSON.parse(
-            localStorage.getItem("alertsToggles") || "{}"
-          );
-          return {
-            past_incomplete: saved.past_incomplete !== false, // default ON
-            missing: saved.missing !== false, // default ON
-            working: !!saved.working, // default OFF
-          };
-        } catch {
-          return { past_incomplete: true, missing: true, working: false };
-        }
+    // アラート期間（3/5/7日）の状態管理
+    function getAlertsDays() {
+      try {
+        const v = parseInt(localStorage.getItem("alertsDays") || "5", 10);
+        return [3, 5, 7].includes(v) ? v : 5;
+      } catch {
+        return 5;
       }
-      function setAlertToggles(p) {
-        localStorage.setItem("alertsToggles", JSON.stringify(p));
-      }
+    }
+    function setAlertsDays(v) {
+      const n = parseInt(v, 10);
+      localStorage.setItem(
+        "alertsDays",
+        String([3, 5, 7].includes(n) ? n : 5)
+      );
+    }
 
-      // アラート期間（3/5/7日）の状態管理
-      function getAlertsDays() {
-        try {
-          const v = parseInt(localStorage.getItem("alertsDays") || "5", 10);
-          return [3, 5, 7].includes(v) ? v : 5;
-        } catch {
-          return 5;
-        }
-      }
-      function setAlertsDays(v) {
-        const n = parseInt(v, 10);
-        localStorage.setItem(
-          "alertsDays",
-          String([3, 5, 7].includes(n) ? n : 5)
-        );
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        // トグル初期化
-        const toggles = document.getElementById("alertsToggles");
-        if (toggles) {
-          const state = getAlertToggles();
-          toggles.querySelectorAll(".toggle-badge").forEach((el) => {
-            const t = el.getAttribute("data-type");
-            const on =
-              t === "past_incomplete"
-                ? state.past_incomplete
-                : t === "missing"
+    document.addEventListener("DOMContentLoaded", () => {
+      // トグル初期化
+      const toggles = document.getElementById("alertsToggles");
+      if (toggles) {
+        const state = getAlertToggles();
+        toggles.querySelectorAll(".toggle-badge").forEach((el) => {
+          const t = el.getAttribute("data-type");
+          const on =
+            t === "past_incomplete"
+              ? state.past_incomplete
+              : t === "missing"
                 ? state.missing
                 : state.working;
-            el.classList.toggle("off", !on);
-          });
-          toggles.addEventListener("click", (e) => {
-            const el = e.target.closest(".toggle-badge");
-            if (!el) return;
-            // 先にUIを反転し、その結果からON/OFFを確定
-            el.classList.toggle("off");
-            const on = !el.classList.contains("off");
-            const t = el.getAttribute("data-type");
-            const st = getAlertToggles();
-            if (t === "past_incomplete") st.past_incomplete = on;
-            else if (t === "missing") st.missing = on;
-            else if (t === "working") st.working = on;
-            setAlertToggles(st);
-            // アラートカードのみ再描画
-            loadAlertsCard();
-          });
-        }
-
-        // 期間セレクタ初期化
-        const sel = document.getElementById("alertsDays");
-        if (sel) {
-          sel.value = String(getAlertsDays());
-          sel.addEventListener("change", () => {
-            setAlertsDays(sel.value);
-            // アラートカードのみ再描画
-            loadAlertsCard();
-          });
-        }
-      });
-
-      function actualStatusLabel(code) {
-        switch (code) {
-          case "no_record":
-            return "未打刻";
-          case "working":
-            return "勤務中";
-          case "on_break":
-            return "休憩中";
-          case "done":
-            return "退勤済み";
-          default:
-            return String(code || "—");
-        }
+          el.classList.toggle("off", !on);
+        });
+        toggles.addEventListener("click", (e) => {
+          const el = e.target.closest(".toggle-badge");
+          if (!el) return;
+          // 先にUIを反転し、その結果からON/OFFを確定
+          el.classList.toggle("off");
+          const on = !el.classList.contains("off");
+          const t = el.getAttribute("data-type");
+          const st = getAlertToggles();
+          if (t === "past_incomplete") st.past_incomplete = on;
+          else if (t === "missing") st.missing = on;
+          else if (t === "working") st.working = on;
+          setAlertToggles(st);
+          // アラートカードのみ再描画
+          loadAlertsCard();
+        });
       }
 
-      function actualStatusLabelWithOV(code, ovCode) {
-        switch (code) {
-          case "no_record":
-            switch (ovCode) {
-              case "ignore":
-                return "無視";
-              case "off_full":
-                return "全休";
-              case "off_am":
-                return "午前休";
-              case "off_pm":
-                return "午後休";
-              default:
-                return "未打刻";
-            }
-          case "working":
-            return "勤務中";
-          case "on_break":
-            return "休憩中";
-          case "done":
-            return "退勤済み";
-          default:
-            return String(code || "—");
-        }
+      // 期間セレクタ初期化
+      const sel = document.getElementById("alertsDays");
+      if (sel) {
+        sel.value = String(getAlertsDays());
+        sel.addEventListener("change", () => {
+          setAlertsDays(sel.value);
+          // アラートカードのみ再描画
+          loadAlertsCard();
+        });
       }
+    });
 
-      function overrideStatusLabel(code) {
-        switch (code) {
-          case "ignore":
-            return "無視";
-          case "off_full":
-            return "全休";
-          case "off_am":
-            return "午前休";
-          case "off_pm":
-            return "午後休";
-          default:
-            return "—";
-        }
+    function actualStatusLabel(code) {
+      switch (code) {
+        case "no_record":
+          return "未打刻";
+        case "working":
+          return "勤務中";
+        case "on_break":
+          return "休憩中";
+        case "done":
+          return "退勤済み";
+        default:
+          return String(code || "—");
       }
+    }
 
-      function badgeclassForActualWithOverride(code, ovCode) {
-        switch (code) {
-          case "working":
-            return "badge-info";
-          case "on_break":
-            return "badge-warn";
-          case "done":
-            return "badge-success";
-          case "no_record":
-            switch (ovCode) {
-              case "ignore":
-                return "badge-info";
-              case "off_full":
-                return "badge-success";
-              case "off_am":
-              case "off_pm":
-              case "no_override":
-                return "badge-warn";
-              default:
-                return "badge-critical";
-            }
-        }
+    function actualStatusLabelWithOV(code, ovCode) {
+      switch (code) {
+        case "no_record":
+          switch (ovCode) {
+            case "ignore":
+              return "無視";
+            case "off_full":
+              return "全休";
+            case "off_am":
+              return "午前休";
+            case "off_pm":
+              return "午後休";
+            default:
+              return "未打刻";
+          }
+        case "working":
+          return "勤務中";
+        case "on_break":
+          return "休憩中";
+        case "done":
+          return "退勤済み";
+        default:
+          return String(code || "—");
       }
+    }
 
-      function badgeClassForActual(code) {
-        switch (code) {
-          case "working":
-            return "badge-info";
-          case "on_break":
-            return "badge-warn";
-          case "done":
-            return "badge-success";
-          case "no_record":
-            return "badge-warn";
-          default:
-            return "badge-info";
-        }
+    function overrideStatusLabel(code) {
+      switch (code) {
+        case "ignore":
+          return "無視";
+        case "off_full":
+          return "全休";
+        case "off_am":
+          return "午前休";
+        case "off_pm":
+          return "午後休";
+        default:
+          return "—";
       }
+    }
 
-      function updateRowButtons(tr, status) {
-        const buttons = tr.querySelectorAll(".row-actions .js-set");
-        buttons.forEach((b) => b.classList.remove("active"));
-        if (status) {
-          const target = tr.querySelector(
-            `.row-actions .js-set[data-status="${CSS.escape(status)}"]`
-          );
-          if (target) target.classList.add("active");
-          tr.dataset.override = status;
-        } else {
-          tr.dataset.override = "";
-        }
+    function badgeclassForActualWithOverride(code, ovCode) {
+      switch (code) {
+        case "working":
+          return "badge-info";
+        case "on_break":
+          return "badge-warn";
+        case "done":
+          return "badge-success";
+        case "no_record":
+          switch (ovCode) {
+            case "ignore":
+              return "badge-info";
+            case "off_full":
+              return "badge-success";
+            case "off_am":
+            case "off_pm":
+            case "no_override":
+              return "badge-warn";
+            default:
+              return "badge-critical";
+          }
       }
+    }
 
-      function todayYmd() {
-        const now = new Date();
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-          now.getDate()
-        )}`;
+    function badgeClassForActual(code) {
+      switch (code) {
+        case "working":
+          return "badge-info";
+        case "on_break":
+          return "badge-warn";
+        case "done":
+          return "badge-success";
+        case "no_record":
+          return "badge-warn";
+        default:
+          return "badge-info";
       }
+    }
 
-      function formatDateMD(dateStr) {
-        // "YYYY-MM-DD" → "MM月DD日(A)"
-        if (!dateStr) return "";
-        const days = ["日", "月", "火", "水", "木", "金", "土"];
-        const parts = dateStr.replace(/-/g, "/").split("/");
-        if (parts.length !== 3) return dateStr;
-        const date = new Date(dateStr);
-        return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日(${
-          days[date.getDay()]
+    function updateRowButtons(tr, status) {
+      const buttons = tr.querySelectorAll(".row-actions .js-set");
+      buttons.forEach((b) => b.classList.remove("active"));
+      if (status) {
+        const target = tr.querySelector(
+          `.row-actions .js-set[data-status="${CSS.escape(status)}"]`
+        );
+        if (target) target.classList.add("active");
+        tr.dataset.override = status;
+      } else {
+        tr.dataset.override = "";
+      }
+    }
+
+    function todayYmd() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+        now.getDate()
+      )}`;
+    }
+
+    function formatDateMD(dateStr) {
+      // "YYYY-MM-DD" → "MM月DD日(A)"
+      if (!dateStr) return "";
+      const days = ["日", "月", "火", "水", "木", "金", "土"];
+      const parts = dateStr.replace(/-/g, "/").split("/");
+      if (parts.length !== 3) return dateStr;
+      const date = new Date(dateStr);
+      return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日(${days[date.getDay()]
         })`;
-      }
+    }
 
-      function escapeHtml(s) {
-        const map = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        };
-        return String(s).replace(/[&<>"']/g, (c) => map[c]);
-      }
+    function escapeHtml(s) {
+      const map = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
+      return String(s).replace(/[&<>"']/g, (c) => map[c]);
+    }
 
-      // 勤怠状態上書きモーダル（休暇/無視設定専用）
-      function showStatusOverrideModal(opts) {
-        // opts: { userId, userName, date, rangeStart, rangeEnd }
-        const existing = document.getElementById("ovrOverlay");
-        if (existing) existing.remove();
-        const overlay = document.createElement("div");
-        overlay.id = "ovrOverlay";
-        overlay.style.position = "fixed";
-        overlay.style.inset = "0";
-        overlay.style.background = "rgba(0,0,0,.35)";
-        overlay.style.zIndex = "9998";
+    // 勤怠状態上書きモーダル（休暇/無視設定専用）
+    function showStatusOverrideModal(opts) {
+      // opts: { userId, userName, date, rangeStart, rangeEnd }
+      const existing = document.getElementById("ovrOverlay");
+      if (existing) existing.remove();
+      const overlay = document.createElement("div");
+      overlay.id = "ovrOverlay";
+      overlay.style.position = "fixed";
+      overlay.style.inset = "0";
+      overlay.style.background = "rgba(0,0,0,.35)";
+      overlay.style.zIndex = "9998";
 
-        const modal = document.createElement("div");
-        modal.setAttribute("role", "dialog");
-        modal.ariaLabel = "上書き設定";
-        modal.style.position = "fixed";
-        modal.style.top = "50%";
-        modal.style.left = "50%";
-        modal.style.transform = "translate(-50%, -50%)";
-        modal.style.background = "#fff";
-        modal.style.borderRadius = "8px";
-        modal.style.boxShadow = "0 6px 32px rgba(0,0,0,.25)";
-        modal.style.padding = "16px 16px 12px 16px";
-        modal.style.minWidth = "280px";
-        modal.style.maxWidth = "92vw";
-        modal.style.zIndex = "9999";
+      const modal = document.createElement("div");
+      modal.setAttribute("role", "dialog");
+      modal.ariaLabel = "上書き設定";
+      modal.style.position = "fixed";
+      modal.style.top = "50%";
+      modal.style.left = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      modal.style.background = "#fff";
+      modal.style.borderRadius = "8px";
+      modal.style.boxShadow = "0 6px 32px rgba(0,0,0,.25)";
+      modal.style.padding = "16px 16px 12px 16px";
+      modal.style.minWidth = "280px";
+      modal.style.maxWidth = "92vw";
+      modal.style.zIndex = "9999";
 
-        const name = escapeHtml(opts.userName || "");
-        const min = opts.rangeStart || "";
-        const max = opts.rangeEnd || "";
-        const defDate =
-          opts.date || max || min || new Date().toISOString().slice(0, 10);
+      const name = escapeHtml(opts.userName || "");
+      const min = opts.rangeStart || "";
+      const max = opts.rangeEnd || "";
+      const defDate =
+        opts.date || max || min || new Date().toISOString().slice(0, 10);
 
-        modal.innerHTML = `
+      modal.innerHTML = `
           <div style="font-weight:bold;color:#1976d2;margin-bottom:8px;">勤務状態の上書き（${name}）</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-                <label>対象日 <input id="ovrDate" type="date" style="font-size: 1.3rem;" value="${defDate}" ${
-          min ? `min="${min}"` : ""
+                <label>対象日 <input id="ovrDate" type="date" style="font-size: 1.3rem;" value="${defDate}" ${min ? `min="${min}"` : ""
         } ${max ? `max="${max}"` : ""}></label>
                 <label>状態
                     <select id="ovrStatus">
@@ -1403,93 +1332,93 @@
           </div>
         `;
 
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) overlay.remove();
-        });
-        document.body.appendChild(overlay);
-        document.body.appendChild(modal);
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+      document.body.appendChild(modal);
 
-        const cancelBtn = modal.querySelector("#ovrCancelBtn");
-        const saveBtn = modal.querySelector("#ovrSaveBtn");
-        const dateEl = modal.querySelector("#ovrDate");
-        const statusEl = modal.querySelector("#ovrStatus");
-        const noteEl = modal.querySelector("#ovrNote");
-        const msgEl = modal.querySelector("#ovrMsg");
+      const cancelBtn = modal.querySelector("#ovrCancelBtn");
+      const saveBtn = modal.querySelector("#ovrSaveBtn");
+      const dateEl = modal.querySelector("#ovrDate");
+      const statusEl = modal.querySelector("#ovrStatus");
+      const noteEl = modal.querySelector("#ovrNote");
+      const msgEl = modal.querySelector("#ovrMsg");
 
-        cancelBtn.onclick = () => {
-          modal.remove();
-          overlay.remove();
-        };
-        saveBtn.onclick = async () => {
-          const date = (dateEl.value || "").trim();
-          const status = statusEl.value;
-          const note = (noteEl.value || "").trim();
-          if (!date) {
-            msgEl.textContent = "対象日を指定してください";
-            return;
-          }
-          saveBtn.disabled = true;
-          msgEl.textContent = "保存中…";
-          try {
-            const res = await fetchWithAuth("api/day_status_set.php", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                user_id: Number(opts.userId),
-                date,
-                status,
-                note,
-              }),
-            });
-            const ok = res && res.ok;
-            if (ok) {
-              msgEl.textContent = "保存しました";
-              // リストを再読み込み（カードのみ）
-              await loadAlertsCard();
-              setTimeout(() => {
-                modal.remove();
-                overlay.remove();
-              }, 250);
-            } else {
-              msgEl.textContent = "保存に失敗しました";
-              saveBtn.disabled = false;
-            }
-          } catch {
-            msgEl.textContent = "エラーが発生しました";
+      cancelBtn.onclick = () => {
+        modal.remove();
+        overlay.remove();
+      };
+      saveBtn.onclick = async () => {
+        const date = (dateEl.value || "").trim();
+        const status = statusEl.value;
+        const note = (noteEl.value || "").trim();
+        if (!date) {
+          msgEl.textContent = "対象日を指定してください";
+          return;
+        }
+        saveBtn.disabled = true;
+        msgEl.textContent = "保存中…";
+        try {
+          const res = await fetchWithAuth("api/day_status_set.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: Number(opts.userId),
+              date,
+              status,
+              note,
+            }),
+          });
+          const ok = res && res.ok;
+          if (ok) {
+            msgEl.textContent = "保存しました";
+            // リストを再読み込み（カードのみ）
+            await loadAlertsCard();
+            setTimeout(() => {
+              modal.remove();
+              overlay.remove();
+            }, 250);
+          } else {
+            msgEl.textContent = "保存に失敗しました";
             saveBtn.disabled = false;
           }
-        };
-      }
+        } catch {
+          msgEl.textContent = "エラーが発生しました";
+          saveBtn.disabled = false;
+        }
+      };
+    }
 
-      // 未打刻通知モーダル（複数日通知専用）
-      function showNotifyMissingModal(opts) {
-        // opts: { userId, userName, missingDates? }
-        const existing = document.getElementById("notifyOverlay");
-        if (existing) existing.remove();
-        const overlay = document.createElement("div");
-        overlay.id = "notifyOverlay";
-        overlay.style.position = "fixed";
-        overlay.style.inset = "0";
-        overlay.style.background = "rgba(0,0,0,.35)";
-        overlay.style.zIndex = "9998";
-        const modal = document.createElement("div");
-        modal.setAttribute("role", "dialog");
-        modal.style.position = "fixed";
-        modal.style.top = "50%";
-        modal.style.left = "50%";
-        modal.style.transform = "translate(-50%, -50%)";
-        modal.style.background = "#fff";
-        modal.style.borderRadius = "8px";
-        modal.style.boxShadow = "0 6px 32px rgba(0,0,0,.25)";
-        modal.style.padding = "14px 16px 12px 16px";
-        modal.style.minWidth = "300px";
-        modal.style.maxWidth = "92vw";
-        modal.style.zIndex = "9999";
-        const name = escapeHtml(opts.userName || "");
-        const missing = Array.isArray(opts.missingDates)
-          ? opts.missingDates
-          : [];
-        modal.innerHTML = `
+    // 未打刻通知モーダル（複数日通知専用）
+    function showNotifyMissingModal(opts) {
+      // opts: { userId, userName, missingDates? }
+      const existing = document.getElementById("notifyOverlay");
+      if (existing) existing.remove();
+      const overlay = document.createElement("div");
+      overlay.id = "notifyOverlay";
+      overlay.style.position = "fixed";
+      overlay.style.inset = "0";
+      overlay.style.background = "rgba(0,0,0,.35)";
+      overlay.style.zIndex = "9998";
+      const modal = document.createElement("div");
+      modal.setAttribute("role", "dialog");
+      modal.style.position = "fixed";
+      modal.style.top = "50%";
+      modal.style.left = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      modal.style.background = "#fff";
+      modal.style.borderRadius = "8px";
+      modal.style.boxShadow = "0 6px 32px rgba(0,0,0,.25)";
+      modal.style.padding = "14px 16px 12px 16px";
+      modal.style.minWidth = "300px";
+      modal.style.maxWidth = "92vw";
+      modal.style.zIndex = "9999";
+      const name = escapeHtml(opts.userName || "");
+      const missing = Array.isArray(opts.missingDates)
+        ? opts.missingDates
+        : [];
+      modal.innerHTML = `
               <div style="font-weight:bold;color:#1976d2;margin-bottom:6px;">勤務記録未入力の通知（${name}）</div>
               <div style="display:flex;flex-direction:column;gap:10px;">
                                 <div class="muted" style="font-size:0.85rem;">対象日を選択し、ユーザーへ入力依頼の通知を送信します。必要に応じてコメント（最大 500 文字）を追加できます。</div>
@@ -1509,219 +1438,220 @@
                 <div id="notifyMsg" class="muted" style="min-height:1.2em;font-size:0.85rem;"></div>
               </div>
             `;
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) {
-            modal.remove();
-            overlay.remove();
-          }
-        });
-        document.body.appendChild(overlay);
-        document.body.appendChild(modal);
-        const datesWrap = modal.querySelector("#notifyDates");
-        const btnAll = modal.querySelector("#notifySelectAll");
-        const btnClr = modal.querySelector("#notifyClearAll");
-        const btnSend = modal.querySelector("#notifySendBtn");
-        const btnCancel = modal.querySelector("#notifyCancelBtn");
-        const msgEl = modal.querySelector("#notifyMsg");
-        const commentEl = modal.querySelector("#notifyComment");
-        const countEl = modal.querySelector("#notifyCommentCount");
-        if (commentEl && countEl) {
-          commentEl.addEventListener("input", () => {
-            const len = commentEl.value.length;
-            countEl.textContent = `${len}/500`;
-          });
-        }
-        // 日付一覧
-        if (datesWrap) {
-          const frag = document.createDocumentFragment();
-          missing.forEach((d) => {
-            const label = document.createElement("label");
-            label.style.display = "inline-flex";
-            label.style.alignItems = "center";
-            label.style.gap = "4px";
-            label.style.padding = "2px 6px";
-            label.style.border = "1px solid #e0e3e7";
-            label.style.borderRadius = "999px";
-            label.style.background = "#fff";
-            const cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.className = "notifyDateCb";
-            cb.value = d;
-            cb.checked = true;
-            const span = document.createElement("span");
-            span.textContent = (function (dateStr) {
-              try {
-                return formatDateMD(dateStr).replace(/\([^\)]*\)/g, "");
-              } catch {
-                return dateStr;
-              }
-            })(d);
-            label.appendChild(cb);
-            label.appendChild(span);
-            frag.appendChild(label);
-          });
-          datesWrap.appendChild(frag);
-        }
-        if (btnAll)
-          btnAll.onclick = () => {
-            modal.querySelectorAll(".notifyDateCb").forEach((el) => {
-              el.checked = true;
-            });
-          };
-        if (btnClr)
-          btnClr.onclick = () => {
-            modal.querySelectorAll(".notifyDateCb").forEach((el) => {
-              el.checked = false;
-            });
-          };
-        btnCancel.onclick = () => {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
           modal.remove();
           overlay.remove();
-        };
-        btnSend.onclick = async () => {
-          const selected = Array.from(modal.querySelectorAll(".notifyDateCb"))
-            .filter((el) => el.checked)
-            .map((el) => String(el.value));
-          if (!selected.length) {
-            msgEl.textContent = "対象日を選択してください";
-            return;
-          }
-          btnSend.disabled = true;
-          msgEl.textContent = `送信中… (0/${selected.length})`;
-          const failed = [];
-          // コメント取得（改行含むテキストを 500 文字に制限）
-          let comment = "";
-          if (commentEl) {
-            comment = (commentEl.value || "").replace(/\r?\n/g, "\n").trim();
-            if (comment.length > 500) comment = comment.slice(0, 500);
-          }
-          try {
-            for (let i = 0; i < selected.length; i++) {
-              const d = selected[i];
-              const res = await fetchWithAuth(
-                "api/attendance_notify_missing.php",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    user_id: Number(opts.userId),
-                    date: d,
-                    comment,
-                  }),
-                }
-              );
-              if (!(res && res.ok)) failed.push(d);
-              msgEl.textContent = `送信中… (${i + 1}/${selected.length})`;
-            }
-            if (!failed.length) {
-              msgEl.textContent = "通知しました";
-              setTimeout(() => {
-                modal.remove();
-                overlay.remove();
-              }, 300);
-            } else {
-              msgEl.textContent = "一部失敗: " + failed.join(", ");
-              btnSend.disabled = false;
-            }
-          } catch (e) {
-            msgEl.textContent = "エラーが発生しました";
-            btnSend.disabled = false;
-          }
-        };
-      }
-
-      document.addEventListener("click", async (e) => {
-        const t = e.target;
-        if (t && t.id === "refreshBtn") {
-          loadDashboard();
-        }
-        if (t && t.id === "refreshPendingBtn") {
-          loadDashboard();
-        }
-        if (t && t.id === "refreshAlertsBtn") {
-          loadAlertsCard();
-        }
-        // アラート行の「⋯（上書き）」
-        if (t && t.classList && t.classList.contains("js-override-alert")) {
-          const btn = t;
-          const userId = Number(btn.getAttribute("data-user-id"));
-          const userName = btn.getAttribute("data-user-name") || "";
-          const date = btn.getAttribute("data-date") || "";
-          const rangeStart = btn.getAttribute("data-range-start") || "";
-          const rangeEnd = btn.getAttribute("data-range-end") || "";
-          showStatusOverrideModal({
-            userId,
-            userName,
-            date,
-            rangeStart,
-            rangeEnd,
-          });
-          return;
-        }
-        // 「通知」ボタン（未打刻複数日通知モーダル）
-        if (t && t.classList && t.classList.contains("js-notify-missing")) {
-          const btn = t;
-          const userId = Number(btn.getAttribute("data-user-id"));
-          const userName = btn.getAttribute("data-user-name") || "";
-          let missingDates = [];
-          try {
-            const md = btn.getAttribute("data-missing-dates") || "";
-            if (md) missingDates = JSON.parse(decodeURIComponent(md));
-          } catch {}
-          showNotifyMissingModal({ userId, userName, missingDates });
-          return;
-        }
-        // 行クリックで管理者の詳細ページを新規タブで開く（承認/却下ボタンやリンククリックは除外）
-        const li = t.closest && t.closest("#pendingList li.clickable");
-        if (li) {
-          if (t.closest("button") || t.closest("a")) {
-            // ボタンやリンク自体の操作は既存動作を優先
-          } else {
-            const reqId =
-              li.getAttribute("data-request-id") || li.dataset.requestId;
-            if (reqId) {
-              window.open(
-                "admin_request.html?id=" + encodeURIComponent(reqId),
-                "_blank"
-              );
-              return;
-            }
-          }
-        }
-        if (
-          t &&
-          t.classList &&
-          (t.classList.contains("js-approve") ||
-            t.classList.contains("js-reject"))
-        ) {
-          const id = parseInt(t.getAttribute("data-id"), 10);
-          const action = t.classList.contains("js-approve")
-            ? "approve"
-            : "reject";
-          if (!id) return;
-          const btn = t;
-          const oldText = btn.textContent;
-          btn.textContent = "処理中…";
-          btn.disabled = true;
-          try {
-            const res = await fetch("api/leave_requests_decide_admin.php", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id, action }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || data.error) throw new Error(data.error || "failed");
-            loadDashboard();
-          } catch (err) {
-            alert(
-              "処理に失敗しました: " +
-                (err && err.message ? err.message : "unknown")
-            );
-            btn.textContent = oldText;
-            btn.disabled = false;
-          }
         }
       });
-    </script>
-  </body>
+      document.body.appendChild(overlay);
+      document.body.appendChild(modal);
+      const datesWrap = modal.querySelector("#notifyDates");
+      const btnAll = modal.querySelector("#notifySelectAll");
+      const btnClr = modal.querySelector("#notifyClearAll");
+      const btnSend = modal.querySelector("#notifySendBtn");
+      const btnCancel = modal.querySelector("#notifyCancelBtn");
+      const msgEl = modal.querySelector("#notifyMsg");
+      const commentEl = modal.querySelector("#notifyComment");
+      const countEl = modal.querySelector("#notifyCommentCount");
+      if (commentEl && countEl) {
+        commentEl.addEventListener("input", () => {
+          const len = commentEl.value.length;
+          countEl.textContent = `${len}/500`;
+        });
+      }
+      // 日付一覧
+      if (datesWrap) {
+        const frag = document.createDocumentFragment();
+        missing.forEach((d) => {
+          const label = document.createElement("label");
+          label.style.display = "inline-flex";
+          label.style.alignItems = "center";
+          label.style.gap = "4px";
+          label.style.padding = "2px 6px";
+          label.style.border = "1px solid #e0e3e7";
+          label.style.borderRadius = "999px";
+          label.style.background = "#fff";
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.className = "notifyDateCb";
+          cb.value = d;
+          cb.checked = true;
+          const span = document.createElement("span");
+          span.textContent = (function (dateStr) {
+            try {
+              return formatDateMD(dateStr).replace(/\([^\)]*\)/g, "");
+            } catch {
+              return dateStr;
+            }
+          })(d);
+          label.appendChild(cb);
+          label.appendChild(span);
+          frag.appendChild(label);
+        });
+        datesWrap.appendChild(frag);
+      }
+      if (btnAll)
+        btnAll.onclick = () => {
+          modal.querySelectorAll(".notifyDateCb").forEach((el) => {
+            el.checked = true;
+          });
+        };
+      if (btnClr)
+        btnClr.onclick = () => {
+          modal.querySelectorAll(".notifyDateCb").forEach((el) => {
+            el.checked = false;
+          });
+        };
+      btnCancel.onclick = () => {
+        modal.remove();
+        overlay.remove();
+      };
+      btnSend.onclick = async () => {
+        const selected = Array.from(modal.querySelectorAll(".notifyDateCb"))
+          .filter((el) => el.checked)
+          .map((el) => String(el.value));
+        if (!selected.length) {
+          msgEl.textContent = "対象日を選択してください";
+          return;
+        }
+        btnSend.disabled = true;
+        msgEl.textContent = `送信中… (0/${selected.length})`;
+        const failed = [];
+        // コメント取得（改行含むテキストを 500 文字に制限）
+        let comment = "";
+        if (commentEl) {
+          comment = (commentEl.value || "").replace(/\r?\n/g, "\n").trim();
+          if (comment.length > 500) comment = comment.slice(0, 500);
+        }
+        try {
+          for (let i = 0; i < selected.length; i++) {
+            const d = selected[i];
+            const res = await fetchWithAuth(
+              "api/attendance_notify_missing.php",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: Number(opts.userId),
+                  date: d,
+                  comment,
+                }),
+              }
+            );
+            if (!(res && res.ok)) failed.push(d);
+            msgEl.textContent = `送信中… (${i + 1}/${selected.length})`;
+          }
+          if (!failed.length) {
+            msgEl.textContent = "通知しました";
+            setTimeout(() => {
+              modal.remove();
+              overlay.remove();
+            }, 300);
+          } else {
+            msgEl.textContent = "一部失敗: " + failed.join(", ");
+            btnSend.disabled = false;
+          }
+        } catch (e) {
+          msgEl.textContent = "エラーが発生しました";
+          btnSend.disabled = false;
+        }
+      };
+    }
+
+    document.addEventListener("click", async (e) => {
+      const t = e.target;
+      if (t && t.id === "refreshBtn") {
+        loadDashboard();
+      }
+      if (t && t.id === "refreshPendingBtn") {
+        loadDashboard();
+      }
+      if (t && t.id === "refreshAlertsBtn") {
+        loadAlertsCard();
+      }
+      // アラート行の「⋯（上書き）」
+      if (t && t.classList && t.classList.contains("js-override-alert")) {
+        const btn = t;
+        const userId = Number(btn.getAttribute("data-user-id"));
+        const userName = btn.getAttribute("data-user-name") || "";
+        const date = btn.getAttribute("data-date") || "";
+        const rangeStart = btn.getAttribute("data-range-start") || "";
+        const rangeEnd = btn.getAttribute("data-range-end") || "";
+        showStatusOverrideModal({
+          userId,
+          userName,
+          date,
+          rangeStart,
+          rangeEnd,
+        });
+        return;
+      }
+      // 「通知」ボタン（未打刻複数日通知モーダル）
+      if (t && t.classList && t.classList.contains("js-notify-missing")) {
+        const btn = t;
+        const userId = Number(btn.getAttribute("data-user-id"));
+        const userName = btn.getAttribute("data-user-name") || "";
+        let missingDates = [];
+        try {
+          const md = btn.getAttribute("data-missing-dates") || "";
+          if (md) missingDates = JSON.parse(decodeURIComponent(md));
+        } catch { }
+        showNotifyMissingModal({ userId, userName, missingDates });
+        return;
+      }
+      // 行クリックで管理者の詳細ページを新規タブで開く（承認/却下ボタンやリンククリックは除外）
+      const li = t.closest && t.closest("#pendingList li.clickable");
+      if (li) {
+        if (t.closest("button") || t.closest("a")) {
+          // ボタンやリンク自体の操作は既存動作を優先
+        } else {
+          const reqId =
+            li.getAttribute("data-request-id") || li.dataset.requestId;
+          if (reqId) {
+            window.open(
+              "admin_request.html?id=" + encodeURIComponent(reqId),
+              "_blank"
+            );
+            return;
+          }
+        }
+      }
+      if (
+        t &&
+        t.classList &&
+        (t.classList.contains("js-approve") ||
+          t.classList.contains("js-reject"))
+      ) {
+        const id = parseInt(t.getAttribute("data-id"), 10);
+        const action = t.classList.contains("js-approve")
+          ? "approve"
+          : "reject";
+        if (!id) return;
+        const btn = t;
+        const oldText = btn.textContent;
+        btn.textContent = "処理中…";
+        btn.disabled = true;
+        try {
+          const res = await fetch("api/leave_requests_decide_admin.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, action }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.error) throw new Error(data.error || "failed");
+          loadDashboard();
+        } catch (err) {
+          alert(
+            "処理に失敗しました: " +
+            (err && err.message ? err.message : "unknown")
+          );
+          btn.textContent = oldText;
+          btn.disabled = false;
+        }
+      }
+    });
+  </script>
+</body>
+
 </html>
