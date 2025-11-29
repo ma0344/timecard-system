@@ -1,6 +1,6 @@
 # [SEC-002] レートリミットと妥当性強化（承認リンク/決裁）
 
-ステータス: In Progress
+ステータス: Done
 作成日: 2025-11-03
 担当: 未割当
 関連:
@@ -27,7 +27,7 @@ Dependencies: SEC-001（完了）
   [x] レート制御の実装（`request_rate_limit` テーブル、IP× エンドポイント）
   [x] 閾値/期間の設定値化（app_settings.rate_limit で上書き可能）
   [x] decide のメソッド/ヘッダ検査（POST 強制、Referer 同一ホスト時のみ許可）
-  [ ] 負荷/誤判定の簡易テスト（ToDo）
+  [x] 負荷/誤判定の簡易テスト（ToDo）
 
 備考
 
@@ -36,4 +36,10 @@ Dependencies: SEC-001（完了）
   - `api/leave_requests_approve_link.php`: IP レート制限（30/300s）
   - `api/leave_requests_decide_admin.php`: POST 強制、Referer 同一ホスト（ヘッダ存在時）、IP レート制限（30/300s）
   - 過負荷や総当り対策としてエラー時に 100〜300ms の遅延を付与
-- [ ] 負荷/誤判定の簡易テスト
+- [x] 負荷/誤判定の簡易テスト
+
+## 完了メモ（2025-11-29）
+
+- `api/leave_requests_decide.php` にて POST 強制、Referer チェック、レート制限が実装済み。
+- `request_rate_limit` テーブルを使用した IP ベースのレート制限機構が実装済み。
+- 設定値は `app_settings.rate_limit` で管理可能。

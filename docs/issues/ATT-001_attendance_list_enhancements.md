@@ -98,15 +98,23 @@
 4. 集計ロジックを effective に準拠（off/ignore 除外）
 5. 小修正（overlay/ラベル）
 
-## タスク（チェックリスト）
+## タスク（チェックリスト・2025-11-29 更新）
 
 - [x] フロント: バッジ表示の実装（ツールチップ含む）
 - [x] フロント: 当日の分類コントロール（self_set/self_clear で更新）
 - [ ] フロント: 欠落日の強調と修正申請ボタン（現状は「＋」で新規追加パネル）
 - [x] フロント: 集計ロジックの見直し（off/ignore 除外）
 - [x] フロント: overlay/ラベルの不具合修正
+- [x] API: 暫定 `day_status_effective_get.php` 実装（後続統合予定）
 - [ ] API: `day_status_get` を effective 応答に対応（暫定 API を後続統合）
 - [x] ドキュメント更新（操作説明と除外ルール）
+
+## 実装メモ（2025-11-29）
+
+- `attendance_list.html` に日ステータスバッジとクイック分類 UI が実装済み
+- `api/day_status_self_set.php` / `api/day_status_self_clear.php` でユーザー自身による区分変更が可能
+- `day_status_effective` ビューとマイグレーション (`2025-11-11_day_status_effective_view.sql`) が実装済み
+- アラート API (`api/attendance_alerts.php`) は effective を参照して全休・無視を除外するロジック実装済み
 
 ### 追加（2025-11-15 追記）
 

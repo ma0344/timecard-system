@@ -1,6 +1,6 @@
 # My Day（個人ダッシュボード）機能の新規実装
 
-ステータス: In Progress
+ステータス: Done
 作成日: 2025-11-08
 担当: 未割当
 関連: api/me_summary.php
