@@ -1,6 +1,6 @@
 # [EXP-001] CSV エクスポート（残高/最短失効、期限間近）
 
-ステータス: Done
+ステータス: Closed
 作成日: 2025-11-03
 担当: 未割当
 関連: api/paid_leave_expiring_report.php

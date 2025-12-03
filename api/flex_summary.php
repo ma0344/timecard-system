@@ -3,6 +3,7 @@
 session_start();
 header('Content-Type: application/json');
 require_once '../db_config.php';
+require_once __DIR__ . '/_lib_worktime.php';
 
 try {
   if (!isset($_SESSION['user_id'])) {
@@ -76,7 +77,21 @@ try {
     }
   }
 
-  $monthInfo = buildMonthSummary($pdo, $userId, $targetMonth, $periodStart, $periodEnd, $legalHoursMap);
+  // 共通ライブラリで集計（有休を含める、全休/ignore除外、半休含める）
+  $monthInfo = aggregate_work_summary(
+    $pdo,
+    $userId,
+    $targetMonth,
+    $periodStart,
+    $periodEnd,
+    $legalHoursMap,
+    [
+      'includePaidLeave' => true,
+      'excludeStatuses' => ['off', 'off_full', 'ignore'],
+      'includeHalfDay' => true,
+      'workdayDefinition' => 'require_in_out',
+    ]
+  );
   $isSettlementMonth = in_array((int)$targetMonth->format('n'), [2, 4, 6, 8, 10, 12], true);
 
   $result = [
@@ -96,7 +111,20 @@ try {
 
   if ($isSettlementMonth) {
     $prevMonth = (clone $targetMonth)->modify('-1 month');
-    $prevInfo = buildMonthSummary($pdo, $userId, $prevMonth, $periodStart, $periodEnd, $legalHoursMap);
+    $prevInfo = aggregate_work_summary(
+      $pdo,
+      $userId,
+      $prevMonth,
+      $periodStart,
+      $periodEnd,
+      $legalHoursMap,
+      [
+        'includePaidLeave' => true,
+        'excludeStatuses' => ['off', 'off_full', 'ignore'],
+        'includeHalfDay' => true,
+        'workdayDefinition' => 'require_in_out',
+      ]
+    );
     $result['two_month'] = [
       'month_labels' => [$prevInfo['label'], $monthInfo['label']],
       'legal_minutes' => $prevInfo['legal_minutes'] + $monthInfo['legal_minutes'],
@@ -122,94 +150,5 @@ try {
   echo json_encode(['error' => 'server error', 'message' => $e->getMessage()]);
 }
 
-function buildMonthSummary(PDO $pdo, int $userId, DateTime $periodEndMonth, int $periodStart, int $periodEnd, array $legalHoursMap): array {
-  $endYear = (int)$periodEndMonth->format('Y');
-  $endMonth = (int)$periodEndMonth->format('n');
-  $prevMonth = (clone $periodEndMonth)->modify('-1 month');
-  $startYear = (int)$prevMonth->format('Y');
-  $startMonth = (int)$prevMonth->format('n');
-
-  $startDay = min($periodStart, flex_days_in_month($startYear, $startMonth));
-  $endDay = min($periodEnd, flex_days_in_month($endYear, $endMonth));
-
-  $periodStartDate = sprintf('%04d-%02d-%02d', $startYear, $startMonth, $startDay);
-  $periodEndDate = sprintf('%04d-%02d-%02d', $endYear, $endMonth, $endDay);
-
-  // 合計勤務分
-  $workMinutes = aggregateWorkedMinutes($pdo, $userId, $periodStartDate, $periodEndDate);
-  $paidLeaveMinutes = aggregatePaidLeaveMinutes($pdo, $userId, $periodStartDate, $periodEndDate);
-
-  $startMonthDays = flex_days_in_month($startYear, $startMonth);
-  $legalHours = $legalHoursMap[$startMonthDays] ?? null;
-  if ($legalHours === null) {
-    // 想定外の日数は最寄りの値を使用（fallback）
-    $legalHours = $legalHoursMap[31];
-  }
-  $legalMinutes = (int)round($legalHours * 60);
-
-  $deltaMinutes = ($workMinutes + $paidLeaveMinutes) - $legalMinutes;
-
-  return [
-    'label' => sprintf('%d年%d月度', $endYear, $endMonth),
-    'period_start' => $periodStartDate,
-    'period_end' => $periodEndDate,
-    'worked_minutes' => $workMinutes,
-    'paid_leave_minutes' => $paidLeaveMinutes,
-    'legal_minutes' => $legalMinutes,
-    'delta_minutes' => $deltaMinutes,
-  ];
-}
-
-function aggregateWorkedMinutes(PDO $pdo, int $userId, string $startDate, string $endDate): int {
-  $sql = "WITH daily AS (
-                SELECT t.user_id,
-                       GREATEST(0,
-                           TIMESTAMPDIFF(MINUTE, t.clock_in, t.clock_out)
-                           - IFNULL(bm.break_minutes, 0)
-                       ) AS minutes
-                FROM timecards t
-                LEFT JOIN (
-                    SELECT timecard_id,
-                           SUM(TIMESTAMPDIFF(MINUTE, break_start, break_end)) AS break_minutes
-                    FROM breaks
-                    GROUP BY timecard_id
-                ) bm ON bm.timecard_id = t.id
-                WHERE t.user_id = :uid
-                  AND t.work_date BETWEEN :start AND :end
-                  AND t.clock_in IS NOT NULL AND t.clock_out IS NOT NULL
-           )
-           SELECT COALESCE(SUM(minutes), 0) AS total_minutes FROM daily";
-
-  $stmt = $pdo->prepare($sql);
-  $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-  $stmt->bindValue(':start', $startDate, PDO::PARAM_STR);
-  $stmt->bindValue(':end', $endDate, PDO::PARAM_STR);
-  $stmt->execute();
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
-  return (int)($row ? $row['total_minutes'] : 0);
-}
-
-function aggregatePaidLeaveMinutes(PDO $pdo, int $userId, string $startDate, string $endDate): int {
-  $sql = "SELECT COALESCE(SUM(total_hours), 0) AS sum_hours
-            FROM paid_leave_use_events
-            WHERE user_id = :uid
-              AND used_date BETWEEN :start AND :end";
-  $stmt = $pdo->prepare($sql);
-  $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-  $stmt->bindValue(':start', $startDate, PDO::PARAM_STR);
-  $stmt->bindValue(':end', $endDate, PDO::PARAM_STR);
-  $stmt->execute();
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
-  $hours = $row ? (float)$row['sum_hours'] : 0.0;
-  return (int)round($hours * 60);
-}
-
-function flex_days_in_month(int $year, int $month): int {
-  $year = max(1, $year);
-  $month = (($month - 1) % 12) + 1;
-  $dt = DateTime::createFromFormat('!Y-n-j', sprintf('%04d-%d-1', $year, $month));
-  if ($dt instanceof DateTime) {
-    return (int)$dt->format('t');
-  }
-  return 30;
-}
+// 以下、旧個別ロジック（buildMonthSummary/aggregateWorkedMinutes 等）は
+// 共通ライブラリへ移行済みのため削除しました。

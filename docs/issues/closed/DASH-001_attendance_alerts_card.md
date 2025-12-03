@@ -1,6 +1,6 @@
 # [DASH-001] 打刻アラート（カード実装）
 
-ステータス: Done
+ステータス: Closed
 作成日: 2025-11-03
 担当: 未割当
 関連: api/attendance_alerts.php

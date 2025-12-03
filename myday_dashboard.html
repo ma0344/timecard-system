@@ -43,22 +43,6 @@
     }
 
     /* ハンバーガー（punch.htmlから継承） */
-    .notif-badge {
-      display: none;
-      position: absolute;
-      top: 4px;
-      right: 2px;
-      background: var(--danger);
-      color: #fff;
-      min-width: 18px;
-      height: 18px;
-      padding: 0;
-      border-radius: 9px;
-      font-size: 12px;
-      line-height: 18px;
-      text-align: center;
-    }
-
     .alert-notification-badge {
       position: unset;
       align-self: center;
@@ -345,19 +329,6 @@
       color: var(--accent);
     }
 
-    .expand-toggle {
-      background: transparent;
-      color: var(--accent);
-      border: none;
-      font-size: 1.5rem;
-      font-weight: bolder;
-      cursor: pointer;
-    }
-
-    .expand-toggle:active {
-      transform: scale(.96);
-    }
-
     .timeline-body {
       margin-top: 8px;
     }
@@ -460,6 +431,13 @@
       gap: 12px;
     }
 
+    .flex-card-header-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
     .flex-card-title {
       font-weight: 600;
       font-size: 1.05rem;
@@ -472,7 +450,7 @@
     }
 
     .flex-card-body {
-      display: flex;
+      display: none;
       flex-direction: column;
       gap: 6px;
     }
@@ -490,6 +468,14 @@
       line-height: 1.4;
     }
 
+    .flex-detail-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #607d8b;
+    }
+
     .flex-delta {
       font-weight: 600;
     }
@@ -504,71 +490,6 @@
 
     .flex-delta.neutral {
       color: #455a64;
-    }
-
-    /* メニュー（継承） */
-    .menu-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .25);
-      display: none;
-      z-index: 9998;
-    }
-
-    .menu-drawer {
-      position: fixed;
-      top: 0;
-      right: 0;
-      height: 100vh;
-      width: 78vw;
-      max-width: 320px;
-      background: #fff;
-      box-shadow: -2px 0 16px rgba(0, 0, 0, .15);
-      transform: translateX(100%);
-      transition: transform .2s ease;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .menu-drawer.open {
-      transform: translateX(0);
-    }
-
-    .menu-header {
-      padding: 1rem;
-      font-weight: bold;
-      color: var(--accent);
-      border-bottom: 1px solid #eee;
-    }
-
-    .menu-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .menu-list li {
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .menu-list a,
-    .menu-list button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: transparent;
-      border: none;
-      padding: 0.9rem 1rem;
-      font-size: 1rem;
-      color: #333;
-      cursor: pointer;
-    }
-
-    .menu-list div:hover,
-    .menu-list a:hover,
-    .menu-list button:hover {
-      background: #f7f9fc;
     }
 
     /* 高さチューニング：主要アクションを 50〜75% 帯に寄せる */
@@ -622,21 +543,51 @@
       <div id="timelineBody" class="timeline-body" style="display:none;" aria-live="polite"></div>
     </section>
     <!-- フレックス清算サマリ（常勤のみ） -->
-    <section id="flexCard" class="card flex-card" aria-live="polite" aria-label="フレックス清算状況">
-      <div class="flex-card-header">
+    <section id="flexCard" class="card flex-card" aria-expanded="false" aria-live="polite" aria-label="フレックス清算状況">
+      <div class="flex-card-header" id="flexHeader">
         <div class="flex-card-title">フレックス</div>
-        <span id="flexMonthLabel" class="flex-card-sub"></span>
+        <div class="flex-card-header-sub">
+          <span id="flexMonthLabel" style="font-size: 0.8rem;"></span>
+          <button id="flexToggle" class="expand-toggle" aria-controls="flexBody" aria-expanded="false">＞</button>
+        </div>
       </div>
-      <div class="flex-card-body">
-        <div class="flex-line">
+      <div id="flexBody" class="flex-card-body" aria-live="polite">
+        <div id="flexCurrent" class="flex-line">
           <span>今月</span>
           <span id="flexCurrentDelta" class="flex-delta neutral">±0:00</span>
         </div>
+        <div id="flexDetail" class="flex-detail">
+          <div class="flex-detail-line">
+            <span id="flexPeriodLabel">期間</span>
+            <span id="flexPeriod">2025年1月16日～2025年2月15日</span>
+          </div>
+          <div class="flex-detail-line">
+            <span id="flexWorkedMinutesLabel">実働 / 所定</span>
+            <span id="flexWorkedMinutes">0:00 / 0:00</span>
+          </div>
+          <div class="flex-detail-line">
+            <span id="flexPaidLeaveMinutesLabel">有給</span>
+            <span id="flexPaidLeaveMinutes">0:00</span>
+          </div>
+        </div>
         <div id="flexTwoMonth" class="flex-line" style="display:none;">
-          <span>清算2ヶ月</span>
+          <span>フレックス算定</span>
           <span id="flexTwoMonthDelta" class="flex-delta neutral">±0:00</span>
         </div>
-        <div id="flexDetail" class="flex-detail"></div>
+        <div id="flexDetail-TwoMonth" class="flex-detail">
+          <div class="flex-detail-line">
+            <span id="flexSettlementMonthsLabel">算定期間</span>
+            <span id="flexSettlementMonths">2025年1月度/2025年2月度</span>
+          </div>
+          <div class="flex-detail-line">
+            <span id="flexTwoMonthWorkedMinutesLabel">実働 / 所定</span>
+            <span id="flexTwoMonthWorkedMinutes">0:00 / 0:00</span>
+          </div>
+          <div class="flex-detail-line">
+            <span id="flexTwoMonthPaidLeaveMinutesLabel">有給</span>
+            <span id="flexTwoMonthPaidLeaveMinutes">0:00</span>
+          </div>
+        </div>
       </div>
     </section>
     <div id="alertStrip" class="alert-strip" aria-live="polite"></div>
@@ -827,22 +778,27 @@
         } else {
           flexTwoMonthRow.style.display = 'none';
         }
-        const detailLines = [
-          `所定 ${minutesToHM(data.legal_minutes)}`,
-          `実働 ${minutesToHM(data.worked_minutes)}`,
-          `有給 ${minutesToHM(data.paid_leave_minutes)}`,
-          `期間 ${formatPeriodRange(data.period)}`
-        ];
+        const flexWorkedMinutes = document.getElementById('flexWorkedMinutes');
+        const flexPaidLeaveMinutes = document.getElementById('flexPaidLeaveMinutes');
+        const flexPeriod = document.getElementById('flexPeriod');
+        const flexSettlementMonths = document.getElementById('flexSettlementMonths');
+        const flexTwoMonthWorkedMinutes = document.getElementById('flexTwoMonthWorkedMinutes');
+        const flexTwoMonthPaidLeaveMinutes = document.getElementById('flexTwoMonthPaidLeaveMinutes');
+        const flexRounding = document.getElementById('flexRounding');
+        flexWorkedMinutes.textContent = ` ${minutesToHM(data.worked_minutes)} / ${minutesToHM(data.legal_minutes)}`;
+        flexPaidLeaveMinutes.textContent = minutesToHM(data.paid_leave_minutes);
+        flexPeriod.textContent = formatPeriodRange(data.period);
+        var labels = ''
         if (data.is_settlement_month && data.two_month) {
-          const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
-          if (labels) detailLines.push(`清算対象 ${labels}`);
-          detailLines.push(`2ヶ月所定 ${minutesToHM(data.two_month.legal_minutes)}`);
-          detailLines.push(`2ヶ月実働 ${minutesToHM(data.two_month.worked_minutes)}`);
-          detailLines.push(`2ヶ月有給 ${minutesToHM(data.two_month.paid_leave_minutes)}`);
+          labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
+          flexSettlementMonths.textContent = labels;
+          flexTwoMonthWorkedMinutes.textContent = ` ${minutesToHM(data.two_month.worked_minutes)} / ${minutesToHM(data.two_month.legal_minutes)}`;
+          flexTwoMonthPaidLeaveMinutes.textContent = minutesToHM(data.two_month.paid_leave_minutes);
+        } else {
+          flexSettlementMonths.textContent = '';
+          flexTwoMonthWorkedMinutes.textContent = '';
+          flexTwoMonthPaidLeaveMinutes.textContent = '';
         }
-        const roundingInfo = describeRounding(data.display);
-        if (roundingInfo) detailLines.push(`丸め ${roundingInfo}`);
-        flexDetail.innerHTML = detailLines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
       } catch (e) {
         flexCard.style.display = 'none';
       }
@@ -1351,6 +1307,31 @@
         refreshTimeline();
       }
     }
+
+    // フレックス開閉
+    const flexCardExpand = document.getElementById('flexCard');
+    const flexBody = document.getElementById('flexBody');
+    const flexToggle = document.getElementById('flexToggle');
+    const flexHeader = document.getElementById('flexHeader');
+    flexHeader.addEventListener('click', () => toggleFlex());
+    flexToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleFlex(); });
+
+    function toggleFlex() {
+      const expanded = flexCardExpand.getAttribute('aria-expanded') === 'true';
+      if (expanded) {
+        flexCardExpand.setAttribute('aria-expanded', 'false');
+        flexToggle.setAttribute('aria-expanded', 'false');
+        flexToggle.textContent = '＞';
+        flexBody.style.display = 'none';
+      } else {
+        flexCardExpand.setAttribute('aria-expanded', 'true');
+        flexToggle.setAttribute('aria-expanded', 'true');
+        flexToggle.textContent = '∨';
+        flexBody.style.display = 'block';
+        refreshFlexSummary();
+      }
+    }
+
     // 通知プレビュー開閉
     const notifCard = document.getElementById('notifPreviewCard');
     const notifHeader = document.getElementById('notifCardHeader');
