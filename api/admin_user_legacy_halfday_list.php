@@ -1,4 +1,11 @@
 <?php
+/*
+ * 目的: 旧制度の半休設定一覧（ユーザー別）を取得します。
+ * 入力: 期間やフィルタ（任意）
+ * 出力: 半休設定の一覧
+ */
+?>
+<?php
 // api/admin_user_legacy_halfday_list.php
 // パートユーザーで半休(am_off/pm_off) が存在するユーザーを期間内で検知して一覧化
 session_start();
@@ -7,18 +14,18 @@ require_once '../db_config.php';
 
 // 権限チェック
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'not logged in']);
-    exit;
+  http_response_code(401);
+  echo json_encode(['error' => 'not logged in']);
+  exit;
 }
 $uid = intval($_SESSION['user_id']);
 $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
 $stmt->execute([$uid]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'forbidden']);
-    exit;
+  http_response_code(403);
+  echo json_encode(['error' => 'forbidden']);
+  exit;
 }
 
 // 期間
@@ -27,19 +34,19 @@ $end   = isset($_GET['end'])   ? $_GET['end']   : null;
 
 // 日付バリデーション
 $validDate = function ($s) {
-    return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', $s);
+  return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', $s);
 };
 if (!$start || !$validDate($start)) {
-    // 既定: 今日から遡って 180 日
-    $end = $end && $validDate($end) ? $end : date('Y-m-d');
-    $tsEnd = strtotime($end);
-    $start = date('Y-m-d', strtotime('-180 days', $tsEnd));
+  // 既定: 今日から遡って 180 日
+  $end = $end && $validDate($end) ? $end : date('Y-m-d');
+  $tsEnd = strtotime($end);
+  $start = date('Y-m-d', strtotime('-180 days', $tsEnd));
 } else {
-    $end = $end && $validDate($end) ? $end : date('Y-m-d');
+  $end = $end && $validDate($end) ? $end : date('Y-m-d');
 }
 
 try {
-    $sql = "SELECT u.id, u.name, COALESCE(d.full_time,1) AS full_time,
+  $sql = "SELECT u.id, u.name, COALESCE(d.full_time,1) AS full_time,
                    MIN(e.date) AS first_date, MAX(e.date) AS last_date,
                    COUNT(*) AS half_count
             FROM day_status_effective e
@@ -50,11 +57,11 @@ try {
               AND e.date BETWEEN ? AND ?
             GROUP BY u.id, u.name, COALESCE(d.full_time,1)
             ORDER BY half_count DESC, u.id";
-    $st = $pdo->prepare($sql);
-    $st->execute([$start, $end]);
-    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode(['start' => $start, 'end' => $end, 'items' => $rows]);
+  $st = $pdo->prepare($sql);
+  $st->execute([$start, $end]);
+  $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+  echo json_encode(['start' => $start, 'end' => $end, 'items' => $rows]);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'server error']);
+  http_response_code(500);
+  echo json_encode(['error' => 'server error']);
 }

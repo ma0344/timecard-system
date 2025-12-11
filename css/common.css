@@ -13,6 +13,7 @@
   /* 72px をベースに端末高さに応じて自動スケール */
   --action-btn-h: clamp(56px, 7.2dvh, 80px);
 }
+
 .notif-badge {
   display: none;
   position: absolute;
@@ -210,6 +211,7 @@
   font-size: 1.5rem;
   font-weight: bolder;
   cursor: pointer;
+  margin-top: -2px;
 }
 
 .expand-toggle:active {

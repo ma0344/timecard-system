@@ -71,6 +71,11 @@
     - `attendance_list.html` に日ステータスバッジとクイック分類 UI 実装済み
     - `api/day_status_self_set.php` / `api/day_status_self_clear.php` で本人による区分変更可能
     - アラート API は effective を参照して全休・無視を除外するロジック実装済み
+  - 勤務時間算定の一元化（導入）
+    - 共通ライブラリ `api/_lib_worktime.php` を導入（休憩控除・有休・除外ステータス・期間生成）
+    - ビュー必須: `day_status_effective`（`off_full→off` 正規化前提）
+    - 単位整合: API は分（minutes）返却、丸めは UI 側適用
+    - 置換済み: `flex_summary.php`, `attendance_avg.php`, `attendance_alerts.php`, `my_alerts.php`
 
 - 進行中/保留（次段）
 
@@ -195,6 +200,9 @@
 - 予定表/シフト導入（所定休日・シフト・祝日カレンダー）
   - 目的: 「未打刻」の誤検知を低減し、勤務不要日/公休/休暇の区別を厳密化。
   - 連動: アラート・ダッシュボード・勤怠入力・集計に反映。
+- 勤務時間算定の拡張
+  - `compute_daily_stats(...)` 追加で日別の就業分/休憩分/ステータスを返却し、分析系/CSV/帳票を統一
+  - サーバ丸め（分 → 丸め単位）をオプション化（既定 OFF）し、帳票用途に対応
 - PDF 帳票の種類追加（勤務表、年間有休台帳など）
 - 申請の多段承認/代理申請
 - 一覧の仮想スクロール/ページング、サーバサイド検索

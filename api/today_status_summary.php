@@ -1,4 +1,18 @@
 <?php
+/*
+ * 目的: 本日のステータスサマリ（出勤/休憩/退勤など）を返します。
+ * 入力: ユーザー識別（セッション/トークン）
+ * 出力: サマリ情報（状態、合計時間、警告等）
+ */
+?>
+<?php
+/*
+ * 目的: 本日のステータスサマリ（勤務中・休憩中・退勤済み等）を返します。
+ * 入力: ユーザー（セッション）
+ * 出力: ステータスと補助情報
+ */
+?>
+<?php
 // api/today_status_summary.php
 // 管理者向け: 本日の全ユーザーの実績ステータスを要約して返す
 // status: no_record | working | on_break | done
@@ -9,25 +23,25 @@ require_once '../db_config.php';
 
 // Admin check
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'not logged in']);
-    exit;
+  http_response_code(401);
+  echo json_encode(['error' => 'not logged in']);
+  exit;
 }
 $adminId = $_SESSION['user_id'];
 $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
 $stmt->execute([$adminId]);
 $me = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$me || $me['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'forbidden']);
-    exit;
+  http_response_code(403);
+  echo json_encode(['error' => 'forbidden']);
+  exit;
 }
 
 try {
-    // 可視ユーザーのみ対象
-    // timecards: 今日の日付のみ結合
-    // breaks: 休憩中判定のため、break_end が NULL のものが存在するか
-    $sql = "
+  // 可視ユーザーのみ対象
+  // timecards: 今日の日付のみ結合
+  // breaks: 休憩中判定のため、break_end が NULL のものが存在するか
+  $sql = "
         SELECT
             u.id AS user_id,
             u.name AS name,
@@ -45,37 +59,37 @@ try {
         WHERE u.visible = 1
         ORDER BY u.id
     ";
-    $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+  $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
-    $items = [];
-    foreach ($rows as $r) {
+  $items = [];
+  foreach ($rows as $r) {
+    $status = 'no_record';
+    if (!is_null($r['timecard_id'])) {
+      $ci = $r['clock_in'];
+      $co = $r['clock_out'];
+      $onBreakSince = $r['on_break_since'];
+      if (!empty($co)) {
+        $status = 'done';
+      } else if (!empty($onBreakSince)) {
+        $status = 'on_break';
+      } else if (!empty($ci) && empty($co)) {
+        $status = 'working';
+      } else {
+        // timecardはあるが入退勤が空の場合
         $status = 'no_record';
-        if (!is_null($r['timecard_id'])) {
-            $ci = $r['clock_in'];
-            $co = $r['clock_out'];
-            $onBreakSince = $r['on_break_since'];
-            if (!empty($co)) {
-                $status = 'done';
-            } else if (!empty($onBreakSince)) {
-                $status = 'on_break';
-            } else if (!empty($ci) && empty($co)) {
-                $status = 'working';
-            } else {
-                // timecardはあるが入退勤が空の場合
-                $status = 'no_record';
-            }
-        }
-        $items[] = [
-            'user_id' => (int)$r['user_id'],
-            'name' => $r['name'],
-            'status' => $status,
-            'clock_in' => $r['clock_in'],
-            'clock_out' => $r['clock_out'],
-        ];
+      }
     }
+    $items[] = [
+      'user_id' => (int)$r['user_id'],
+      'name' => $r['name'],
+      'status' => $status,
+      'clock_in' => $r['clock_in'],
+      'clock_out' => $r['clock_out'],
+    ];
+  }
 
-    echo json_encode(['ok' => true, 'items' => $items]);
+  echo json_encode(['ok' => true, 'items' => $items]);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'server error']);
+  http_response_code(500);
+  echo json_encode(['error' => 'server error']);
 }

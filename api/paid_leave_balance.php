@@ -1,13 +1,20 @@
 <?php
+/*
+ * 目的: 有給残高の取得（付与・消化の集計結果）を返します。
+ * 入力: user_id（セッション）
+ * 出力: 付与・消化・残高の分数
+ */
+?>
+<?php
 // api/paid_leave_balance.php
 session_start();
 header('Content-Type: application/json');
 require_once '../db_config.php';
 
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'not logged in']);
-    exit;
+  http_response_code(401);
+  echo json_encode(['error' => 'not logged in']);
+  exit;
 }
 
 // 管理者のみ（現状は管理UIからの利用想定）
@@ -16,16 +23,16 @@ $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
 $stmt->execute([$adminId]);
 $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$admin || $admin['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'forbidden']);
-    exit;
+  http_response_code(403);
+  echo json_encode(['error' => 'forbidden']);
+  exit;
 }
 
 $targetId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
 if (!$targetId) {
-    http_response_code(400);
-    echo json_encode(['error' => 'user_id required']);
-    exit;
+  http_response_code(400);
+  echo json_encode(['error' => 'user_id required']);
+  exit;
 }
 
 $stmt = $pdo->prepare('SELECT IFNULL(SUM(grant_hours),0) AS total FROM paid_leaves WHERE user_id = ?');
@@ -49,10 +56,10 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $balance = $row ? (float)$row['balance_hours'] : ($grantedActive - $usedTotal);
 
 echo json_encode([
-    'user_id' => $targetId,
-    'granted_total_hours' => $grantedTotal,
-    'granted_active_hours' => $grantedActive,
-    'used_total_hours' => $usedTotal,
-    'balance_hours' => $balance,
-    'as_of' => date('Y-m-d'),
+  'user_id' => $targetId,
+  'granted_total_hours' => $grantedTotal,
+  'granted_active_hours' => $grantedActive,
+  'used_total_hours' => $usedTotal,
+  'balance_hours' => $balance,
+  'as_of' => date('Y-m-d'),
 ]);

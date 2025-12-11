@@ -38,22 +38,27 @@ function compute_work_minutes(PDO $pdo, int $userId, string $startDate, string $
 
   // day_status_effective で除外（半休は集合に含めない）
   $placeholders = implode(',', array_fill(0, count($excludeStatuses), '?'));
-  $sql = "WITH breaks_sum AS (
-                SELECT timecard_id, SUM(TIMESTAMPDIFF(MINUTE, break_start, break_end)) AS break_minutes
-                FROM breaks
-                GROUP BY timecard_id
+  $sql = "WITH scoped_timecards AS (
+                SELECT id, user_id, work_date, clock_in, clock_out
+                FROM timecards
+                WHERE user_id = ?
+                  AND work_date BETWEEN ? AND ?
+                  " . ($requireInOut ? "AND clock_in IS NOT NULL AND clock_out IS NOT NULL" : '') . "
+            ),
+            breaks_sum AS (
+                SELECT b.timecard_id, SUM(TIMESTAMPDIFF(MINUTE, b.break_start, b.break_end)) AS break_minutes
+                FROM breaks b
+                INNER JOIN scoped_timecards st ON st.id = b.timecard_id
+                GROUP BY b.timecard_id
             ),
             base AS (
-                SELECT t.id, t.user_id, t.work_date,
+                SELECT st.id, st.user_id, st.work_date,
                        GREATEST(0,
-                           TIMESTAMPDIFF(MINUTE, t.clock_in, t.clock_out)
+                           TIMESTAMPDIFF(MINUTE, st.clock_in, st.clock_out)
                            - IFNULL(b.break_minutes, 0)
                        ) AS minutes
-                FROM timecards t
-                LEFT JOIN breaks_sum b ON b.timecard_id = t.id
-                WHERE t.user_id = ?
-                  AND t.work_date BETWEEN ? AND ?
-                  " . ($requireInOut ? "AND t.clock_in IS NOT NULL AND t.clock_out IS NOT NULL" : '') . "
+                FROM scoped_timecards st
+                LEFT JOIN breaks_sum b ON b.timecard_id = st.id
             )
             SELECT COALESCE(SUM(b.minutes), 0) AS total_minutes
             FROM base b
@@ -64,6 +69,7 @@ function compute_work_minutes(PDO $pdo, int $userId, string $startDate, string $
 
   $stmt = $pdo->prepare($sql);
   $paramIdx = 1;
+  // scoped_timecards CTE のバインド
   $stmt->bindValue($paramIdx++, $userId, PDO::PARAM_INT);
   $stmt->bindValue($paramIdx++, $startDate, PDO::PARAM_STR);
   $stmt->bindValue($paramIdx++, $endDate, PDO::PARAM_STR);

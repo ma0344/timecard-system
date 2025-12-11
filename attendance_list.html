@@ -81,24 +81,22 @@
       gap: 0.7em;
     }
 
-    .listLabelBox {
-      border-bottom: 1px solid #e0e0e0;
-      padding: 0 1rem;
-      margin-bottom: 0.3em;
+    #listLabelItem {
+      position: sticky;
+      top: 2.1rem;
+      flex-direction: row;
+      align-items: center;
+      padding: 0em 0.2em 0.2em 0em;
+      margin: -1px 0 4px 0;
       background: #ffffff;
     }
 
-    @media (max-width: 600px) {
-      .listLabelBox {
-        padding: 0 0.2em;
-      }
-    }
-
-    #listLabel {
+    #listLabelBox {
       display: flex;
       flex-direction: row;
       align-items: center;
-      padding: 0.5em 0.5em 0em 0.5em;
+      width: 100%;
+      padding: 0em 0em 0em 0em;
     }
 
     .fixed-footer {
@@ -109,7 +107,6 @@
       z-index: 100;
       background: #fff;
       padding: 0 0 0 0;
-      display: block;
       justify-content: space-between;
       align-items: center;
     }
@@ -153,7 +150,6 @@
 
     #statsBox {
       display: grid;
-      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
       grid-template-columns: 1fr;
       grid-template-rows: 1fr 1fr;
       row-gap: 10px;
@@ -184,25 +180,26 @@
       display: flex;
       align-items: center;
       margin: 0.2em 1rem 0.2em 0rem;
-      padding: 0em 1em;
+      padding: 0em 0em;
       color: #0d47a1;
     }
 
     .flex-summary-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 5px;
     }
 
     .flex-summary-header-sub {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 5px;
     }
 
     .flex-summary-title {
-      font-weight: 600;
+      font-weight: bold;
+      font-size: 1.3rem;
+      color: var(--accent)
     }
 
     .flex-summary-sub {
@@ -227,6 +224,7 @@
 
     .flex-summary-detail {
       font-size: 0.8rem;
+      margin: 0.2em 1.5rem 0.2em 1.5rem;
       color: #455a64;
       line-height: 1.4;
     }
@@ -279,7 +277,7 @@
       box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
       padding: 0;
       height: 100%;
-      display: contents;
+      display: flex;
       flex-direction: column;
     }
 
@@ -369,7 +367,7 @@
       border-left: none;
       border-right: none;
       padding: 4px 10px;
-      margin: 0 0 4px 0;
+      margin: 0 0 0px 0;
       display: flex;
       align-items: center;
       letter-spacing: .5px;
@@ -846,10 +844,36 @@
           </button>
         </div>
       </div>
+      <div id="statsBox">
+        <div class="statsBoxLabel">
+          <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
+          <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">勤務時間</span>
+          <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超勤時間</span>
+          <span id="paidLeaveMinutesLabel" style="grid-row: 1; grid-column: 4;">有給時間</span>
+          <span id="missingCountLabel" style="grid-row: 1; grid-column: 5; display:none;">未打刻</span>
+        </div>
+        <div class="statsBoxValue">
+          <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
+          <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
+          <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
+          <span id="paidLeaveMinutesValue" style="grid-row: 2; grid-column: 4;"></span>
+          <span id="missingCountValue" style="grid-row: 2; grid-column: 5;display:none;"></span>
+        </div>
+      </div>
+      <div id="flexDetail" class="flex-summary-detail">
+        <div class="flex-summary-line">
+          <span id="flexWorkedMinutesLabel">実働 / 所定</span>
+          <span id="flexWorkedMinutes">0:00 / 0:00</span>
+        </div>
+        <div class="flex-summary-line">
+          <span id="flexPaidLeaveMinutesLabel">有給</span>
+          <span id="flexPaidLeaveMinutes">0:00</span>
+        </div>
+      </div>
       <section id="flexSummaryBox" class="flex-summary" aria-expanded="false" aria-live="polite">
         <div class="flex-summary-header" id="flexHeader">
-          <div class="flex-summary-title">フレックス</div>
           <button id="flexToggle" class="expand-toggle" aria-controls="flexBody" aria-expanded="false">＞</button>
+          <span class="flex-summary-title">フレックス</span>
         </div>
         <div id="flexBody" class="flex-summary-body" aria-live="polite">
           <div id="flexCurrent" class="flex-summary-line">
@@ -861,20 +885,12 @@
               <span id="flexPeriodLabel">期間</span>
               <span id="flexPeriod">2025年1月16日～2025年2月15日</span>
             </div>
-            <div class="flex-summary-line">
-              <span id="flexWorkedMinutesLabel">実働 / 所定</span>
-              <span id="flexWorkedMinutes">0:00 / 0:00</span>
-            </div>
-            <div class="flex-summary-line">
-              <span id="flexPaidLeaveMinutesLabel">有給</span>
-              <span id="flexPaidLeaveMinutes">0:00</span>
-            </div>
           </div>
           <div id="flexTwoMonth" class="flex-summary-line" style="display:none;">
             <span>フレックス算定</span>
             <span id="flexTwoMonthDelta" class="flex-delta neutral">±0:00</span>
           </div>
-          <div id="flexDetail-TwoMonth" class="flex-summary-detail">
+          <div id="flexDetail-TwoMonth" class="flex-summary-detail" style="display:none;">
             <div class="flex-summary-line">
               <span id="flexSettlementMonthsLabel">算定期間</span>
               <span id="flexSettlementMonths">2025年1月度/2025年2月度</span>
@@ -890,51 +906,14 @@
           </div>
         </div>
       </section>
-      <div id="header-btns" class="header-btns" style="display:none;"></div>
-      <div id="statsBox">
-        <div class="statsBoxLabel">
-          <span id="workDaysLabel" style="grid-row: 1; grid-column: 1;">出勤日数</span>
-          <span id="totalWorkHoursLabel" style="grid-row: 1; grid-column: 2;">勤務時間</span>
-          <span id="totalOvertimeHoursLabel" style="grid-row: 1; grid-column: 3;">超勤時間</span>
-          <span id="missingCountLabel" style="grid-row: 1; grid-column: 4;">未打刻</span>
-        </div>
-        <div class="statsBoxValue">
-          <span id="workDaysValue" style="grid-row: 2; grid-column: 1;"></span>
-          <span id="totalWorkHoursValue" style="grid-row: 2; grid-column: 2;"></span>
-          <span id="totalOvertimeHoursValue" style="grid-row: 2; grid-column: 3;"></span>
-          <span id="missingCountValue" style="grid-row: 2; grid-column: 4;"></span>
-        </div>
-      </div>
-      <div class="listLabelBox">
-        <div class="toggle-area" id="toggleArea">
-          <label for="listToggles">表示切替:</label>
-          <div id="listToggles">
-            <button type="button" class="toggle-btn" data-type="work">勤務</button>
-            <button type="button" class="toggle-btn" data-type="off">全休</button>
-            <button type="button" class="toggle-btn" data-type="paid">有給</button>
-            <button type="button" class="toggle-btn" data-type="ignore">除外</button>
-            <button type="button" class="toggle-btn" data-type="missing">未</button>
-          </div>
-        </div>
-        <div id="listLabel">
-          <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
-          <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
-            <div class="record-col">
-              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
-            </div>
-            <div class="record-col">
-              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
-            </div>
-            <div class="record-col">
-              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
-            </div>
-            <div class="record-col">
-              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">労働</span>
-            </div>
-            <div class="record-col">
-              <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
-            </div>
-          </div>
+      <div class="toggle-area" id="toggleArea">
+        <label for="listToggles">表示切替:</label>
+        <div id="listToggles">
+          <button type="button" class="toggle-btn" data-type="work">勤務</button>
+          <button type="button" class="toggle-btn" data-type="off">全休</button>
+          <button type="button" class="toggle-btn" data-type="paid">有給</button>
+          <button type="button" class="toggle-btn" data-type="ignore">除外</button>
+          <button type="button" class="toggle-btn" data-type="missing">未</button>
         </div>
       </div>
     </div>
@@ -943,14 +922,14 @@
         <!-- 勤務記録行がここに動的に挿入されます -->
       </ul>
     </div>
-  </div>
-  <div id="overlay" class="overlay" style="display:none;"></div>
-  <div class="fixed-footer">
-    <div class="footer-btns">
-      <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
-      <button class="footer-btn" id="addRecordBtn">＋新規追加</button>
+    <div class="fixed-footer">
+      <div class="footer-btns">
+        <button class="footer-btn" id="paidLeaveBtn">有給入力</button>
+        <button class="footer-btn" id="addRecordBtn">＋新規追加</button>
+      </div>
     </div>
   </div>
+  <div id="overlay" class="overlay" style="display:none;"></div>
   <div id="menuOverlay" class="menu-overlay" tabindex="-1"></div>
   <nav id="sideMenu" class="menu-drawer" aria-hidden="true" tabindex="-1">
     <div class="menu-header">メニュー</div>
@@ -1029,6 +1008,13 @@
     const flexTwoMonthRow = document.getElementById('flexTwoMonth');
     const flexTwoMonthDelta = document.getElementById('flexTwoMonthDelta');
     const flexDetail = document.getElementById('flexDetail');
+    const flexDetailTwoMonth = document.getElementById('flexDetail-TwoMonth');
+    const flexWorkedMinutes = document.getElementById('flexWorkedMinutes');
+    const flexPaidLeaveMinutes = document.getElementById('flexPaidLeaveMinutes');
+    const flexPeriod = document.getElementById('flexPeriod');
+    const flexSettlementMonths = document.getElementById('flexSettlementMonths');
+    const flexTwoMonthWorkedMinutes = document.getElementById('flexTwoMonthWorkedMinutes');
+    const flexTwoMonthPaidLeaveMinutes = document.getElementById('flexTwoMonthPaidLeaveMinutes');
     let flexSummaryRequestToken = 0;
     flexHeader.addEventListener('click', () => toggleFlex());
     flexToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleFlex(); });
@@ -1104,130 +1090,46 @@
       return start && end ? `${start}〜${end}` : '';
     }
 
-    function flexDescribeRounding(display) {
-      if (!display) return '';
-      const type = String(display.rounding_type || '').toLowerCase();
-      const unit = Number(display.rounding_unit);
-      const typeMap = { floor: '切り捨て', ceil: '切り上げ', nearest: '四捨五入', round: '四捨五入' };
-      const typeLabel = typeMap[type] || (type ? type : '');
-      const unitLabel = Number.isFinite(unit) && unit > 0 ? `${unit}分` : '';
-      if (typeLabel && unitLabel) return `${typeLabel} / ${unitLabel}`;
-      return typeLabel || unitLabel;
-    }
-
     async function refreshFlexSummary(monthVal) {
       if (!flexSummaryBox) return;
       const token = ++flexSummaryRequestToken;
       const query = monthVal ? `?month=${encodeURIComponent(monthVal)}` : '';
-      const flexWorkedMinutes = document.getElementById('flexWorkedMinutes');
-      const flexPaidLeaveMinutes = document.getElementById('flexPaidLeaveMinutes');
-      const flexPeriod = document.getElementById('flexPeriod');
-      const flexSettlementMonths = document.getElementById('flexSettlementMonths');
-      const flexTwoMonthWorkedMinutes = document.getElementById('flexTwoMonthWorkedMinutes');
-      const flexTwoMonthPaidLeaveMinutes = document.getElementById('flexTwoMonthPaidLeaveMinutes');
-      const flexRounding = document.getElementById('flexRounding');
-      const flexTwoMonthRow = document.getElementById('flexTwoMonth');
-      const flexTwoMonthDetailRow = document.getElementById('flexDetail-TwoMonth');
-      const flexTwoMonthWorkedMinutesLabel = document.getElementById('flexTwoMonthWorkedMinutesLabel');
-      const flexTwoMonthPaidLeaveMinutesLabel = document.getElementById('flexTwoMonthPaidLeaveMinutesLabel');
-      const flexSettlementMonthsLabel = document.getElementById('flexSettlementMonthsLabel');
       try {
         const res = await fetchWithAuth(`api/flex_summary.php${query}`);
         if (!res || !res.ok) throw new Error('flex fetch failed');
         const data = await res.json();
+        if (token !== flexSummaryRequestToken) return;
         if (!data || data.ok === false || data.is_full_time === false) {
           flexSummaryBox.style.display = 'none';
           return;
         }
+
         flexSummaryBox.style.display = 'block';
         flexUpdateDelta(flexCurrentDelta, data.delta_minutes);
-        if (data.is_settlement_month && data.two_month) {
-          flexTwoMonthRow.style.display = 'flex';
-          flexUpdateDelta(flexTwoMonthDelta, data.two_month.delta_minutes);
-        } else {
-          flexTwoMonthRow.style.display = 'none';
-        }
         flexWorkedMinutes.textContent = ` ${flexMinutesToHM(data.worked_minutes)} / ${flexMinutesToHM(data.legal_minutes)}`;
         flexPaidLeaveMinutes.textContent = flexMinutesToHM(data.paid_leave_minutes);
         flexPeriod.textContent = flexFormatPeriodRange(data.period);
-        var labels = ''
+
         if (data.is_settlement_month && data.two_month) {
-          labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
+          const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
+          flexTwoMonthRow.style.display = 'flex';
+          flexUpdateDelta(flexTwoMonthDelta, data.two_month.delta_minutes);
           flexSettlementMonths.textContent = labels;
           flexTwoMonthWorkedMinutes.textContent = ` ${flexMinutesToHM(data.two_month.worked_minutes)} / ${flexMinutesToHM(data.two_month.legal_minutes)}`;
           flexTwoMonthPaidLeaveMinutes.textContent = flexMinutesToHM(data.two_month.paid_leave_minutes);
-          flexTwoMonthRow.style.display = '';
-          flexTwoMonthDetailRow.style.display = '';
-          flexTwoMonthWorkedMinutesLabel.textContent = '実働 / 所定';
-          flexTwoMonthPaidLeaveMinutesLabel.textContent = '有給';
-          flexSettlementMonthsLabel.textContent = '算定期間';
+          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'block';
         } else {
+          flexTwoMonthRow.style.display = 'none';
           flexSettlementMonths.textContent = '';
           flexTwoMonthWorkedMinutes.textContent = '';
           flexTwoMonthPaidLeaveMinutes.textContent = '';
-          flexTwoMonthRow.style.display = 'none';
-          flexTwoMonthDetailRow.style.display = 'none';
-          flexTwoMonthWorkedMinutesLabel.textContent = '';
-          flexTwoMonthPaidLeaveMinutesLabel.textContent = '';
-          flexSettlementMonthsLabel.textContent = '';
+          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
         }
       } catch (e) {
-        flexBody.style.display = 'none';
-      }
-    }
-
-    async function refreshFlexSummary_(monthVal) {
-      if (!flexSummaryBox) return;
-      const token = ++flexSummaryRequestToken;
-      const query = monthVal ? `?month=${encodeURIComponent(monthVal)}` : '';
-      try {
-        const res = await fetchWithAuth(`api/flex_summary.php${query}`);
-        if (!res || !res.ok) throw new Error('flex fetch failed');
-        const data = await res.json();
         if (token !== flexSummaryRequestToken) return;
-        if (!data || data.ok === false || data.is_full_time === false) {
-          flexSummaryBox.style.display = 'none';
-          flexSummaryBox.removeAttribute('data-has-data');
-          return;
-        }
-        flexSummaryBox.style.display = 'block';
-        flexSummaryBox.dataset.hasData = '1';
-        flexSummaryMonth.textContent = data.month_label || '';
-        flexUpdateDelta(flexSummaryCurrent, data.delta_minutes);
-        if (data.is_settlement_month && data.two_month) {
-          flexSummaryTwoMonthRow.style.display = 'flex';
-          flexUpdateDelta(flexSummaryTwoMonthDelta, data.two_month.delta_minutes);
-        } else {
-          flexSummaryTwoMonthRow.style.display = 'none';
-        }
-        const lines = [
-          `所定 ${flexMinutesToHM(data.legal_minutes)}`,
-          `実働 ${flexMinutesToHM(data.worked_minutes)}`,
-          `有給 ${flexMinutesToHM(data.paid_leave_minutes)}`,
-          `期間 ${flexFormatPeriodRange(data.period)}`
-        ];
-        if (data.is_settlement_month && data.two_month) {
-          const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
-          if (labels) lines.push(`清算対象 ${labels}`);
-          lines.push(`2ヶ月所定 ${flexMinutesToHM(data.two_month.legal_minutes)}`);
-          lines.push(`2ヶ月実働 ${flexMinutesToHM(data.two_month.worked_minutes)}`);
-          lines.push(`2ヶ月有給 ${flexMinutesToHM(data.two_month.paid_leave_minutes)}`);
-        }
-        const roundingInfo = flexDescribeRounding(data.display);
-        if (roundingInfo) lines.push(`丸め ${roundingInfo}`);
-        flexSummaryDetail.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
-      } catch (e) {
-        if (token !== flexSummaryRequestToken) return;
-        if (flexSummaryBox.dataset.hasData) {
-          flexSummaryMonth.textContent = '取得エラー';
-          flexSummaryCurrent.className = 'flex-delta neutral';
-          flexSummaryCurrent.textContent = '--:--';
-          flexSummaryTwoMonthRow.style.display = 'none';
-          flexSummaryDetail.textContent = '情報を取得できませんでした';
-          flexSummaryBox.removeAttribute('data-has-data');
-        } else {
-          flexSummaryBox.style.display = 'none';
-        }
+        flexSummaryBox.style.display = 'none';
+        flexTwoMonthRow.style.display = 'none';
+        if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
       }
     }
     // 設定取得
@@ -1289,32 +1191,35 @@
         window.__dayList = enumerateDates(pr.start, pr.end);
         window.__recordMap = {};
         (records || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
-        // 有効な日ステータスを期間単位でフェッチ（本人のみ）
+        // 有効な日ステータス・ロック情報・有給（範囲）を並列取得して待ち合わせ
         try {
-          const stRes = await fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`);
+          const [stRes, lockRes, plRes] = await Promise.all([
+            fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`),
+            fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`),
+            fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`)
+          ]);
+          // 日ステータス
           if (stRes && stRes.ok) {
             const stData = await stRes.json();
             window.__dayStatuses = {};
             (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
-          }
-        } catch (e) { window.__dayStatuses = {}; }
-        // ロック情報取得
-        try {
-          const lockRes = await fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`);
+          } else { window.__dayStatuses = {}; }
+          // ロック
           if (lockRes && lockRes.ok) {
             const lockData = await lockRes.json();
             window.__lockedRanges = lockData.locked_ranges || [];
           } else { window.__lockedRanges = []; }
-        } catch (e) { window.__lockedRanges = []; }
-        // 有給（範囲）取得
-        try {
-          const plRes = await fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`);
+          // 有給履歴
           if (plRes && plRes.ok) {
             const plData = await plRes.json();
             window.__paidLeave = {};
             (plData.items || []).forEach(it => { if (it.date) window.__paidLeave[it.date] = it; });
           } else { window.__paidLeave = {}; }
-        } catch (e) { window.__paidLeave = {}; }
+        } catch (e) {
+          window.__dayStatuses = {};
+          window.__lockedRanges = [];
+          window.__paidLeave = {};
+        }
       } else {
         records = [];
         window.__dayStatuses = {};
@@ -1335,6 +1240,15 @@
         const dayList = window.__dayList || [];
         const now = new Date();
         const pad = n => n.toString().padStart(2, '0');
+        const paidLeaves = window.__paidLeave || {};
+        // paidLeavesの時間情報を合計
+        let totalPaidLeaveMinutes = 0;
+        for (const d in paidLeaves) {
+          const pl = paidLeaves[d];
+          if (pl && typeof pl.minutes === 'number') {
+            totalPaidLeaveMinutes += pl.minutes;
+          }
+        }
         const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
         for (const d of dayList) {
           const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
@@ -1358,10 +1272,11 @@
           }
         }
         const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
-        const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "";
-        document.getElementById("workDaysValue").textContent = workDays;
+        const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "0";
+        document.getElementById("workDaysValue").textContent = workDays.toString() + "日";
         document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
         document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
+        document.getElementById("paidLeaveMinutesValue").textContent = `${Math.floor(totalPaidLeaveMinutes / 60)}:${(totalPaidLeaveMinutes % 60).toString().padStart(2, "0")}`;
         const missEl = document.getElementById("missingCountValue");
         if (missEl) missEl.textContent = missingCount;
       }
@@ -1793,9 +1708,40 @@
           currentMonth = monthPart;
           const [yy, mm] = monthPart.split('-');
           const monthLi = document.createElement('li');
+          monthLi.id = `month-divider-${monthPart}`;
           monthLi.className = 'month-divider';
           monthLi.textContent = `${yy}年${parseInt(mm, 10)}月`;
           recordList.appendChild(monthLi);
+          const monthLiHeight = monthLi.clientHeight;
+          const listLabel = document.createElement('li');
+          listLabel.id = 'listLabelItem';
+          listLabel.className = 'month-divider';
+          listLabel.style.top = monthLiHeight + 'px';
+          const listLabelBox = document.createElement('div');
+          listLabelBox.id = 'listLabelBox';
+          listLabelBox.innerHTML = `
+            <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
+            <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
+              <div class="record-col">
+                <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">始業</span>
+              </div>
+              <div class="record-col">
+                <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">終業</span>
+              </div>
+              <div class="record-col">
+                <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">休憩</span>
+              </div>
+              <div class="record-col">
+                <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">労働</span>
+              </div>
+              <div class="record-col">
+                <span style="min-width: 3.5em; flex: 1 1 0%; text-align: center;">車距離</span>
+              </div>
+            </div>
+          `;
+          listLabel.appendChild(listLabelBox);
+
+          recordList.appendChild(listLabel);
         }
         const rec = window.__recordMap ? window.__recordMap[d] : null;
         const t = dayType(d);
@@ -2440,11 +2386,6 @@
       const maxH = vh - headerH - footerH;
       scrollArea.style.maxHeight = maxH + 'px';
       scrollArea.style.height = maxH + 'px';
-      //document.getElementById("statsBox").textContent = `vh: ${parseInt(vh, 10)}px　hH: ${parseInt(headerH, 10)}px　fH: ${parseInt(footerH, 10)}px → ${parseInt(maxH, 10)}px`;
-      const scrollMainW = document.querySelector('.record-list').getBoundingClientRect().width
-      const scrollPaddingw = parseInt(getComputedStyle(document.querySelector('.record-list')).paddingInline, 10) * 2
-      document.getElementById('listLabel').style.maxWidth = (scrollMainW - scrollPaddingw) + 'px';
-
     }
     window.addEventListener('resize', adjustScrollAreaHeight);
     window.addEventListener('DOMContentLoaded', adjustScrollAreaHeight);
@@ -2711,6 +2652,104 @@
       await fetchWithAuth('api/logout.php', { method: 'POST' });
       window.location.href = 'login.html';
     };
+    // 承認完了後の再取得ハンドリング
+    function handleApprovalRefresh() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const decided = params.get('leave_decided');
+        if (decided === '1') {
+          // 軽いトースト
+          try { console.log('有給申請の承認が反映されました'); } catch (e) { }
+          // フレックスサマリと有給履歴を再取得
+          if (typeof refreshFlexSummary === 'function') {
+            refreshFlexSummary();
+          }
+          if (typeof loadPaidLeaveHistory === 'function') {
+            loadPaidLeaveHistory();
+          }
+        }
+      } catch (e) { }
+    }
+
+    // フォーカス復帰時にも最新化（承認画面から戻ったケース）
+    window.addEventListener('focus', () => {
+      try {
+        if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+        if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
+      } catch (e) { }
+    });
+
+    document.addEventListener('DOMContentLoaded', handleApprovalRefresh);
+
+    // 承認完了後の再取得ハンドリング
+    function handleApprovalRefresh() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const decided = params.get('leave_decided');
+        if (decided === '1') {
+          // 軽いトースト
+          try { console.log('有給申請の承認が反映されました'); } catch (e) { }
+          // フレックスサマリと有給履歴を再取得
+          if (typeof refreshFlexSummary === 'function') {
+            refreshFlexSummary();
+          }
+          if (typeof loadPaidLeaveHistory === 'function') {
+            loadPaidLeaveHistory();
+          }
+        }
+      } catch (e) { }
+    }
+
+    // フォーカス復帰時にも最新化（承認画面から戻ったケース）
+    window.addEventListener('focus', () => {
+      try {
+        if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+        if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
+      } catch (e) { }
+    });
+
+    document.addEventListener('DOMContentLoaded', handleApprovalRefresh);
+
+    // SSE接続（可視時のみ）
+    let sse;
+    function connectSSE() {
+      if (document.hidden) return;
+      try {
+        if (sse) { sse.close(); }
+        sse = new EventSource('api/events_stream.php?timeout=60');
+        sse.addEventListener('heartbeat', () => { });
+        sse.addEventListener('leave_request_decided', (ev) => {
+          try {
+            const data = JSON.parse(ev.data || '{}');
+            // 承認/却下結果に応じて必要な再取得のみ実施
+            if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+            if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
+          } catch (e) { }
+        });
+        sse.addEventListener('paid_leave_updated', () => {
+          try {
+            if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+            if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
+          } catch (e) { }
+        });
+        sse.addEventListener('end', () => {
+          try { if (sse) sse.close(); } catch (e) { }
+          // 可視時は再接続（ブラウザの自動再接続を補完）
+          if (!document.hidden) setTimeout(connectSSE, 1500);
+        });
+      } catch (e) { }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        try { if (sse) sse.close(); } catch (e) { }
+      } else {
+        connectSSE();
+      }
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      connectSSE();
+    });
   </script>
 </body>
 

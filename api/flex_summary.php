@@ -1,4 +1,11 @@
 <?php
+/*
+ * 目的: フレックス清算サマリを返却します。
+ * 対象: ログインユーザーの当月度（必要に応じて清算2ヶ月）
+ * 出力: 実働分・所定分・有給取得分の分数、差分、期間情報など
+ */
+?>
+<?php
 // api/flex_summary.php
 session_start();
 header('Content-Type: application/json');

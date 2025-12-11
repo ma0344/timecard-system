@@ -66,8 +66,12 @@
 
     /* ステータス帯 */
     .status-card {
+      align-items: center;
+    }
+
+    .status-card-header {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr auto auto;
       align-items: center;
       gap: 0.8rem;
     }
@@ -111,6 +115,12 @@
       gap: 6px;
       flex-wrap: wrap;
       margin-top: 0.7rem;
+    }
+
+    .alert-card {
+      background: #ffebee;
+      color: #c62828;
+      border-color: #ffcdd2;
     }
 
     .alert-pill {
@@ -182,8 +192,8 @@
     /* 警告行アイテムのカラー */
     .warningRowItem {
       border: 1px solid #ffe0b2;
-      background: #fffaf2;
       color: #e65100;
+      background: #fffaf2;
     }
 
     /* 重要警告行のカラー */
@@ -278,11 +288,11 @@
     }
 
     .memo-status.ok {
-      color: #2e7d32;
+      color: var(--ok);
     }
 
     .memo-status.err {
-      color: #e53935;
+      color: var(--danger);
     }
 
     .sub-actions-row {
@@ -327,6 +337,9 @@
     .timeline-title {
       font-weight: 600;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .timeline-body {
@@ -399,14 +412,7 @@
     }
 
     .notif-statusDot {
-      width: 16px;
-      height: 16px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: inline-block;
-      box-shadow: 0 0 0 4px rgba(25, 118, 210, .15);
-      border-radius: 8px;
-      background: var(--accent);
+      background: #fff;
     }
 
     .notif-title {
@@ -427,7 +433,7 @@
     .flex-card-header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
       gap: 12px;
     }
 
@@ -442,6 +448,9 @@
       font-weight: 600;
       font-size: 1.05rem;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .flex-card-sub {
@@ -526,29 +535,39 @@
       </button>
     </div>
     <!-- ステータス帯 + 警告有無の提示 -->
-    <section class="card status-card" aria-live="polite">
-      <span id="statusDot" class="status-dot off"></span>
-      <div>
-        <div id="statusText" class="status-text">状態: 取得中…</div>
-        <div id="statusSub" class="status-sub"></div>
+    <section id="alertCard" class="card alert-card" aria-expanded="true" aria-live="polite" aria-label="警告" style="display:none;">
+      <div id="alertCardHeader">
+        <button id="alertToggle" class="expand-toggle" aria-controls="alertBody" aria-expanded="true" style="color: #c62828;">∨</button>
+        <span id="alert-title">警告</span>
       </div>
-      <div id="todayDate" class="status-sub"></div>
+      <div id="alertBody" class="alert-card-body" style="display:block;">
+        <div id="alertStrip" class="alert-strip" aria-live="polite"></div>
+      </div>
     </section>
-    <!-- 今日の状態遷移タイムライン（折りたたみ） -->
-    <section id="timelineCard" class="card" aria-expanded="false">
-      <div class="timeline-card-header" id="timelineHeader">
-        <div class="timeline-title">今日のタイムライン</div>
-        <button id="timelineToggle" class="expand-toggle" aria-controls="timelineBody" aria-expanded="false">＞</button>
+    <section id="statusCard" class="card status-card" aria-live="polite" aria-expanded="false">
+      <div id="statusCardHeader" class="status-card-header">
+        <span id="statusDot" class="status-dot off"></span>
+        <div>
+          <div id="statusText" class="status-text">状態: 取得中…</div>
+          <div id="statusSub" class="status-sub"></div>
+        </div>
+        <div id="todayDate" class="status-sub"></div>
+        <div class="timeline-title">
+          <button id="timelineToggle" class="expand-toggle" aria-controls="timelineBody" aria-expanded="false">＞</button>
+          <span>タイムライン</span>
+        </div>
       </div>
       <div id="timelineBody" class="timeline-body" style="display:none;" aria-live="polite"></div>
     </section>
     <!-- フレックス清算サマリ（常勤のみ） -->
     <section id="flexCard" class="card flex-card" aria-expanded="false" aria-live="polite" aria-label="フレックス清算状況">
       <div class="flex-card-header" id="flexHeader">
-        <div class="flex-card-title">フレックス</div>
+        <div class="flex-card-title">
+          <button id="flexToggle" class="expand-toggle" aria-controls="flexBody" aria-expanded="false">＞</button>
+          <span>フレックス</span>
+        </div>
         <div class="flex-card-header-sub">
           <span id="flexMonthLabel" style="font-size: 0.8rem;"></span>
-          <button id="flexToggle" class="expand-toggle" aria-controls="flexBody" aria-expanded="false">＞</button>
         </div>
       </div>
       <div id="flexBody" class="flex-card-body" aria-live="polite">
@@ -574,7 +593,7 @@
           <span>フレックス算定</span>
           <span id="flexTwoMonthDelta" class="flex-delta neutral">±0:00</span>
         </div>
-        <div id="flexDetail-TwoMonth" class="flex-detail">
+        <div id="flexDetail-TwoMonth" class="flex-detail" style="display:none;">
           <div class="flex-detail-line">
             <span id="flexSettlementMonthsLabel">算定期間</span>
             <span id="flexSettlementMonths">2025年1月度/2025年2月度</span>
@@ -590,16 +609,15 @@
         </div>
       </div>
     </section>
-    <div id="alertStrip" class="alert-strip" aria-live="polite"></div>
     <!-- 最新通知(最大3件)プレビュー -->
     <section id="notifPreviewCard" class="card" style="display:none;" aria-label="最新のお知らせ" aria-expanded="false">
       <div class="notif-card-header" id="notifCardHeader">
         <div class="notif-title">
-          <span class="notif-statusDot"></span> 最新通知<span id="notifCount" style="margin-left: 1em;">未読 0</span>
+          <button id="notifToggle" class="expand-toggle" aria-controls="notifPreviewList" aria-expanded="false">＞</button>
+          <span class="notif-statusDot">最新通知</span><span id="notifCount" style="margin-left: 1em;">未読 0</span>
         </div>
         <div class="notifButtons" style="display: flex; gap: 8px;">
           <button id="openAllNotif" style="background:#455a64;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;cursor:pointer;">全て表示</button>
-          <button id="notifToggle" class="expand-toggle" aria-controls="notifPreviewList" aria-expanded="false">＞</button>
         </div>
       </div>
       <ul id="notifPreviewList" style="list-style:none;padding:0;margin:10px 0 0 0;display:none;gap:6px;"></ul>
@@ -695,6 +713,7 @@
     const flexTwoMonthRow = document.getElementById('flexTwoMonth');
     const flexTwoMonthDelta = document.getElementById('flexTwoMonthDelta');
     const flexDetail = document.getElementById('flexDetail');
+    const flexDetailTwoMonth = document.getElementById('flexDetail-TwoMonth');
 
     function minutesToHM(minutes) {
       const numeric = Number(minutes);
@@ -748,17 +767,6 @@
       return start && end ? `${start}〜${end}` : '';
     }
 
-    function describeRounding(display) {
-      if (!display) return '';
-      const type = String(display.rounding_type || '').toLowerCase();
-      const unit = Number(display.rounding_unit);
-      const typeMap = { floor: '切り捨て', ceil: '切り上げ', nearest: '四捨五入', round: '四捨五入' };
-      const typeLabel = typeMap[type] || (type ? type : '');
-      const unitLabel = Number.isFinite(unit) && unit > 0 ? `${unit}分` : '';
-      if (typeLabel && unitLabel) return `${typeLabel} / ${unitLabel}`;
-      return typeLabel || unitLabel;
-    }
-
     async function refreshFlexSummary() {
       if (!flexCard) return;
       try {
@@ -784,7 +792,6 @@
         const flexSettlementMonths = document.getElementById('flexSettlementMonths');
         const flexTwoMonthWorkedMinutes = document.getElementById('flexTwoMonthWorkedMinutes');
         const flexTwoMonthPaidLeaveMinutes = document.getElementById('flexTwoMonthPaidLeaveMinutes');
-        const flexRounding = document.getElementById('flexRounding');
         flexWorkedMinutes.textContent = ` ${minutesToHM(data.worked_minutes)} / ${minutesToHM(data.legal_minutes)}`;
         flexPaidLeaveMinutes.textContent = minutesToHM(data.paid_leave_minutes);
         flexPeriod.textContent = formatPeriodRange(data.period);
@@ -794,10 +801,12 @@
           flexSettlementMonths.textContent = labels;
           flexTwoMonthWorkedMinutes.textContent = ` ${minutesToHM(data.two_month.worked_minutes)} / ${minutesToHM(data.two_month.legal_minutes)}`;
           flexTwoMonthPaidLeaveMinutes.textContent = minutesToHM(data.two_month.paid_leave_minutes);
+          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'block';
         } else {
           flexSettlementMonths.textContent = '';
           flexTwoMonthWorkedMinutes.textContent = '';
           flexTwoMonthPaidLeaveMinutes.textContent = '';
+          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
         }
       } catch (e) {
         flexCard.style.display = 'none';
@@ -812,7 +821,7 @@
       let label = '未出勤'; let subTxt = '';
       if (state.clockedOut) { dot.classList.add('off'); label = '退勤済み'; }
       else if (state.clockedIn && state.onBreak) { dot.classList.add('break'); label = '休憩中'; }
-      else if (state.clockedIn) { dot.classList.add('work'); label = '出勤中'; }
+      else if (state.clockedIn) { dot.classList.add('work'); label = '勤務中'; }
       else { dot.classList.add('off'); }
       text.textContent = `状態: ${label}`;
       sub.textContent = subTxt;
@@ -852,6 +861,8 @@
     async function refreshAlerts() {
       const strip = document.getElementById('alertStrip');
       const badge = document.getElementById('alert-badge');
+      const alertCard = document.getElementById('alertCard');
+      const alertCardTitle = document.getElementById('alert-title');
       badge.style.display = 'none';
       strip.classList.remove('has-alerts');
       strip.innerHTML = '';
@@ -873,6 +884,8 @@
           const labelText = totalCount > 99 ? '99+' : String(totalCount);
           badge.style.display = 'flex';
           badge.textContent = badgeText + labelText;
+          alertCard.style.display = 'block';
+          alertCardTitle.textContent = `警告 ${labelText}件`;
 
           // 表示候補（最大5件）：未退勤 + 未打刻 を日付降順でミックス
           const normalized = [
@@ -1284,23 +1297,48 @@
       updateMemoMeta(true);
     }
 
+    // === 各種カードの開閉と内容更新 ===
+    // 警告カード開閉
+    const alertCard = document.getElementById('alertCard');
+    const alertBody = document.getElementById('alertBody');
+    const alertToggle = document.getElementById('alertToggle');
+    const alertHeader = document.getElementById('alertCardHeader');
+    alertHeader.addEventListener('click', () => toggleAlert());
+    alertToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleAlert(); });
+
+    function toggleAlert() {
+      const expanded = alertCard.getAttribute('aria-expanded') === 'true';
+      if (expanded) {
+        alertCard.setAttribute('aria-expanded', 'false');
+        alertToggle.setAttribute('aria-expanded', 'false');
+        alertToggle.textContent = '＞';
+        alertBody.style.display = 'none';
+      } else {
+        alertCard.setAttribute('aria-expanded', 'true');
+        alertToggle.setAttribute('aria-expanded', 'true');
+        alertToggle.textContent = '∨';
+        alertBody.style.display = 'block';
+        refreshAlerts();
+      }
+    }
+
     // タイムライン開閉
-    const timelineCard = document.getElementById('timelineCard');
+    const statusCard = document.getElementById('statusCard');
     const timelineBody = document.getElementById('timelineBody');
     const timelineToggle = document.getElementById('timelineToggle');
-    const timelineHeader = document.getElementById('timelineHeader');
-    timelineHeader.addEventListener('click', () => toggleTimeline());
+    const statusCardHeader = document.getElementById('statusCardHeader');
+    statusCardHeader.addEventListener('click', () => toggleTimeline());
     timelineToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleTimeline(); });
 
     function toggleTimeline() {
-      const expanded = timelineCard.getAttribute('aria-expanded') === 'true';
+      const expanded = statusCard.getAttribute('aria-expanded') === 'true';
       if (expanded) {
-        timelineCard.setAttribute('aria-expanded', 'false');
+        statusCard.setAttribute('aria-expanded', 'false');
         timelineToggle.setAttribute('aria-expanded', 'false');
         timelineToggle.textContent = '＞';
         timelineBody.style.display = 'none';
       } else {
-        timelineCard.setAttribute('aria-expanded', 'true');
+        statusCard.setAttribute('aria-expanded', 'true');
         timelineToggle.setAttribute('aria-expanded', 'true');
         timelineToggle.textContent = '∨';
         timelineBody.style.display = 'block';
@@ -1365,7 +1403,7 @@
       return `${hh}:${mm}`;
     }
     async function refreshTimeline() {
-      if (timelineCard.getAttribute('aria-expanded') !== 'true') return; // 閉じているときは取得しない
+      if (statusCard.getAttribute('aria-expanded') !== 'true') return; // 閉じているときは取得しない
       timelineBody.innerHTML = '<div style="font-size:.85rem;color:#666;">読込中...</div>';
       try {
         const res = await fetchWithAuth('api/today_events.php');
@@ -1543,7 +1581,7 @@
       window.location.href = 'login.html';
     };
 
-  </script>
+  </script> // 承認完了後の再取得ハンドリング（ダッシュボード側） function handleApprovalRefreshDashboard() { try { const params = new URLSearchParams(location.search); const decided = params.get('leave_decided'); if (decided === '1') { try { console.log('有給申請の承認が反映されました（ダッシュボード）'); } catch (e) {} if (typeof refreshFlexSummary === 'function') { refreshFlexSummary(); } } } catch (e) {} } // フォーカス復帰で最新化 window.addEventListener('focus', () => { try { if (typeof refreshFlexSummary === 'function') refreshFlexSummary(); } catch (e) {} }); document.addEventListener('DOMContentLoaded', handleApprovalRefreshDashboard);
 </body>
 
 </html>
