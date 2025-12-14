@@ -968,6 +968,15 @@
     // 有効化したい場合は window.__enableEditingMode = true; を設定してください。
     window.__enableEditingMode = false;
 
+    // DOM参照（遅延初期化）
+    // - 関数宣言が先に出てくる都合で、const だと TDZ で落ちやすいので let にする
+    let recordList = null;
+
+    function setTextById(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
     function saveScroll() {
       const sa = document.querySelector('.scroll-area');
       window.__preserveScrollY = sa ? sa.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
@@ -1008,6 +1017,7 @@
 
     function insertActiveRowAfter(anchorLi, activeLi) {
       // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
+      if (!recordList) return;
       if (anchorLi && anchorLi.parentNode === recordList) {
         if (anchorLi.nextSibling) recordList.insertBefore(activeLi, anchorLi.nextSibling);
         else recordList.appendChild(activeLi);
@@ -1920,12 +1930,11 @@
       }
       const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
       const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "0";
-      document.getElementById("workDaysValue").textContent = workDays.toString() + "日";
-      document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
-      document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
-      document.getElementById("paidLeaveMinutesValue").textContent = `${Math.floor(totalPaidLeaveMinutes / 60)}:${(totalPaidLeaveMinutes % 60).toString().padStart(2, "0")}`;
-      const missEl = document.getElementById("missingCountValue");
-      if (missEl) missEl.textContent = missingCount;
+      setTextById("workDaysValue", workDays.toString() + "日");
+      setTextById("totalWorkHoursValue", totalWorkStr);
+      setTextById("totalOvertimeHoursValue", totalOverStr);
+      setTextById("paidLeaveMinutesValue", `${Math.floor(totalPaidLeaveMinutes / 60)}:${(totalPaidLeaveMinutes % 60).toString().padStart(2, "0")}`);
+      setTextById("missingCountValue", String(missingCount));
     }
     function parseTimeStr(str) {
       // "HH:MM" or "YYYY-MM-DD HH:MM:SS" → {h, m}
@@ -1967,7 +1976,7 @@
       if (min < 0) min = 0;
       return roundMinutes(min);
     }
-    const recordList = document.getElementById('recordList');
+    recordList = document.getElementById('recordList');
     let addPanelActive = false;
     window.__dayStatuses = window.__dayStatuses || {}; // date -> {status, source, note}
 
@@ -2006,6 +2015,7 @@
 
     document.getElementById('addRecordBtn').onclick = () => {
       if (addPanelActive) return;
+      if (!recordList) return;
 
       const monthVal = getSelectedMonthVal();
       const initialDate = getInitialAddDate(monthVal);
@@ -2316,6 +2326,7 @@
     }
 
     function clearRecordList() {
+      if (!recordList) return;
       recordList.innerHTML = '';
     }
 
@@ -2326,6 +2337,7 @@
     }
 
     function render() {
+      if (!recordList) return;
       const preservedY = getPreservedScrollY();
       clearRecordList();
       const dayList = window.__dayList || [];
@@ -2459,7 +2471,7 @@
       try {
         const res = await fetchWithAuth('api/day_status_self_set.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date, status: overrideCode }) });
         if (res && res.ok) {
-          const monthVal = document.getElementById('monthSelect').value;
+          const monthVal = getSelectedMonthVal();
           await loadRecordsByPeriod(monthVal);
         } else { alert('区分変更に失敗しました'); }
       } catch (e) { alert('区分変更エラー'); }
@@ -2468,7 +2480,7 @@
       try {
         const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) });
         if (res && res.ok) {
-          const monthVal = document.getElementById('monthSelect').value;
+          const monthVal = getSelectedMonthVal();
           await loadRecordsByPeriod(monthVal);
         } else { alert('クリアに失敗しました'); }
       } catch (e) { alert('クリアエラー'); }
@@ -2504,18 +2516,18 @@
       const monthInput = document.getElementById('monthSelect');
       if (monthInput && monthInput.value) {
         const [yy, mm] = monthInput.value.split('-');
-        document.getElementById('yearLabel').textContent = `${yy}年${parseInt(mm, 10)}月度 `;
+        setTextById('yearLabel', `${yy}年${parseInt(mm, 10)}月度 `);
         return;
       }
       if (records.length > 0) {
         const ymd = records[0].date ? records[0].date.split('-') : [];
         if (ymd.length === 3) {
-          document.getElementById('yearLabel').textContent = `${ymd[0]}年${parseInt(ymd[1], 10)}月度 `;
+          setTextById('yearLabel', `${ymd[0]}年${parseInt(ymd[1], 10)}月度 `);
         } else {
-          document.getElementById('yearLabel').textContent = '';
+          setTextById('yearLabel', '');
         }
       } else {
-        document.getElementById('yearLabel').textContent = '';
+        setTextById('yearLabel', '');
       }
     }
     // 初回ロード
@@ -2527,6 +2539,7 @@
       const pad = n => n.toString().padStart(2, '0');
       const thisYm = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
       const monthInput = document.getElementById('monthSelect');
+      if (!monthInput) return;
       monthInput.addEventListener('change', function () { loadRecordsByPeriod(this.value); });
       // クエリ: 指定日があればその年月に合わせて初期ロードし、新規追加パネルを開く
       const urlParams = new URLSearchParams(window.location.search);
