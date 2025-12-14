@@ -229,22 +229,6 @@
       line-height: 1.4;
     }
 
-    .flex-delta {
-      font-weight: 600;
-    }
-
-    .flex-delta.positive {
-      color: #1b5e20;
-    }
-
-    .flex-delta.negative {
-      color: #c62828;
-    }
-
-    .flex-delta.neutral {
-      color: #37474f;
-    }
-
     @media (max-width: 600px) {
       .statsBoxLabel {
         font-size: 5vw;
@@ -298,6 +282,23 @@
       overflow-y: scroll;
       padding: 0 1rem 0 1rem;
       background: #fff;
+    }
+
+    /* 展開中の行を前面に出す（固定ヘッダラベルより上） */
+    .record-row.active {
+      position: relative;
+      z-index: 100;
+    }
+
+    /* 上合わせ用の自然な余白確保（スクロール不足のフォールバックに活用） */
+    .record-row.active {
+      scroll-margin-top: 48px;
+      scroll-margin-bottom: 24px;
+    }
+
+    /* 編集モードではアクティブ以外の行を非表示 */
+    .editing-mode .record-row:not(.active) {
+      display: none;
     }
 
     .footer-btn {
@@ -403,11 +404,6 @@
     }
 
     /* background: #e3f2fd; */
-    .record-row.active {
-      z-index: 20;
-      position: relative;
-    }
-
     .record-main {
       display: flex;
       flex-direction: row;
@@ -825,6 +821,32 @@
       outline: none;
       box-shadow: 0 0 0 2px #90caf9aa, inset 0 2px 4px rgba(0, 0, 0, .08);
     }
+
+    .notif-unread {
+      margin-top: 6px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mark-one {
+      padding: 0.2em 0.6em;
+      font-size: 0.9em;
+      border: 1px solid #1976d2;
+      border-radius: 4px;
+      background: #fff;
+      color: #1976d2;
+    }
+
+    .back-Btn {
+      margin-right: 6px;
+      padding: 4px 10px;
+      border: 1px solid #cfd8dc;
+      background: #fff;
+      color: #455a64;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -942,6 +964,577 @@
     </ul>
   </nav>
   <script>
+    // グローバル設定: 編集モードは将来ONにできるフラグ（現在は未使用）
+    // 有効化したい場合は window.__enableEditingMode = true; を設定してください。
+    window.__enableEditingMode = false;
+
+    function saveScroll() {
+      const sa = document.querySelector('.scroll-area');
+      window.__preserveScrollY = sa ? sa.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+    }
+
+    function restoreScroll() {
+      const y = (typeof window.__preserveScrollY === 'number') ? window.__preserveScrollY : null;
+      if (y === null) return;
+      try {
+        const sa = document.querySelector('.scroll-area');
+        if (sa && typeof sa.scrollTo === 'function') sa.scrollTo({ top: y });
+        else if (sa) sa.scrollTop = y; else window.scrollTo({ top: y });
+      } catch (_) {
+        try { const sa2 = document.querySelector('.scroll-area'); if (sa2) sa2.scrollTop = y; else window.scrollTo(0, y); } catch (__e) { }
+      }
+      window.__preserveScrollY = null;
+    }
+
+    function closeInlinePanel() {
+      const active = document.querySelector('li.inline-panel-row');
+      if (active && active.parentNode) active.parentNode.removeChild(active);
+      const sa = document.querySelector('.scroll-area');
+      if (sa) sa.classList.remove('editing-mode');
+      // addRecordBtn などのフラグを巻き戻す（パネルが別経路で閉じられた場合に備える）
+      try { addPanelActive = false; } catch (_) { }
+      // 末尾スペーサ削除
+      if (window.__inlineSpacerEl && window.__inlineSpacerEl.parentNode) {
+        try { window.__inlineSpacerEl.parentNode.removeChild(window.__inlineSpacerEl); } catch (_) { }
+        window.__inlineSpacerEl = null;
+      }
+      // overlayクリックハンドラを残さない
+      try {
+        const ov = document.getElementById('overlay');
+        if (ov) ov.onclick = null;
+      } catch (_) { }
+      hideOverlay();
+    }
+
+    function insertActiveRowAfter(anchorLi, activeLi) {
+      // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
+      if (anchorLi && anchorLi.parentNode === recordList) {
+        if (anchorLi.nextSibling) recordList.insertBefore(activeLi, anchorLi.nextSibling);
+        else recordList.appendChild(activeLi);
+      } else {
+        recordList.insertBefore(activeLi, recordList.firstChild);
+      }
+    }
+
+    function alignActiveRowToListLabel(activeLi) {
+      // ラベル上端とアクティブ行上端を揃えるスクロール調整（scroll-area基準、下端不足は末尾スペーサで補う）
+      requestAnimationFrame(() => {
+        try {
+          const sa = document.querySelector('.scroll-area');
+          const label = document.getElementById('listLabelItem');
+          if (sa && label && activeLi) {
+            const saRect = sa.getBoundingClientRect();
+            const activeTop = activeLi.getBoundingClientRect().top - saRect.top;
+            const labelTop = label.getBoundingClientRect().top - saRect.top;
+            const delta = activeTop - labelTop;
+            if (Math.abs(delta) > 1) {
+              let target = sa.scrollTop + delta;
+              const maxScroll = sa.scrollHeight - sa.clientHeight;
+              if (target > maxScroll) {
+                const need = Math.ceil(target - maxScroll + 8);
+                const recordListEl = document.getElementById('recordList') || (sa ? sa.querySelector('#recordList') : null);
+                if (recordListEl) {
+                  const spacer = document.createElement('li');
+                  spacer.className = 'spacer-li';
+                  spacer.style.height = need + 'px';
+                  spacer.style.border = 'none';
+                  spacer.style.background = 'transparent';
+                  spacer.setAttribute('aria-hidden', 'true');
+                  recordListEl.appendChild(spacer);
+                  window.__inlineSpacerEl = spacer;
+                  target = Math.min(sa.scrollTop + delta, sa.scrollHeight - sa.clientHeight);
+                }
+              }
+              sa.scrollTo({ top: target, behavior: 'smooth' });
+            }
+          } else if (activeLi && typeof activeLi.scrollIntoView === 'function') {
+            activeLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } catch (_) { }
+      });
+    }
+
+    function paidPanelBuildModel(date) {
+      const info = window.__paidLeave ? window.__paidLeave[date] : null;
+      return {
+        date,
+        hours: info ? (info.hours || '') : '',
+        reasonEsc: info && info.reason ? escapeHtml(info.reason) : ''
+      };
+    }
+
+    function paidPanelBuildHTML(model) {
+      const reasonRow = model.reasonEsc ? `<div><b>理由:</b> ${model.reasonEsc}</div>` : '';
+      return `
+              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;border-radius:6px;font-size:.85em;'>この日は有給（${model.hours}h）です</div>
+              <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                <div><b>日付:</b> ${model.date}</div>
+                <div><b>区分:</b> 有給</div>
+                ${reasonRow}
+              </div>
+              <div style='display:flex;gap:8px;margin-top:10px;'>
+                <button class='cancel-btn'>閉じる</button>
+              </div>
+            `;
+    }
+
+    function inlinePanelRenderPaid(ctx) {
+      const { date, panel, closePanel, bindCancelButtons } = ctx;
+      const model = paidPanelBuildModel(date);
+      panel.innerHTML = paidPanelBuildHTML(model);
+      bindCancelButtons(panel, closePanel);
+    }
+
+    function ignorePanelBuildModel(date) {
+      return { date };
+    }
+
+    function ignorePanelBuildHTML(model) {
+      return `
+              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #b0bec5;background:#eceff1;color:#37474f;border-radius:6px;font-size:.85em;'>この日は集計対象外です</div>
+              <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                <div><b>日付:</b> ${model.date}</div>
+                <div><b>区分:</b> 除外</div>
+              </div>
+              <div style='display:flex;gap:8px;margin-top:10px;'>
+                <button class='cancel-btn'>閉じる</button>
+              </div>`;
+    }
+
+    function inlinePanelRenderIgnore(ctx) {
+      const { date, panel, closePanel, bindCancelButtons } = ctx;
+      const model = ignorePanelBuildModel(date);
+      panel.innerHTML = ignorePanelBuildHTML(model);
+      bindCancelButtons(panel, closePanel);
+    }
+
+    function lockedPanelBuildModel(date, rec) {
+      const rec2 = rec || (window.__recordMap ? window.__recordMap[date] : null);
+      return {
+        date,
+        pin: rec2 ? formatTime(rec2.clockIn) : '',
+        pout: rec2 ? formatTime(rec2.clockOut) : '',
+        brMin: rec2 ? Math.floor(calcTotalBreak(rec2.breaks || [])) : 0
+      };
+    }
+
+    function lockedPanelBuildHTML(model) {
+      return `
+              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ef9a9a;background:#ffebee;color:#b71c1c;border-radius:6px;font-size:.85em;'>ロックされています。編集はできません。</div>
+              <div style='display:grid;row-gap:8px;font-size:.95em;'>
+                <div><b>日付:</b> ${model.date}</div>
+                <div style='display:flex;gap:8px;align-items:center;'>
+                  <label>出勤</label><input type='time' value='${model.pin}' disabled>
+                  <label>退勤</label><input type='time' value='${model.pout}' disabled>
+                  <label>休憩(分)</label><input type='number' value='${model.brMin}' disabled style='width:6em;'>
+                </div>
+              </div>
+              <div style='display:flex;gap:8px;margin-top:10px;'>
+                <button class='cancel-btn'>閉じる</button>
+              </div>`;
+    }
+
+    function inlinePanelRenderLocked(ctx) {
+      const { date, panel, closePanel, bindCancelButtons, rec } = ctx;
+      const model = lockedPanelBuildModel(date, rec);
+      panel.innerHTML = lockedPanelBuildHTML(model);
+      bindCancelButtons(panel, closePanel);
+    }
+
+    function offPanelBuildModel(date) {
+      return { date, locked: isLocked(date) };
+    }
+
+    function offPanelBuildHTML(model) {
+      return `
+              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffe082;background:#fff8e1;color:#5d4037;border-radius:6px;font-size:.85em;'>この日は全休です</div>
+              <div style='display:grid;row-gap:6px;font-size:.95em;'>
+                <div><b>日付:</b> ${model.date}</div>
+                <div><b>区分:</b> 全休</div>
+              </div>
+              <div style='display:flex;gap:8px;margin-top:10px;'>
+                <button class='default-btn restore-btn' ${model.locked ? 'disabled title="ロック中"' : ''}>勤務へ戻す</button>
+                <button class='cancel-btn'>閉じる</button>
+              </div>`;
+    }
+
+    function inlinePanelRenderOff(ctx) {
+      const { date, panel, closePanel, bindCancelButtons, reloadAndReopenInlinePanel } = ctx;
+      const model = offPanelBuildModel(date);
+      panel.innerHTML = offPanelBuildHTML(model);
+      bindCancelButtons(panel, closePanel);
+      const backBtn = panel.querySelector('.restore-btn');
+      if (backBtn && !model.locked) {
+        backBtn.onclick = async () => {
+          const res = await fetch('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) });
+          if (res.ok) {
+            await reloadAndReopenInlinePanel({ reopenDate: date, reopenMode: 'work' });
+          } else {
+            alert('勤務へ戻すに失敗しました');
+          }
+        };
+      }
+    }
+
+    function workPanelReadInputs(panel) {
+      const vin = panel.querySelector('#editIn')?.value || null;
+      const vout = panel.querySelector('#editOut')?.value || null;
+      const vbr = Number(panel.querySelector('#editBreak')?.value || 0);
+      return { clockIn: vin, clockOut: vout, breakMinutes: vbr };
+    }
+
+    function workPanelBuildBreaksFromMinutes(minutes) {
+      const br = Number(minutes || 0);
+      // 簡易化: 休憩は総分から単一ブレイクへ反映（既存の詳細休憩UIは後続で統合）
+      return br > 0 ? [{ start: null, end: null, minutes: br }] : [];
+    }
+
+    function workPanelBuildUpdateBody(date, rec2, inputs) {
+      return {
+        date: date,
+        clockIn: inputs.clockIn,
+        clockOut: inputs.clockOut,
+        breaks: workPanelBuildBreaksFromMinutes(inputs.breakMinutes),
+        vehicleDistance: rec2 && rec2.vehicleDistance ? rec2.vehicleDistance : 0
+      };
+    }
+
+    async function workPanelSubmitUpdate(body) {
+      return await fetch('api/attendance_update.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    function workPanelBuildHTML({ locked, date, pin, pout, brMin }) {
+      return `
+              ${locked ? `<div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ef9a9a;background:#ffebee;color:#b71c1c;border-radius:6px;font-size:.85em;'>この期間はロックされています。編集できません。</div>` : ''}
+              <div style='display:grid;row-gap:8px;font-size:.95em;'>
+                <div><b>日付:</b> ${date}</div>
+                <div style='display:flex;gap:8px;align-items:center;'>
+                  <label>出勤</label><input id='editIn' type='time' value='${pin}' ${locked ? 'disabled' : ''}>
+                  <label>退勤</label><input id='editOut' type='time' value='${pout}' ${locked ? 'disabled' : ''}>
+                  <label>休憩(分)</label><input id='editBreak' type='number' value='${brMin}' min='0' ${locked ? 'disabled' : ''} style='width:6em;'>
+                </div>
+              </div>
+              <div style='display:flex;gap:8px;margin-top:10px;'>
+                <button class='save-btn' ${locked ? 'disabled' : ''}>保存</button>
+                <button class='cancel-btn'>閉じる</button>
+              </div>`;
+    }
+
+    function workPanelBuildModel(date, rec) {
+      const rec2 = rec || (window.__recordMap ? window.__recordMap[date] : null);
+      return {
+        locked: isLocked(date),
+        date,
+        rec2,
+        pin: rec2 ? formatTime(rec2.clockIn) : '',
+        pout: rec2 ? formatTime(rec2.clockOut) : '',
+        brMin: rec2 ? Math.floor(calcTotalBreak(rec2.breaks || [])) : 0
+      };
+    }
+
+    function inlinePanelRenderWork(ctx) {
+      const { date, panel, closePanel, bindCancelButtons, reloadAndReopenInlinePanel, rec } = ctx;
+      const model = workPanelBuildModel(date, rec);
+      panel.innerHTML = workPanelBuildHTML(model);
+      const saveBtn = panel.querySelector('.save-btn');
+      bindCancelButtons(panel, closePanel);
+      if (saveBtn && !model.locked) {
+        saveBtn.onclick = async () => {
+          const inputs = workPanelReadInputs(panel);
+          const body = workPanelBuildUpdateBody(date, model.rec2, inputs);
+          const res = await workPanelSubmitUpdate(body);
+          if (res.ok) {
+            // Option B: 再取得後に同日へ再挿入
+            await reloadAndReopenInlinePanel({ reopenDate: date, reopenMode: 'work' });
+          } else {
+            alert('保存に失敗しました');
+          }
+        };
+      }
+      // フォーカス
+      const focusEl = panel.querySelector('#editIn'); if (focusEl) try { focusEl.focus(); } catch (_) { }
+    }
+
+    function addPanelRenderClassification(panel, dateStr) {
+      const wrap = panel ? panel.querySelector('#addClassification') : null;
+      if (!wrap) return;
+      wrap.innerHTML = classificationControls(dateStr);
+    }
+
+    function addPanelUpdateLockWarn(panel, dateStr) {
+      const warn = panel ? panel.querySelector('#addLockWarn') : null;
+      if (!warn) return;
+      warn.style.display = isLocked(dateStr) ? 'block' : 'none';
+    }
+
+    function addPanelToDateObj(dateStr, timeStr) {
+      if (!dateStr || !timeStr) return null;
+      return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
+    }
+
+    function addPanelValidateInputs(panel, addRec) {
+      const dateVal = panel.querySelector('#addDate')?.value;
+      const inVal = panel.querySelector('#addIn')?.value;
+      const outVal = panel.querySelector('#addOut')?.value;
+      if (!dateVal || !inVal || !outVal) return false;
+      if (isLocked(dateVal)) return false;
+      if (records.some(r => r.date === dateVal)) return false;
+
+      const inDate = addPanelToDateObj(dateVal, inVal);
+      const outDate = addPanelToDateObj(dateVal, outVal);
+      if (inDate && outDate && inDate >= outDate) return false;
+
+      for (let i = 0; i < addRec.breaks.length; i++) {
+        const b = addRec.breaks[i];
+        const bStart = b.start ? addPanelToDateObj(dateVal, b.start) : null;
+        const bEnd = b.end ? addPanelToDateObj(dateVal, b.end) : null;
+        if (!b.start || !b.end) return false;
+        if (bStart && bEnd) {
+          if (bStart >= bEnd) return false;
+          if (inDate && bStart < inDate) return false;
+          if (outDate && bEnd > outDate) return false;
+        }
+      }
+
+      const monthVal = document.getElementById('monthSelect')?.value;
+      if (monthVal && !dateVal.startsWith(monthVal)) return false;
+      return true;
+    }
+
+    function addPanelUpdateSaveBtn(panel, addRec) {
+      const btn = panel ? panel.querySelector('.save-btn') : null;
+      if (!btn) return;
+      btn.disabled = !addPanelValidateInputs(panel, addRec);
+    }
+
+    function addPanelRenderBreaks(panel, addRec, { onChanged, onRequestRerender }) {
+      const breakEditList = panel ? panel.querySelector('#addBreakEditList') : null;
+      if (!breakEditList) return;
+      breakEditList.innerHTML = '';
+      addRec.breaks.forEach((b, i) => {
+        const row = document.createElement('div');
+        row.className = 'break-edit-row';
+        row.innerHTML = `
+                    <span>${i + 1}.</span>
+                    <input type='time' value='${b.start || ''}' class='break-start'> ～
+                    <input type='time' value='${b.end || ''}' class='break-end'>
+                    <button type='button' title='削除'>×</button>`;
+        const startInput = row.querySelector('.break-start');
+        const endInput = row.querySelector('.break-end');
+        if (startInput) startInput.onchange = e => { b.start = e.target.value; if (onChanged) onChanged(); };
+        if (endInput) endInput.onchange = e => { b.end = e.target.value; if (onChanged) onChanged(); };
+        const delBtn = row.querySelector('button');
+        if (delBtn) {
+          delBtn.onclick = e => {
+            e.stopPropagation();
+            addRec.breaks.splice(i, 1);
+            if (onRequestRerender) onRequestRerender();
+            if (onChanged) onChanged();
+          };
+        }
+        breakEditList.appendChild(row);
+      });
+    }
+
+    function addPanelBuildModel(date) {
+      return { date, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
+    }
+
+    function addPanelBuildHTML(model) {
+      return `
+              <div style='display:grid;row-gap:10px;'>
+                <label style='display:inline-grid;gap:4px;'>日付
+                  <input type='date' id='addDate' value='${model.date}'>
+                </label>
+                <div id='addLockWarn' style='display:none;margin:0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中のため保存できません</div>
+                <div style='display:flex;flex-wrap:wrap;gap:8px;align-items:center;'>
+                  <label>始業</label><input type='time' id='addIn'>
+                  <label>終業</label><input type='time' id='addOut'>
+                  <label>車距離</label><input type='number' min='0' step='1' id='addVehicleDistance' value='0' style='width:6em;'><span>km</span>
+                </div>
+                <div id='addClassification' style='margin-top:2px;'></div>
+                <div>
+                  <b>休憩:</b>
+                  <div id='addBreakEditList' style='margin-top:0.4em;'></div>
+                  <div style='margin-top:6px;'><button class='add-break-btn' type='button'>＋休憩を追加</button></div>
+                </div>
+                <div style='display:flex;gap:8px;justify-content:flex-end;'>
+                  <button class='save-btn' type='button' disabled>保存</button>
+                  <button class='cancel-btn' type='button'>キャンセル</button>
+                </div>
+              </div>
+            `;
+    }
+
+    function inlinePanelRenderAdd(ctx) {
+      const { date, panel, closePanel } = ctx;
+      addPanelActive = true;
+      const addRec = addPanelBuildModel(date);
+      panel.innerHTML = addPanelBuildHTML(addRec);
+
+      const onChanged = () => addPanelUpdateSaveBtn(panel, addRec);
+      const rerenderBreaks = () => addPanelRenderBreaks(panel, addRec, { onChanged, onRequestRerender: rerenderBreaks });
+
+      const addBreakBtn = panel.querySelector('.add-break-btn');
+      if (addBreakBtn) {
+        addBreakBtn.onclick = () => { addRec.breaks.push({ start: '', end: '' }); rerenderBreaks(); onChanged(); };
+      }
+
+      panel.querySelector('#addDate')?.addEventListener('input', e => {
+        addRec.date = e.target.value;
+        addPanelRenderClassification(panel, addRec.date);
+        addPanelUpdateLockWarn(panel, addRec.date);
+        onChanged();
+      });
+      panel.querySelector('#addIn')?.addEventListener('input', e => { addRec.clockIn = e.target.value; onChanged(); });
+      panel.querySelector('#addOut')?.addEventListener('input', e => { addRec.clockOut = e.target.value; onChanged(); });
+      panel.querySelector('#addVehicleDistance')?.addEventListener('input', e => { addRec.vehicleDistance = Number(e.target.value) || 0; onChanged(); });
+
+      rerenderBreaks();
+      addPanelRenderClassification(panel, addRec.date);
+      addPanelUpdateLockWarn(panel, addRec.date);
+      onChanged();
+
+      const cancelBtn = panel.querySelector('.cancel-btn');
+      if (cancelBtn) cancelBtn.onclick = e => { if (e) e.stopPropagation(); closePanel(); };
+
+      const saveBtn = panel.querySelector('.save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          if (!addPanelValidateInputs(panel, addRec)) { alert('入力内容に誤りがあります。'); return; }
+          const res = await fetch('api/attendance_update.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: addRec.date, clockIn: addRec.clockIn, clockOut: addRec.clockOut, breaks: addRec.breaks, vehicleDistance: addRec.vehicleDistance })
+          });
+          if (res.ok) {
+            addPanelActive = false;
+            const monthVal = document.getElementById('monthSelect').value;
+            clearForceVisibleDate();
+            if (shouldAutoBack()) { backNavigate(); return; }
+            await loadRecordsByPeriod(monthVal);
+          } else {
+            alert('新規追加に失敗しました');
+          }
+        };
+      }
+
+      const inEl = panel.querySelector('#addIn');
+      if (inEl) { try { inEl.focus(); } catch (_) { } }
+    }
+
+    function unknownPanelBuildModel(mode) {
+      return { mode };
+    }
+
+    function unknownPanelBuildHTML(model) {
+      return `
+      <div style='color:#777;'>このモード(${model.mode})のインラインパネルは未実装です。</div>
+      <div style='display:flex;gap:8px;margin-top:10px;'>
+        <button class='cancel-btn'>閉じる</button>
+      </div>`;
+    }
+
+    function inlinePanelRenderUnknown(ctx) {
+      const { mode, panel, closePanel, bindCancelButtons } = ctx;
+      const model = unknownPanelBuildModel(mode);
+      panel.innerHTML = unknownPanelBuildHTML(model);
+      bindCancelButtons(panel, closePanel);
+    }
+
+    function inlinePanelCreateShell(panelDate) {
+      const li = document.createElement('li');
+      li.className = 'record-row active inline-panel-row';
+      li.innerHTML = `
+      <div class="record-main">
+        <span class="record-date">${formatDateDAtoSpan(formatDateDA(panelDate))}</span>
+        <div class="record-times"></div>
+      </div>
+      <div class="expand-panel"></div>`;
+      const panel = li.querySelector('.expand-panel');
+      return { li, panel };
+    }
+
+    function inlinePanelBindOverlayClose(closeFn) {
+      const ov = document.getElementById('overlay');
+      if (ov) ov.onclick = closeFn;
+    }
+
+    function inlinePanelBindCancelButtons(panelEl, closeFn) {
+      if (!panelEl) return;
+      panelEl.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.onclick = (e) => { if (e) e.stopPropagation(); closeFn(); };
+      });
+    }
+
+    function inlinePanelCreateCloseHandler() {
+      return () => {
+        addPanelActive = false;
+        clearForceVisibleDate();
+        saveScroll();
+        closeInlinePanel();
+        restoreScroll();
+        if (shouldAutoBack()) { backNavigate(); }
+      };
+    }
+
+    function inlinePanelOpen(panelDate) {
+      // 多重開きを避ける
+      closeInlinePanel();
+      // 編集モード（将来用フラグ）
+      const sa = document.querySelector('.scroll-area');
+      if (sa && window.__enableEditingMode) sa.classList.add('editing-mode');
+      showOverlay();
+
+      const { li, panel } = inlinePanelCreateShell(panelDate);
+      const closePanel = inlinePanelCreateCloseHandler();
+      inlinePanelBindOverlayClose(closePanel);
+      return { li, panel, closePanel };
+    }
+
+    function inlinePanelFindAnchorRowByDate(d) {
+      const byData = document.querySelector(`li.record-row[data-date="${d}"]`);
+      if (byData) return byData;
+      const lis = document.querySelectorAll('li.record-row');
+      return Array.from(lis).find(el => (el.textContent || '').includes(d)) || null;
+    }
+
+    async function reloadAndReopenInlinePanel({ reopenDate, reopenMode }) {
+      saveScroll();
+      // フィルタに関わらず対象日を表示して再オープンできるようにする
+      window.__forceVisibleDate = reopenDate;
+      const monthVal = getSelectedMonthVal();
+      await loadRecordsByPeriod(monthVal);
+      closeInlinePanel();
+      const anchor = inlinePanelFindAnchorRowByDate(reopenDate);
+      const rec3 = window.__recordMap ? window.__recordMap[reopenDate] : null;
+      if (anchor) insertInlinePanelFor(anchor, reopenDate, reopenMode, rec3);
+      restoreScroll();
+    }
+
+    const INLINE_PANEL_RENDERERS = {
+      paid: inlinePanelRenderPaid,
+      ignore: inlinePanelRenderIgnore,
+      locked: inlinePanelRenderLocked,
+      off: inlinePanelRenderOff,
+      work: inlinePanelRenderWork,
+      add: inlinePanelRenderAdd
+    };
+
+    async function insertInlinePanelFor(anchorLi, date, mode, rec) {
+      if (!anchorLi || !date) return;
+
+      const { li, panel, closePanel } = inlinePanelOpen(date);
+
+      const renderer = INLINE_PANEL_RENDERERS[mode] || inlinePanelRenderUnknown;
+      renderer({ date, mode, rec, panel, closePanel, reloadAndReopenInlinePanel, bindCancelButtons: inlinePanelBindCancelButtons });
+      insertActiveRowAfter(anchorLi, li);
+      alignActiveRowToListLabel(li);
+    }
     // --- 戻り導線（back, backMode） ---
     function sanitizeBackUrl(url) {
       if (!url) return null;
@@ -974,9 +1567,9 @@
       if (document.getElementById('backBtn')) return;
       const btn = document.createElement('button');
       btn.id = 'backBtn';
+      btn.className = 'back-Btn';
       btn.type = 'button';
       btn.textContent = '← 戻る';
-      btn.style.cssText = 'margin-right:6px;padding:4px 10px;border:1px solid #cfd8dc;background:#fff;color:#455a64;border-radius:6px;cursor:pointer;';
       btn.addEventListener('click', () => backNavigate());
       headerTitle.insertBefore(btn, headerTitle.firstChild);
     }
@@ -1090,46 +1683,70 @@
       return start && end ? `${start}〜${end}` : '';
     }
 
+    async function fetchFlexSummary(monthVal) {
+      const query = monthVal ? `?month=${encodeURIComponent(monthVal)}` : '';
+      const res = await fetchWithAuth(`api/flex_summary.php${query}`);
+      if (!res || !res.ok) throw new Error('flex fetch failed');
+      return await res.json();
+    }
+
+    function shouldShowFlexSummary(data) {
+      return !!(data && data.ok !== false && data.is_full_time !== false);
+    }
+
+    function resetFlexTwoMonthUI() {
+      if (flexTwoMonthRow) flexTwoMonthRow.style.display = 'none';
+      if (flexSettlementMonths) flexSettlementMonths.textContent = '';
+      if (flexTwoMonthWorkedMinutes) flexTwoMonthWorkedMinutes.textContent = '';
+      if (flexTwoMonthPaidLeaveMinutes) flexTwoMonthPaidLeaveMinutes.textContent = '';
+      if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
+    }
+
+    function hideFlexSummaryUI() {
+      if (flexSummaryBox) flexSummaryBox.style.display = 'none';
+      resetFlexTwoMonthUI();
+    }
+
+    function renderFlexSummary(data) {
+      if (!flexSummaryBox) return;
+      flexSummaryBox.style.display = 'block';
+      flexUpdateDelta(flexCurrentDelta, data.delta_minutes);
+      if (flexWorkedMinutes) flexWorkedMinutes.textContent = ` ${flexMinutesToHM(data.worked_minutes)} / ${flexMinutesToHM(data.legal_minutes)}`;
+      if (flexPaidLeaveMinutes) flexPaidLeaveMinutes.textContent = flexMinutesToHM(data.paid_leave_minutes);
+      if (flexPeriod) flexPeriod.textContent = flexFormatPeriodRange(data.period);
+    }
+
+    function renderFlexTwoMonth(data) {
+      if (data && data.is_settlement_month && data.two_month) {
+        const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
+        if (flexTwoMonthRow) flexTwoMonthRow.style.display = 'flex';
+        flexUpdateDelta(flexTwoMonthDelta, data.two_month.delta_minutes);
+        if (flexSettlementMonths) flexSettlementMonths.textContent = labels;
+        if (flexTwoMonthWorkedMinutes) flexTwoMonthWorkedMinutes.textContent = ` ${flexMinutesToHM(data.two_month.worked_minutes)} / ${flexMinutesToHM(data.two_month.legal_minutes)}`;
+        if (flexTwoMonthPaidLeaveMinutes) flexTwoMonthPaidLeaveMinutes.textContent = flexMinutesToHM(data.two_month.paid_leave_minutes);
+        if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'block';
+      } else {
+        resetFlexTwoMonthUI();
+      }
+    }
+
     async function refreshFlexSummary(monthVal) {
       if (!flexSummaryBox) return;
       const token = ++flexSummaryRequestToken;
-      const query = monthVal ? `?month=${encodeURIComponent(monthVal)}` : '';
       try {
-        const res = await fetchWithAuth(`api/flex_summary.php${query}`);
-        if (!res || !res.ok) throw new Error('flex fetch failed');
-        const data = await res.json();
+        const data = await fetchFlexSummary(monthVal);
         if (token !== flexSummaryRequestToken) return;
-        if (!data || data.ok === false || data.is_full_time === false) {
-          flexSummaryBox.style.display = 'none';
+
+        if (!shouldShowFlexSummary(data)) {
+          hideFlexSummaryUI();
           return;
         }
 
-        flexSummaryBox.style.display = 'block';
-        flexUpdateDelta(flexCurrentDelta, data.delta_minutes);
-        flexWorkedMinutes.textContent = ` ${flexMinutesToHM(data.worked_minutes)} / ${flexMinutesToHM(data.legal_minutes)}`;
-        flexPaidLeaveMinutes.textContent = flexMinutesToHM(data.paid_leave_minutes);
-        flexPeriod.textContent = flexFormatPeriodRange(data.period);
-
-        if (data.is_settlement_month && data.two_month) {
-          const labels = Array.isArray(data.two_month.month_labels) ? data.two_month.month_labels.join(' / ') : '';
-          flexTwoMonthRow.style.display = 'flex';
-          flexUpdateDelta(flexTwoMonthDelta, data.two_month.delta_minutes);
-          flexSettlementMonths.textContent = labels;
-          flexTwoMonthWorkedMinutes.textContent = ` ${flexMinutesToHM(data.two_month.worked_minutes)} / ${flexMinutesToHM(data.two_month.legal_minutes)}`;
-          flexTwoMonthPaidLeaveMinutes.textContent = flexMinutesToHM(data.two_month.paid_leave_minutes);
-          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'block';
-        } else {
-          flexTwoMonthRow.style.display = 'none';
-          flexSettlementMonths.textContent = '';
-          flexTwoMonthWorkedMinutes.textContent = '';
-          flexTwoMonthPaidLeaveMinutes.textContent = '';
-          if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
-        }
+        renderFlexSummary(data);
+        renderFlexTwoMonth(data);
       } catch (e) {
         if (token !== flexSummaryRequestToken) return;
-        flexSummaryBox.style.display = 'none';
-        flexTwoMonthRow.style.display = 'none';
-        if (flexDetailTwoMonth) flexDetailTwoMonth.style.display = 'none';
+        hideFlexSummaryUI();
       }
     }
     // 設定取得
@@ -1173,113 +1790,142 @@
       return arr;
     }
 
-    async function loadRecordsByPeriod(monthVal) {
-      let url = 'api/attendance_list.php';
-      const { start, end } = calcPeriodRange(monthVal);
+    function createEmptyAuxData() {
+      return { dayStatuses: {}, lockedRanges: [], paidLeave: {} };
+    }
+
+    async function fetchAttendanceRecords({ start, end }) {
       const options = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ start, end })
       };
-      const res = await fetchWithAuth(url, options);
-      if (!res) return;
-      if (res.ok) {
-        records = await res.json();
-        // 期間情報・日リスト・レコードマップ
-        const pr = calcPeriodRange(monthVal);
-        window.__periodRange = pr;
-        window.__dayList = enumerateDates(pr.start, pr.end);
-        window.__recordMap = {};
-        (records || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
-        // 有効な日ステータス・ロック情報・有給（範囲）を並列取得して待ち合わせ
-        try {
-          const [stRes, lockRes, plRes] = await Promise.all([
-            fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`),
-            fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`),
-            fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`)
-          ]);
-          // 日ステータス
-          if (stRes && stRes.ok) {
-            const stData = await stRes.json();
-            window.__dayStatuses = {};
-            (stData.items || []).forEach(it => { window.__dayStatuses[it.date] = it; });
-          } else { window.__dayStatuses = {}; }
-          // ロック
-          if (lockRes && lockRes.ok) {
-            const lockData = await lockRes.json();
-            window.__lockedRanges = lockData.locked_ranges || [];
-          } else { window.__lockedRanges = []; }
-          // 有給履歴
-          if (plRes && plRes.ok) {
-            const plData = await plRes.json();
-            window.__paidLeave = {};
-            (plData.items || []).forEach(it => { if (it.date) window.__paidLeave[it.date] = it; });
-          } else { window.__paidLeave = {}; }
-        } catch (e) {
-          window.__dayStatuses = {};
-          window.__lockedRanges = [];
-          window.__paidLeave = {};
+      const res = await fetchWithAuth('api/attendance_list.php', options);
+      if (!res) return null;
+      if (!res.ok) return { ok: false, records: [] };
+      const records = await res.json();
+      return { ok: true, records };
+    }
+
+    async function fetchAuxData({ start, end }) {
+      try {
+        const [stRes, lockRes, plRes] = await Promise.all([
+          fetchWithAuth(`api/day_status_effective_get.php?start=${start}&end=${end}`),
+          fetchWithAuth(`api/period_lock_effective_get.php?start=${start}&end=${end}`),
+          fetchWithAuth(`api/paid_leave_history.php?start=${start}&end=${end}`)
+        ]);
+
+        const aux = createEmptyAuxData();
+        // 日ステータス
+        if (stRes && stRes.ok) {
+          const stData = await stRes.json();
+          (stData.items || []).forEach(it => { if (it && it.date) aux.dayStatuses[it.date] = it; });
         }
-      } else {
-        records = [];
-        window.__dayStatuses = {};
-        window.__lockedRanges = [];
-        window.__paidLeave = {};
+        // ロック
+        if (lockRes && lockRes.ok) {
+          const lockData = await lockRes.json();
+          aux.lockedRanges = lockData.locked_ranges || [];
+        }
+        // 有給履歴
+        if (plRes && plRes.ok) {
+          const plData = await plRes.json();
+          (plData.items || []).forEach(it => { if (it && it.date) aux.paidLeave[it.date] = it; });
+        }
+        return aux;
+      } catch (e) {
+        return createEmptyAuxData();
       }
+    }
+
+    function applyPeriodDerivedState(periodRange, nextRecords) {
+      window.__periodRange = periodRange;
+      window.__dayList = enumerateDates(periodRange.start, periodRange.end);
+      window.__recordMap = {};
+      (nextRecords || []).forEach(r => { if (r && r.date) window.__recordMap[r.date] = r; });
+    }
+
+    function applyAuxState(aux) {
+      const safeAux = aux || createEmptyAuxData();
+      window.__dayStatuses = safeAux.dayStatuses || {};
+      window.__lockedRanges = safeAux.lockedRanges || [];
+      window.__paidLeave = safeAux.paidLeave || {};
+    }
+
+    async function renderPeriodUI(monthVal) {
       setYearLabel();
       renderStatsBox();
       render();
       await refreshFlexSummary(monthVal);
-      // 勤怠統計情報の表示
-      function renderStatsBox() {
-        let workDays = 0;
-        let totalWorkMin = 0;
-        let totalOverMin = 0;
-        let missingCount = 0;
-        const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-        const dayList = window.__dayList || [];
-        const now = new Date();
-        const pad = n => n.toString().padStart(2, '0');
-        const paidLeaves = window.__paidLeave || {};
-        // paidLeavesの時間情報を合計
-        let totalPaidLeaveMinutes = 0;
-        for (const d in paidLeaves) {
-          const pl = paidLeaves[d];
-          if (pl && typeof pl.minutes === 'number') {
-            totalPaidLeaveMinutes += pl.minutes;
-          }
-        }
-        const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-        for (const d of dayList) {
-          const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
-          if (st === 'off' || st === 'ignore') continue; // 集計から除外
-          const rec = window.__recordMap ? window.__recordMap[d] : null;
-          if (rec && rec.clockIn && rec.clockOut) {
-            workDays++;
-            const s = parseTimeStr(rec.clockIn);
-            const e = parseTimeStr(rec.clockOut);
-            if (s && e) {
-              let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
-              min -= calcTotalBreak(rec.breaks || []);
-              if (min > 0) totalWorkMin += min;
-              if (min > baseMin) totalOverMin += min - baseMin;
-            }
-          } else {
-            // 未打刻件数（未来日は除外、有給は別扱い済み）
-            const isMissing = (!rec) && (st === 'work' || st === 'am_off' || st === 'pm_off');
-            const isPaid = !!(window.__paidLeave && window.__paidLeave[d]);
-            if (isMissing && !isPaid && d <= todayStr) missingCount++;
-          }
-        }
-        const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
-        const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "0";
-        document.getElementById("workDaysValue").textContent = workDays.toString() + "日";
-        document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
-        document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
-        document.getElementById("paidLeaveMinutesValue").textContent = `${Math.floor(totalPaidLeaveMinutes / 60)}:${(totalPaidLeaveMinutes % 60).toString().padStart(2, "0")}`;
-        const missEl = document.getElementById("missingCountValue");
-        if (missEl) missEl.textContent = missingCount;
+    }
+
+    async function loadRecordsByPeriod(monthVal) {
+      const periodRange = calcPeriodRange(monthVal);
+      const attendance = await fetchAttendanceRecords(periodRange);
+      if (!attendance) return;
+
+      if (attendance.ok) {
+        const aux = await fetchAuxData(periodRange);
+        records = attendance.records;
+        applyPeriodDerivedState(periodRange, attendance.records);
+        applyAuxState(aux);
+      } else {
+        records = [];
+        // 互換: 取得失敗時は periodRange/dayList/recordMap は更新しない
+        applyAuxState(createEmptyAuxData());
       }
+
+      await renderPeriodUI(monthVal);
+    }
+
+    // 勤怠統計情報の表示
+    function renderStatsBox() {
+      let workDays = 0;
+      let totalWorkMin = 0;
+      let totalOverMin = 0;
+      let missingCount = 0;
+      const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+      const dayList = window.__dayList || [];
+      const now = new Date();
+      const pad = n => n.toString().padStart(2, '0');
+      const paidLeaves = window.__paidLeave || {};
+      // paidLeavesの時間情報を合計
+      let totalPaidLeaveMinutes = 0;
+      for (const d in paidLeaves) {
+        const pl = paidLeaves[d];
+        if (pl && typeof pl.minutes === 'number') {
+          totalPaidLeaveMinutes += pl.minutes;
+        }
+      }
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      for (const d of dayList) {
+        const st = (window.__dayStatuses && window.__dayStatuses[d]) ? window.__dayStatuses[d].status : 'work';
+        if (st === 'off' || st === 'ignore') continue; // 集計から除外
+        const rec = window.__recordMap ? window.__recordMap[d] : null;
+        if (rec && rec.clockIn && rec.clockOut) {
+          workDays++;
+          const s = parseTimeStr(rec.clockIn);
+          const e = parseTimeStr(rec.clockOut);
+          if (s && e) {
+            let min = (e.h * 60 + e.m) - (s.h * 60 + s.m);
+            min -= calcTotalBreak(rec.breaks || []);
+            if (min > 0) totalWorkMin += min;
+            if (min > baseMin) totalOverMin += min - baseMin;
+          }
+        } else {
+          // 未打刻件数（未来日は除外、有給は別扱い済み）
+          const isMissing = (!rec) && (st === 'work' || st === 'am_off' || st === 'pm_off');
+          const isPaid = !!(window.__paidLeave && window.__paidLeave[d]);
+          if (isMissing && !isPaid && d <= todayStr) missingCount++;
+        }
+      }
+      const totalWorkStr = `${Math.floor(totalWorkMin / 60)}:${(totalWorkMin % 60).toString().padStart(2, "0")}`;
+      const totalOverStr = totalOverMin > 0 ? `${Math.floor(totalOverMin / 60)}:${(totalOverMin % 60).toString().padStart(2, "0")}` : "0";
+      document.getElementById("workDaysValue").textContent = workDays.toString() + "日";
+      document.getElementById("totalWorkHoursValue").textContent = totalWorkStr;
+      document.getElementById("totalOvertimeHoursValue").textContent = totalOverStr;
+      document.getElementById("paidLeaveMinutesValue").textContent = `${Math.floor(totalPaidLeaveMinutes / 60)}:${(totalPaidLeaveMinutes % 60).toString().padStart(2, "0")}`;
+      const missEl = document.getElementById("missingCountValue");
+      if (missEl) missEl.textContent = missingCount;
     }
     function parseTimeStr(str) {
       // "HH:MM" or "YYYY-MM-DD HH:MM:SS" → {h, m}
@@ -1322,7 +1968,6 @@
       return roundMinutes(min);
     }
     const recordList = document.getElementById('recordList');
-    let expandedIdx = null;
     let addPanelActive = false;
     window.__dayStatuses = window.__dayStatuses || {}; // date -> {status, source, note}
 
@@ -1338,199 +1983,54 @@
         }
       } catch (e) { }
     })();
+
+    function getSelectedMonthVal() {
+      return document.getElementById('monthSelect')?.value || '';
+    }
+
+    function getTodayISODate() {
+      const today = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    }
+
+    // 新規追加・有給申請など「日付初期値」を共通化
+    // - monthVal が当月なら今日、それ以外は YYYY-MM-01
+    function getInitialAddDate(monthVal) {
+      const mv = (typeof monthVal === 'string') ? monthVal : getSelectedMonthVal();
+      const todayStr = getTodayISODate();
+      if (mv && todayStr.startsWith(mv)) return todayStr;
+      if (mv) return `${mv}-01`;
+      return todayStr;
+    }
+
     document.getElementById('addRecordBtn').onclick = () => {
       if (addPanelActive) return;
 
-      addPanelActive = true;
-      expandedIdx = null;
-      render();
-      // 新規追加パネルを先頭に挿入
-      const li = document.createElement('li');
-      li.className = 'record-row active';
-      const today = new Date();
-      const pad = n => n.toString().padStart(2, '0');
-      const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-      li.innerHTML = `
-                <div class="expand-panel">
-                    <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${todayStr}"></label>
-                    <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
-                    <div class="edit-row">
-                      <label style="display: inline-grid;">始業
-                        <input type="time" id="addIn">
-                      </label>
-                      <label style="display: inline-grid;">終業
-                        <input type="time" id="addOut">
-                      </label>
-                      <label style="display: inline-grid;">車距離
-                        <label>
-                          <input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km
-                        </label>
-                      </label>
-                    </div>
-                    <div id="addClassification" style="margin-top:6px;"></div>
-                    <div class="break-list">
-                        <b>休憩:</b>
-                        <div id="addBreakEditList" style="margin-top: 0.4em;"></div>
-                    </div>
-                    <div class="break-delete-btns">
-                        <button class="add-break-btn" type="button">＋休憩を追加</button>
-                    </div>
-                    <div class="edit-btns">
-                        <button class="default-btn save-btn" disabled>保存</button>
-                        <button class="default-btn cancel-btn">キャンセル</button>
-                    </div>
-                </div>`;
-      // 休憩データ
-      const addRec = { date: todayStr, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
-      // 分類UIレンダリング
-      function renderAddClassification() {
-        const wrap = li.querySelector('#addClassification');
-        if (!wrap) return;
-        wrap.innerHTML = classificationControls(addRec.date);
-      }
-      function updateLockWarn() {
-        const warn = li.querySelector('#addLockWarn');
-        if (!warn) return;
-        if (isLocked(addRec.date)) { warn.style.display = 'block'; }
-        else { warn.style.display = 'none'; }
-      }
-      // 休憩編集UI
-      const breakEditList = li.querySelector('#addBreakEditList');
-      function renderBreaks() {
-        breakEditList.innerHTML = '';
-        addRec.breaks.forEach((b, i) => {
-          const row = document.createElement('div');
-          row.className = 'break-edit-row';
-          row.innerHTML = `
-                        <span>${i + 1}.</span>
-                        <input type="time" value="${b.start || ''}" class="break-start">
-                        ～
-                        <input type="time" value="${b.end || ''}" class="break-end">
-                        <button type="button" title="削除">×</button>
-                    `;
-          const startInput = row.querySelector('.break-start');
-          const endInput = row.querySelector('.break-end');
-          startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-          endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-          row.querySelector('button').onclick = e => {
-            e.stopPropagation();
-            addRec.breaks.splice(i, 1);
-            renderBreaks();
-            updateSaveBtn();
-          };
-          breakEditList.appendChild(row);
-        });
-      }
-      li.querySelector('.add-break-btn').onclick = () => {
-        addRec.breaks.push({ start: '', end: '' });
-        renderBreaks();
-        updateSaveBtn();
-      };
-      // バリデーション
-      function toDateObj(dateStr, timeStr) {
-        if (!dateStr || !timeStr) return null;
-        return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
-      }
-      function validateInputs() {
-        const dateVal = li.querySelector('#addDate').value;
-        const inVal = li.querySelector('#addIn').value;
-        const outVal = li.querySelector('#addOut').value;
-        if (!dateVal || !inVal || !outVal) return false;
-        // 期間ロック中は保存不可
-        if (isLocked(dateVal)) return false;
-        // 日付重複チェック
-        if (records.some(r => r.date === dateVal)) return false;
-        const inDate = toDateObj(dateVal, inVal);
-        const outDate = toDateObj(dateVal, outVal);
-        if (inDate && outDate && inDate >= outDate) return false;
-        for (let i = 0; i < addRec.breaks.length; i++) {
-          const b = addRec.breaks[i];
-          const bStart = b.start ? toDateObj(dateVal, b.start) : null;
-          const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
-          if (!b.start || !b.end) return false;
-          if (bStart && bEnd) {
-            if (bStart >= bEnd) return false;
-            if (inDate && bStart < inDate) return false;
-            if (outDate && bEnd > outDate) return false;
-          }
+      const monthVal = getSelectedMonthVal();
+      const initialDate = getInitialAddDate(monthVal);
+
+      // 挿入位置はラベル直後（無ければ先頭にダミーアンカー）
+      let anchor = document.getElementById('listLabelItem');
+      if (!anchor) {
+        // 初回ロード直後などで未描画なら描画してから探す
+        if (!recordList.firstChild) {
+          try { render(); } catch (_) { }
         }
-        // 選択月以外は追加不可
-        const monthVal = document.getElementById('monthSelect').value;
-        if (!dateVal.startsWith(monthVal)) return false;
-        return true;
+        anchor = document.getElementById('listLabelItem');
       }
-      function updateSaveBtn() {
-        li.querySelector('.save-btn').disabled = !validateInputs();
+      if (!anchor) {
+        anchor = recordList.firstChild;
       }
-      li.querySelector('#addDate').addEventListener('input', e => {
-        addRec.date = e.target.value;
-        renderAddClassification();
-        updateLockWarn();
-        updateSaveBtn();
-      });
-      li.querySelector('#addIn').addEventListener('input', e => {
-        addRec.clockIn = e.target.value;
-        updateSaveBtn();
-      });
-      li.querySelector('#addOut').addEventListener('input', e => {
-        addRec.clockOut = e.target.value;
-        updateSaveBtn();
-      });
-      li.querySelector('#addVehicleDistance').addEventListener('input', e => {
-        addRec.vehicleDistance = Number(e.target.value) || 0;
-        updateSaveBtn();
-      });
-      renderBreaks();
-      renderAddClassification();
-      updateLockWarn();
-      // 保存
-      li.querySelector('.save-btn').onclick = async () => {
-        if (!validateInputs()) {
-          alert('入力内容に誤りがあります。');
-          return;
-        }
-        // APIに新規追加
-        const res = await fetch('api/attendance_update.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: addRec.date,
-            clockIn: addRec.clockIn,
-            clockOut: addRec.clockOut,
-            breaks: addRec.breaks,
-            vehicleDistance: addRec.vehicleDistance
-          })
-        });
-        if (res.ok) {
-          addPanelActive = false;
-          const monthVal = document.getElementById('monthSelect').value;
-          clearForceVisibleDate();
-          if (shouldAutoBack()) { backNavigate(); return; }
-          await loadRecordsByPeriod(monthVal);
-        } else {
-          alert('新規追加に失敗しました');
-        }
-      };
-      // オーバーレイクリックで閉じる
-      document.getElementById('overlay').onclick = () => {
-        addPanelActive = false;
-        clearForceVisibleDate();
-        render();
-        hideOverlay();
-        if (shouldAutoBack()) { backNavigate(); }
-      };
-      // キャンセル
-      li.querySelector('.cancel-btn').onclick = () => {
-        addPanelActive = false;
-        clearForceVisibleDate();
-        render();
-        hideOverlay();
-        if (shouldAutoBack()) { backNavigate(); }
-      };
-      // 最上部に挿入
-      recordList.insertBefore(li, recordList.firstChild);
-      // オーバーレイ表示
-      showOverlay();
+      if (!anchor) {
+        const dummy = document.createElement('li');
+        dummy.style.display = 'none';
+        recordList.appendChild(dummy);
+        anchor = dummy;
+      }
+      saveScroll();
+      insertInlinePanelFor(anchor, initialDate, 'add');
+      restoreScroll();
     };
 
     function formatTime(str) {
@@ -1590,136 +2090,27 @@
       window.__forceVisibleDate = null;
     }
 
-    function openAddPanelFor(date, anchorLi) {
-      // 既存の追加パネルがあれば除去
-      const oldPanel = recordList.querySelector('li.record-row.active #addDate');
-      if (oldPanel) {
-        const li = oldPanel.closest('li.record-row.active');
-        if (li) li.remove();
-      }
-      if (this.event) {
-        if (this.event.target.className === 'mini-off-btn') {
-          // ミニ全休ボタンからの追加は無視
-          return;
-        }
-      }
-      // 追加パネルの表示フラグのみ切替（expandedIdx は変更しない）
-      addPanelActive = true;
-      // 新規追加パネル生成（既存トップ挿入ロジックをベースに行内挿入へ）
-      const li = document.createElement('li');
-      li.className = 'record-row active';
-      li.innerHTML = `
-                <div class="expand-panel">
-                    <label style="display: inline-grid; margin-bottom: 0.5em;">日付 <input type="date" id="addDate" value="${date}"></label>
-                    <div id="addLockWarn" style="display:none;margin:4px 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;">この日は期間ロック中のため保存できません</div>
-                    <div class="edit-row">
-                        <label style="display: inline-grid;">始業 <input type="time" id="addIn"></label>
-                        <label style="display: inline-grid;">終業 <input type="time" id="addOut"></label>
-                        <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="addVehicleDistance" value="0"> km</label></label>
-                    </div>
-                    <div id="addClassification" style="margin-top:6px;"></div>
-                    <div class="break-list">
-                        <b>休憩:</b>
-                        <div id="addBreakEditList" style="margin-top: 0.4em;"></div>
-                    </div>
-                    <div class="break-delete-btns">
-                        <button class="add-break-btn" type="button">＋休憩を追加</button>
-                    </div>
-                    <div class="edit-btns">
-                        <button class="default-btn save-btn" disabled>保存</button>
-                        <button class="default-btn cancel-btn">キャンセル</button>
-                    </div>
-                </div>`;
-      const addRec = { date, clockIn: '', clockOut: '', breaks: [], vehicleDistance: 0 };
-      function renderAddClassification() {
-        const wrap = li.querySelector('#addClassification');
-        if (!wrap) return; wrap.innerHTML = classificationControls(addRec.date);
-      }
-      function updateLockWarn() {
-        const warn = li.querySelector('#addLockWarn'); if (!warn) return; warn.style.display = isLocked(addRec.date) ? 'block' : 'none';
-      }
-      const breakEditList = li.querySelector('#addBreakEditList');
-      function renderBreaks() {
-        breakEditList.innerHTML = '';
-        addRec.breaks.forEach((b, i) => {
-          const row = document.createElement('div');
-          row.className = 'break-edit-row';
-          row.innerHTML = `
-                            <span>${i + 1}.</span>
-                            <input type="time" value="${b.start || ''}" class="break-start"> ～
-                            <input type="time" value="${b.end || ''}" class="break-end">
-                            <button type="button" title="削除">×</button>`;
-          const startInput = row.querySelector('.break-start');
-          const endInput = row.querySelector('.break-end');
-          startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-          endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-          row.querySelector('button').onclick = e => { e.stopPropagation(); addRec.breaks.splice(i, 1); renderBreaks(); updateSaveBtn(); };
-          breakEditList.appendChild(row);
-        });
-      }
-      li.querySelector('.add-break-btn').onclick = () => { addRec.breaks.push({ start: '', end: '' }); renderBreaks(); updateSaveBtn(); };
-      function toDateObj(dateStr, timeStr) { if (!dateStr || !timeStr) return null; return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`); }
-      function validateInputs() {
-        const dateVal = li.querySelector('#addDate').value;
-        const inVal = li.querySelector('#addIn').value;
-        const outVal = li.querySelector('#addOut').value;
-        if (!dateVal || !inVal || !outVal) return false;
-        if (isLocked(dateVal)) return false;
-        if (records.some(r => r.date === dateVal)) return false;
-        const inDate = toDateObj(dateVal, inVal); const outDate = toDateObj(dateVal, outVal);
-        if (inDate && outDate && inDate >= outDate) return false;
-        for (let i = 0; i < addRec.breaks.length; i++) {
-          const b = addRec.breaks[i]; const bStart = b.start ? toDateObj(dateVal, b.start) : null; const bEnd = b.end ? toDateObj(dateVal, b.end) : null;
-          if (!b.start || !b.end) return false;
-          if (bStart && bEnd) { if (bStart >= bEnd) return false; if (inDate && bStart < inDate) return false; if (outDate && bEnd > outDate) return false; }
-        }
-        const monthVal = document.getElementById('monthSelect').value; if (!dateVal.startsWith(monthVal)) return false; return true;
-      }
-      function updateSaveBtn() { li.querySelector('.save-btn').disabled = !validateInputs(); }
-      li.querySelector('#addDate').addEventListener('input', e => { addRec.date = e.target.value; renderAddClassification(); updateLockWarn(); updateSaveBtn(); });
-      li.querySelector('#addIn').addEventListener('input', e => { addRec.clockIn = e.target.value; updateSaveBtn(); });
-      li.querySelector('#addOut').addEventListener('input', e => { addRec.clockOut = e.target.value; updateSaveBtn(); });
-      li.querySelector('#addVehicleDistance').addEventListener('input', e => { addRec.vehicleDistance = Number(e.target.value) || 0; updateSaveBtn(); });
-      renderBreaks(); renderAddClassification(); updateLockWarn(); updateSaveBtn();
-      li.querySelector('.save-btn').onclick = async () => {
-        if (!validateInputs()) { alert('入力内容に誤りがあります。'); return; }
-        const res = await fetch('api/attendance_update.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: addRec.date, clockIn: addRec.clockIn, clockOut: addRec.clockOut, breaks: addRec.breaks, vehicleDistance: addRec.vehicleDistance }) });
-        if (res.ok) { addPanelActive = false; const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal); } else { alert('新規追加に失敗しました'); }
-      };
-      document.getElementById('overlay').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-      li.querySelector('.cancel-btn').onclick = () => { addPanelActive = false; clearForceVisibleDate(); li.remove(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-      // 挿入位置: アンカー行の直後（アンカーが無い場合は先頭）
-      if (anchorLi && anchorLi.parentNode === recordList) {
-        if (anchorLi.nextSibling) recordList.insertBefore(li, anchorLi.nextSibling); else recordList.appendChild(li);
-      } else {
-        recordList.insertBefore(li, recordList.firstChild);
-      }
-      showOverlay();
-      const inEl = li.querySelector('#addIn'); if (inEl) inEl.focus();
+    // render()/ハイライト/クリック等で共通の「その日のパネルを開く」処理
+    function openInlinePanelForDate(anchorLi, date) {
+      const t = dayType(date);
+      const rec = window.__recordMap ? window.__recordMap[date] : null;
+      const isLock = isLocked(date);
+      saveScroll();
+      if (t === 'missing') insertInlinePanelFor(anchorLi, date, 'add');
+      else if (t === 'off') insertInlinePanelFor(anchorLi, date, 'off');
+      else if (t === 'paid') insertInlinePanelFor(anchorLi, date, 'paid');
+      else if (t !== 'work') insertInlinePanelFor(anchorLi, date, isLock ? 'locked' : 'ignore');
+      else insertInlinePanelFor(anchorLi, date, 'work', rec);
+      restoreScroll();
     }
-    function render() {
-      recordList.innerHTML = '';
-      const dayList = window.__dayList || [];
-      let currentMonth = null; // YYYY-MM 単位で追跡し、変化時にヘッダー挿入
-      dayList.forEach((d, idx) => {
-        if (!passFilter(d)) return;
-        const monthPart = d.slice(0, 7); // YYYY-MM
-        if (monthPart !== currentMonth) {
-          currentMonth = monthPart;
-          const [yy, mm] = monthPart.split('-');
-          const monthLi = document.createElement('li');
-          monthLi.id = `month-divider-${monthPart}`;
-          monthLi.className = 'month-divider';
-          monthLi.textContent = `${yy}年${parseInt(mm, 10)}月`;
-          recordList.appendChild(monthLi);
-          const monthLiHeight = monthLi.clientHeight;
-          const listLabel = document.createElement('li');
-          listLabel.id = 'listLabelItem';
-          listLabel.className = 'month-divider';
-          listLabel.style.top = monthLiHeight + 'px';
-          const listLabelBox = document.createElement('div');
-          listLabelBox.id = 'listLabelBox';
-          listLabelBox.innerHTML = `
+
+    function createListLabelElement() {
+      const listLabel = document.createElement('li');
+      listLabel.id = 'listLabelItem';
+      listLabel.className = 'month-divider';
+      const listLabelBox = document.createElement('div');
+      listLabelBox.id = 'listLabelBox';
+      listLabelBox.innerHTML = `
             <span style="min-width: 4.5em; max-width: 4.5em; width: 4.5em; flex-shrink: 0; flex-grow: 0; text-align: center;">日付</span>
             <div style="display: flex; flex: 1 1 0%; justify-content: space-between; gap: 0; margin-right: 0em;">
               <div class="record-col">
@@ -1739,416 +2130,209 @@
               </div>
             </div>
           `;
-          listLabel.appendChild(listLabelBox);
+      listLabel.appendChild(listLabelBox);
+      return listLabel;
+    }
 
-          recordList.appendChild(listLabel);
-        }
-        const rec = window.__recordMap ? window.__recordMap[d] : null;
-        const t = dayType(d);
-        const li = document.createElement('li');
-        li.className = 'record-row' + (expandedIdx === idx ? ' active' : '');
-        const spanDate = formatDateDAtoSpan(formatDateDA(d));
-        if (t !== 'work') {
-          const badgeSt = (window.__dayStatuses[d]?.status) || 'work';
-          let timesHTML = `
-                            <div class="record-col"><div class="value"></div></div>
-                            <div class="record-col"><div class="value"></div></div>
-                            <div class="record-col"><div class="value"></div></div>
-                            <div class="record-col"><div class="value"></div></div>`;
-          if (t === 'missing') {
-            const locked = isLocked(d);
-            timesHTML = `<div class="record-col" style="min-width:unset"><div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;min-width:unset">（未）
-                  <button type='button' class='mini-add-btn' data-date='${d}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button>
-                  <button type='button' class='mini-off-btn' id='off-${d}' data-date='${d}' ${locked ? 'disabled title="ロック中"' : ''} style='font-size:.55em;padding:2px 6px;border:1px solid #ef9a9a;border-radius:4px;background:#fff;color:#c62828;cursor:pointer;white-space:nowrap'>全休</button>
-                  </div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div><div class="record-col"><div class="value"></div></div>`;
-          } else if (t === 'paid') {
-            const info = window.__paidLeave[d];
-            const hrs = info ? info.hours : null;
-            const reason = info && info.reason ? info.reason : '';
-            timesHTML = `<div class='record-col'><div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div><div class='record-col'><div class='value'></div></div>`;
-          }
-          const badgeCode = t === 'paid' ? 'paid' : badgeSt;
+    function createMonthDividerElement(monthPart) {
+      const [yy, mm] = monthPart.split('-');
+      const monthLi = document.createElement('li');
+      monthLi.id = `month-divider-${monthPart}`;
+      monthLi.className = 'month-divider';
+      monthLi.textContent = `${yy}年${parseInt(mm, 10)}月`;
+      return monthLi;
+    }
 
-          li.innerHTML = `
+    function appendMonthDividerIfNeeded(monthPart, currentMonth, listLabel) {
+      if (monthPart === currentMonth) return currentMonth;
+      const nextMonth = monthPart;
+      const monthLi = createMonthDividerElement(monthPart);
+      recordList.appendChild(monthLi);
+      const monthLiHeight = monthLi.clientHeight;
+      const lb = document.getElementById('listLabelItem');
+      if (!lb) recordList.appendChild(listLabel);
+      else lb.style.top = monthLiHeight + 'px';
+      return nextMonth;
+    }
+
+    function buildNonWorkTimesHTML(date, t) {
+      let timesHTML = `
+                            <div class="record-col">
+                              <div class="value"></div>
+                            </div>
+                            <div class="record-col">
+                              <div class="value"></div>
+                            </div>
+                            <div class="record-col">
+                              <div class="value"></div>
+                            </div>`;
+      if (t === 'missing') {
+        const locked = isLocked(date);
+        timesHTML = `
+                    <div class="record-col" style="min-width:unset">
+                      <div class="value" style="color:#e65100;display:flex;flex-direction:row;align-items:center;gap:4px;min-width:unset">（未）
+                        <button type='button' class='mini-add-btn' data-date='${date}' style='font-size:.55em;padding:2px 6px;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;cursor:pointer;'>＋</button>
+                        <button type='button' class='mini-off-btn' id='off-${date}' data-date='${date}' ${locked ? 'disabled title="ロック中"' : ''} style='font-size:.55em;padding:2px 6px;border:1px solid #ef9a9a;border-radius:4px;background:#fff;color:#c62828;cursor:pointer;white-space:nowrap'>全休</button>
+                      </div>
+                    </div>
+                    <div class="record-col">
+                      <div class="value"></div>
+                    </div>
+                    <div class="record-col">
+                      <div class="value"></div>
+                    </div>
+                    <div class="record-col">
+                      <div class="value"></div>
+                    </div>`;
+      } else if (t === 'paid') {
+        const info = window.__paidLeave[date];
+        const hrs = info ? info.hours : null;
+        const reason = info && info.reason ? info.reason : '';
+        timesHTML = `
+        <div class='record-col'>
+          <div class='value' style='color:#1b5e20;font-size:.8em;display:flex;flex-direction:column;align-items:center;gap:2px;'>${hrs ? hrs + 'h' : ''}${reason ? `<span style='font-size:.55em;color:#2e7d32;'>${escapeHtml(reason)}</span>` : ''}</div>
+        </div>
+        <div class='record-col'>
+          <div class='value'></div>
+        </div>
+        <div class='record-col'>
+          <div class='value'></div>
+        </div>
+        <div class='record-col'>
+          <div class='value'></div>
+        </div>`;
+      }
+      return timesHTML;
+    }
+
+    function buildNonWorkRowHTML(date, spanDate, t) {
+      const badgeSt = (window.__dayStatuses[date]?.status) || 'work';
+      const timesHTML = buildNonWorkTimesHTML(date, t);
+      const badgeCode = t === 'paid' ? 'paid' : badgeSt;
+      return `
                         <div class="record-main">
-                            <span class="record-date">${spanDate}<br><span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[d]?.reason ? ('\n' + escapeHtml(window.__paidLeave[d].reason)) : '')) : badgeTitle(d)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span>`}</span></span>
-                            <div class="record-times">${timesHTML}</div>
+                          <span class="record-date">${spanDate}<br>
+                            <span class="day-status-badge" data-st="${badgeCode}" title="${t === 'paid' ? ('有給' + (window.__paidLeave[date]?.reason ? ('\n' + escapeHtml(window.__paidLeave[date].reason)) : '')) : badgeTitle(date)}">${t === 'paid' ? '有給' : statusLabel(badgeSt)}${t === 'paid' ? '' : `<span class="src-flag">${(window.__dayStatuses[date]?.source === 'override') ? 'O' : ''}</span>`}
+                            </span>
+                          </span>
+                          <div class="record-times">${timesHTML}</div>
                         </div>`;
-          li.onclick = (e) => {
-            if (t === 'missing') { openAddPanelFor(d, li); return; }
-            if (t === 'paid') { expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-            expandedIdx = (expandedIdx === idx) ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
-          };
+    }
+
+    function buildWorkRowHTML(date, spanDate, rec) {
+      const workMin = calcWorkMin(rec?.clockIn, rec?.clockOut, rec?.breaks || []);
+      const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
+      const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
+      let overStr = '';
+      if (workMin > baseMin) {
+        const overMin = workMin - baseMin;
+        overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`;
+      }
+      return `
+            <div class="record-main">
+                <span class="record-date">${spanDate}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[date]?.status) || 'work'}" title="${badgeTitle(date)}">${statusLabel((window.__dayStatuses[date]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[date]?.source === 'override') ? 'O' : ''}</span></span></span>
+                <div class="record-times">
+                    <div class="record-col"><div class="value">${formatTime(rec?.clockIn)}</div></div>
+                    <div class="record-col"><div class="value">${formatTime(rec?.clockOut)}</div></div>
+                    <div class="record-col"><div class="value">${Math.floor(calcTotalBreak(rec?.breaks || []))}<span style="font-size:0.5em;">分</span></div></div>
+                    <div class="record-col"><div class="value">${workStr}${overStr}</div></div>
+                    <div class="record-col"><div class="value">${rec?.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div></div>
+                </div>
+            </div>`;
+    }
+
+    function buildRecordRowElement(date) {
+      const rec = window.__recordMap ? window.__recordMap[date] : null;
+      const t = dayType(date);
+      const li = document.createElement('li');
+      li.className = 'record-row';
+      li.dataset.date = date;
+      const spanDate = formatDateDAtoSpan(formatDateDA(date));
+      if (t !== 'work') {
+        li.innerHTML = buildNonWorkRowHTML(date, spanDate, t);
+      } else {
+        li.innerHTML = buildWorkRowHTML(date, spanDate, rec);
+      }
+      li.onclick = () => openInlinePanelForDate(li, date);
+      return li;
+    }
+
+    function openHighlightedDateIfAny(liByDate) {
+      if (!window.__highlightDate) return;
+      const targetDate = window.__highlightDate;
+      const anchor = liByDate.get(targetDate);
+      if (!anchor) return;
+      // ハイライト解除でフィルタに埋もれないよう、forceVisibleへ移す
+      window.__forceVisibleDate = targetDate;
+      requestAnimationFrame(() => {
+        try {
+          openInlinePanelForDate(anchor, targetDate);
+        } catch (_) { }
+        window.__highlightDate = null;
+      });
+    }
+
+    function restorePreservedScrollY(preservedY) {
+      if (preservedY === null) return;
+      try {
+        const sa = document.querySelector('.scroll-area');
+        if (sa && typeof sa.scrollTo === 'function') {
+          sa.scrollTo({ top: preservedY });
+        } else if (sa) {
+          sa.scrollTop = preservedY;
         } else {
-          const workMin = calcWorkMin(rec.clockIn, rec.clockOut, rec.breaks);
-          const workStr = workMin ? `${Math.floor(workMin / 60)}:${(workMin % 60).toString().padStart(2, '0')}` : '';
-          const baseMin = Number(settings.work_hours) * 60 + Number(settings.work_minutes);
-          let overStr = '';
-          if (workMin > baseMin) { const overMin = workMin - baseMin; overStr = ` <span style='color:#e57373;font-weight:bold;'>（+${Math.floor(overMin / 60)}:${(overMin % 60).toString().padStart(2, '0')}）</span>`; }
-          li.innerHTML = `
-                        <div class="record-main">
-                            <span class="record-date">${spanDate}<br><span class="day-status-badge" data-st="${(window.__dayStatuses[d]?.status) || 'work'}" title="${badgeTitle(d)}">${statusLabel((window.__dayStatuses[d]?.status) || 'work')}<span class="src-flag">${(window.__dayStatuses[d]?.source === 'override') ? 'O' : ''}</span></span></span>
-                            <div class="record-times">
-                                <div class="record-col"><div class="value">${formatTime(rec.clockIn)}</div></div>
-                                <div class="record-col"><div class="value">${formatTime(rec.clockOut)}</div></div>
-                                <div class="record-col"><div class="value">${Math.floor(calcTotalBreak(rec.breaks || []))}<span style="font-size:0.5em;">分</span></div></div>
-                                <div class="record-col"><div class="value">${workStr}${overStr}</div></div>
-                                <div class="record-col"><div class="value">${rec.vehicleDistance ?? 0}<span style="font-size:0.5em;">km</span></div></div>
-                            </div>
-                        </div>`;
-          li.onclick = (e) => {
-            if (
-              expandedIdx === idx &&
-              e.target.closest('.record-row.active') &&
-              !e.target.classList.contains('save-btn') &&
-              !e.target.classList.contains('cancel-btn')
-            ) return;
-            if (addPanelActive) { addPanelActive = false; expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-            if (expandedIdx !== null && expandedIdx !== idx) { expandedIdx = idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay(); return; }
-            expandedIdx = expandedIdx === idx ? null : idx; render(); if (expandedIdx !== null) showOverlay(); else hideOverlay();
-          };
+          window.scrollTo({ top: preservedY });
         }
+      } catch (_) {
+        try {
+          const sa2 = document.querySelector('.scroll-area');
+          if (sa2) sa2.scrollTop = preservedY;
+          else window.scrollTo(0, preservedY);
+        } catch (__e) { /* ignore */ }
+      }
+      window.__preserveScrollY = null;
+    }
+
+    function renderRows(dayList, listLabel) {
+      const liByDate = new Map();
+      let currentMonth = null; // YYYY-MM 単位で追跡し、変化時にヘッダー挿入
+      (dayList || []).forEach((d) => {
+        if (!passFilter(d)) return;
+        const monthPart = d.slice(0, 7); // YYYY-MM
+        currentMonth = appendMonthDividerIfNeeded(monthPart, currentMonth, listLabel);
+        const li = buildRecordRowElement(d);
         recordList.appendChild(li);
-        if (expandedIdx === idx) {
-          const locked = isLocked(d);
-          const effSt = (window.__dayStatuses[d]?.status) || 'work';
-          const panel = document.createElement('div');
-          panel.className = 'expand-panel';
-          if (t === 'paid') {
-            panel.innerHTML = `
-                                                            <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;border-radius:6px;font-size:.85em;'>この日は有給（${window.__paidLeave[d]?.hours || ''}h）です</div>
-                                                            <div style='display:grid;row-gap:6px;font-size:.95em;'>
-                                                                <div><b>日付:</b> ${d}</div>
-                                                                <div><b>区分:</b> 有給</div>
-                                                                ${window.__paidLeave[d]?.reason ? `<div><b>理由:</b> ${escapeHtml(window.__paidLeave[d].reason)}</div>` : ''}
-                                                            </div>
-                                                            <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
-                                                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
-                                                            </div>`;
-            li.appendChild(panel);
-            const ov = document.getElementById('overlay');
-            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            return;
-          } else if (effSt === 'off') {
-            // 全休 → 読み取り＋勤務へ戻す
-            const canRestore = !locked;
-            panel.innerHTML = `
-                              ${locked ? `<div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>` : ''}
-                              <div style='display:grid;row-gap:6px;font-size:.95em;'>
-                                <div><b>日付:</b> ${d}</div>
-                                <div><b>区分:</b> 全休</div>
-                              </div>
-                              <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;gap:8px;'>
-                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
-                                ${canRestore ? `<button class='default-btn restore-btn'>勤務へ戻す</button>` : ''}
-                              </div>`;
-            li.appendChild(panel);
-            const ov = document.getElementById('overlay');
-            if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            const rb = panel.querySelector('.restore-btn');
-            if (rb) rb.onclick = async e => {
-              e.stopPropagation();
-              try {
-                const res = await fetchWithAuth('api/day_status_self_clear.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: d }) });
-                if (res && res.ok) {
-                  const monthVal = document.getElementById('monthSelect').value; clearForceVisibleDate(); if (shouldAutoBack()) { backNavigate(); return; } await loadRecordsByPeriod(monthVal);
-                  expandedIdx = null; render(); hideOverlay();
-                } else { alert('解除に失敗しました'); }
-              } catch (_) { alert('解除エラー'); }
-            };
-            return;
-          }
-          if (!rec) {
-            if (effSt === 'ignore') {
-              panel.innerHTML = `
-                                                                    <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #cfd8dc;background:#eceff1;color:#455a64;border-radius:6px;font-size:.85em;'>この日は集計外です（編集不可）</div>
-                                                                    <div style='display:grid;row-gap:6px;font-size:.95em;'>
-                                                                        <div><b>日付:</b> ${d}</div>
-                                                                        <div><b>区分:</b> 除外</div>
-                                                                    </div>
-                                                                    <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
-                                                                        <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
-                                                                    </div>`;
-              li.appendChild(panel);
-              const ov = document.getElementById('overlay');
-              if (ov) ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-              panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            } else {
-              openAddPanelFor(d, li);
-            }
-            return;
-          }
-          if (locked) {
-            // ロック期間 → 読み取り専用表示（閉じる以外の操作を禁止）
-            panel.innerHTML = `
-                              <div style='margin:0 0 8px 0;padding:6px 8px;border:1px solid #ffcc80;background:#fff3e0;color:#e65100;border-radius:6px;font-size:.85em;'>この日は期間ロック中です（編集不可）</div>
-                              <div style='display:grid;row-gap:6px;font-size:.95em;'>
-                                <div><b>日付:</b> ${d}</div>
-                                <div><b>区分:</b> ${statusLabel((window.__dayStatuses[d]?.status) || 'work')}</div>
-                                <div><b>始業:</b> ${formatTime(rec.clockIn)}</div>
-                                <div><b>終業:</b> ${formatTime(rec.clockOut)}</div>
-                                <div><b>休憩合計:</b> ${Math.floor(calcTotalBreak(rec.breaks))} 分</div>
-                                <div><b>車距離:</b> ${rec.vehicleDistance ?? 0} km</div>
-                                <div><b>休憩明細:</b></div>
-                                <div style='padding-left:4px;'>${rec.breaks.length ? rec.breaks.map((b, i) => `<div style='margin:2px 0;'>${i + 1}. ${b.start ? formatTime(b.start) : '-'} ～ ${b.end ? formatTime(b.end) : '-'}</div>`).join('') : '（なし）'}</div>
-                              </div>
-                              <div class='edit-btns' style='margin-top:10px;display:flex;justify-content:flex-end;'>
-                                <button class='default-btn cancel-btn' style='background:#546e7a;'>閉じる</button>
-                              </div>
-                            `;
-            li.appendChild(panel);
-            const ov = document.getElementById('overlay');
-            if (ov) { ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } }; }
-            panel.querySelector('.cancel-btn').onclick = e => { e.stopPropagation(); expandedIdx = null; clearForceVisibleDate(); render(); hideOverlay(); if (shouldAutoBack()) { backNavigate(); } };
-            // スクロール位置維持のため何も追加せず終了
-            return;
-          } else {
-            panel.innerHTML = `
-                            <div class="edit-row">
-                                <label style="display: inline-grid;">始業 <input type="time" value="${formatTime(rec.clockIn) !== '-' ? formatTime(rec.clockIn) : ''}" id="editIn"></label>
-                                <label style="display: inline-grid;">終業 <input type="time" value="${formatTime(rec.clockOut) !== '-' ? formatTime(rec.clockOut) : ''}" id="editOut"></label>
-                                <label style="display: inline-grid;">車距離 <label><input type="number" min="0" step="1" id="editVehicleDistance" value="${rec.vehicleDistance ?? 0}"> km</label></label>
-                            </div>
-                            ${classificationControls(d)}
-                            <div class="break-list">
-                                <b >休憩:</b>
-                                <div id="breakEditList" style="margin-top: 0.4em;"></div>
-                            </div>
-                            <div class="break-delete-btns">
-                                    <button class="add-break-btn" type="button">＋休憩を追加</button>
-                                    <button class="delete-btn" style="background:#e57373;">削除</button>
-                            </div>
-                            <div class="edit-btns">
-                                <button class="default-btn save-btn">保存</button>
-                                <button class="default-btn cancel-btn">キャンセル</button>
-                            </div>
-                        `;
-            li.appendChild(panel);
-          }
-          // 休憩編集UIの動的生成
-          // 編集時も選択月以外は編集不可
-          const monthVal = document.getElementById('monthSelect').value;
-          // 選択月以外も編集可能にするため、disabled条件を削除
-          const breakEditList = panel.querySelector('#breakEditList');
-          // バリデーション関数
-          function toDateObj(dateStr, timeStr) {
-            if (!dateStr || !timeStr) return null;
-            return new Date(`${dateStr}T${timeStr.length === 5 ? timeStr + ':00' : timeStr}`);
-          }
-          function validateInputs() {
-            const inVal = panel.querySelector('#editIn').value;
-            const outVal = panel.querySelector('#editOut').value;
-            const todayStr = (() => {
-              const now = new Date();
-              const pad = n => n.toString().padStart(2, '0');
-              return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-            })();
-            const isToday = d === todayStr;
-            const inDate = inVal ? toDateObj(d, inVal) : null;
-            const outDate = outVal ? toDateObj(d, outVal) : null;
-            if (!isToday) {
-              if (!inVal || !outVal) return false;
-            }
-            if (inDate && outDate && inDate >= outDate) return false;
-            const breaks = rec.breaks;
-            for (let i = 0; i < breaks.length; i++) {
-              const b = breaks[i];
-              // b.start, b.endは日時文字列 or 空
-              const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
-              const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
-              if (!isToday && (!b.start || !b.end)) return false;
-              if (bStart && bEnd) {
-                if (bStart >= bEnd) return false;
-                if (inDate && bStart < inDate) return false;
-                if (outDate && bEnd > outDate) return false;
-              }
-            }
-            return true;
-          }
-          // 入力欄のイベントで保存ボタンの活性/非活性を制御
-          function updateSaveBtn() {
-            const saveBtn = panel.querySelector('.save-btn');
-            saveBtn.disabled = !validateInputs();
-          }
-          // 入力欄・休憩欄のイベントにバインド
-          panel.querySelector('#editIn').addEventListener('input', updateSaveBtn);
-          panel.querySelector('#editOut').addEventListener('input', updateSaveBtn);
-          // 休憩欄は動的生成なのでrenderBreaks内でバインド
-          function renderBreaks() {
-            breakEditList.innerHTML = '';
-            rec.breaks.forEach((b, i) => {
-              const row = document.createElement('div');
-              row.className = 'break-edit-row';
-              row.innerHTML = `
-                <span>${i + 1}.</span>
-                <input type="time" value="${b.start && b.start.length >= 5 ? b.start.slice(-8, -3) : ''}" class="break-start">
-                ～
-                <input type="time" value="${b.end && b.end.length >= 5 ? b.end.slice(-8, -3) : ''}" class="break-end">
-                <button type="button" title="削除">×</button>
-              `;
-              const startInput = row.querySelector('.break-start');
-              const endInput = row.querySelector('.break-end');
-              startInput.onchange = e => { b.start = e.target.value; updateSaveBtn(); };
-              endInput.onchange = e => { b.end = e.target.value; updateSaveBtn(); };
-              row.querySelector('button').onclick = e => {
-                e.stopPropagation();
-                rec.breaks.splice(i, 1);
-                renderBreaks();
-                updateSaveBtn();
-              };
-              breakEditList.appendChild(row);
-            });
-          }
-          renderBreaks();
-          panel.querySelector('.add-break-btn').onclick = e => {
-            rec.breaks.push({ start: '', end: '' });
-            renderBreaks();
-          };
-          // オーバーレイクリックで閉じる
-          const ov = document.getElementById('overlay');
-          if (ov) {
-            ov.onclick = () => { expandedIdx = null; addPanelActive = false; clearForceVisibleDate(); render(); hideOverlay(); };
-          }
-          panel.querySelector('.save-btn').onclick = async e => {
-            e.stopPropagation();
-            // バリデーション: 当日かどうかで条件分岐
-            const inVal = panel.querySelector('#editIn').value;
-            const outVal = panel.querySelector('#editOut').value;
-            const todayStr = (() => {
-              const now = new Date();
-              const pad = n => n.toString().padStart(2, '0');
-              return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-            })();
-            const isToday = d === todayStr;
-            const inDate = inVal ? toDateObj(d, inVal) : null;
-            const outDate = outVal ? toDateObj(d, outVal) : null;
-            // 当日以外は空欄NG
-            if (!isToday) {
-              if (!inVal || !outVal) {
-                alert('始業・終業時刻は必須です（当日以外）');
-                return;
-              }
-            }
-            // 1. 始業・終業
-            if (inDate && outDate) {
-              if (inDate >= outDate) {
-                alert('終業時刻は始業時刻より後にしてください');
-                return;
-              }
-            }
-            // 2. 休憩
-            const breaks = rec.breaks;
-            for (let i = 0; i < breaks.length; i++) {
-              const b = breaks[i];
-              const bStart = b.start ? new Date(b.start.replace(' ', 'T')) : null;
-              const bEnd = b.end ? new Date(b.end.replace(' ', 'T')) : null;
-              if (!isToday && (!b.start || !b.end)) {
-                alert(`休憩${i + 1}の開始・終了時刻は必須です（当日以外）`);
-                return;
-              }
-              if (bStart && bEnd) {
-                if (bStart >= bEnd) {
-                  alert(`休憩${i + 1}の終了時刻は開始時刻より後にしてください`);
-                  return;
-                }
-                if (inDate && bStart < inDate) {
-                  alert(`休憩${i + 1}の開始時刻は始業時刻以降にしてください`);
-                  return;
-                }
-                if (outDate && bEnd > outDate) {
-                  alert(`休憩${i + 1}の終了時刻は終業時刻以前にしてください`);
-                  return;
-                }
-              }
-            }
-            rec.clockIn = inVal;
-            rec.clockOut = outVal;
-            rec.vehicleDistance = Number(panel.querySelector('#editVehicleDistance').value) || 0;
-            // 編集内容をAPIに送信
-            const res = await fetch('api/attendance_update.php', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                date: d,
-                clockIn: rec.clockIn,
-                clockOut: rec.clockOut,
-                breaks: rec.breaks,
-                vehicleDistance: rec.vehicleDistance
-              })
-            });
-            if (res.ok) {
-              expandedIdx = null;
-              // 再取得（日ステータス再反映）
-              const monthVal = document.getElementById('monthSelect').value;
-              clearForceVisibleDate();
-              if (shouldAutoBack()) { backNavigate(); return; }
-              await loadRecordsByPeriod(monthVal);
-              render();
-              hideOverlay();
-            } else {
-              alert('保存に失敗しました');
-            }
-          };
-          panel.querySelector('.cancel-btn').onclick = e => {
-            e.stopPropagation();
-            expandedIdx = null;
-            clearForceVisibleDate();
-            render();
-            hideOverlay();
-            if (shouldAutoBack()) { backNavigate(); }
-          };
-          panel.querySelector('.delete-btn').onclick = async e => {
-            e.stopPropagation();
-            if (!confirm('この勤務記録を削除します。よろしいですか？')) return;
-            // 削除API呼び出し（APIが未実装の場合はコメントアウト）
-            const res = await fetch('api/attendance_delete.php', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ date: d })
-            });
-            if (res.ok) {
-              expandedIdx = null;
-              const monthVal = document.getElementById('monthSelect').value;
-              clearForceVisibleDate();
-              if (shouldAutoBack()) { backNavigate(); return; }
-              await loadRecordsByPeriod(monthVal);
-              hideOverlay();
-            } else {
-              alert('削除に失敗しました');
-            }
-          };
-        }
+        liByDate.set(d, li);
         // ハイライト対象日付ならクラス付与
         if (window.__highlightDate && d === window.__highlightDate) {
           li.classList.add('highlight');
         }
       });
-      // ハイライト行の自動展開は一度だけ。再帰レンダリングを避けつつ展開後にスクロール＆オーバーレイ表示。
-      if (window.__highlightDate && expandedIdx === null) {
-        const dayList2 = window.__dayList || [];
-        const targetIdx = dayList2.findIndex(d => d === window.__highlightDate);
-        if (targetIdx >= 0) {
-          expandedIdx = targetIdx;
-          // ハイライトは展開・スクロール完了後に外す（早すぎるとフィルタで隠れる恐れ）
-          // 次フレームで展開を反映し、その次のフレームでスクロール＆オーバーレイ表示（render のネスト回避）
-          requestAnimationFrame(() => {
-            render();
-            requestAnimationFrame(() => {
-              const lis = recordList.querySelectorAll('li.record-row');
-              const tli = lis[targetIdx];
-              if (tli && typeof tli.scrollIntoView === 'function') {
-                tli.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-              // 自動展開時は明示的にオーバーレイを表示して編集状態を示す
-              if (typeof showOverlay === 'function') showOverlay();
-              // 表示安定後にハイライト解除
-              window.__highlightDate = null;
-            });
-          });
-        }
-      }
+      return liByDate;
+    }
+
+    function getPreservedScrollY() {
+      return (typeof window.__preserveScrollY === 'number') ? window.__preserveScrollY : null;
+    }
+
+    function clearRecordList() {
+      recordList.innerHTML = '';
+    }
+
+    function postRender(liByDate, preservedY) {
+      // ハイライト行の自動展開（旧 expandedIdx ではなくインライン展開に統一）
+      openHighlightedDateIfAny(liByDate);
+      restorePreservedScrollY(preservedY);
+    }
+
+    function render() {
+      const preservedY = getPreservedScrollY();
+      clearRecordList();
+      const dayList = window.__dayList || [];
+      const listLabel = createListLabelElement();
+
+      const liByDate = renderRows(dayList, listLabel);
+      postRender(liByDate, preservedY);
     }
     // フィルタUI初期化（トグル）
     (function initListToggles() {
@@ -2212,38 +2396,64 @@
                     ${warn}
                 </div>`;
     }
+    async function handleClassificationButtonClick(e) {
+      const btn = e.target.closest('.classification-ui button.cls-btn');
+      if (!btn) return false;
+
+      const wrap = btn.closest('.classification-ui');
+      const date = wrap?.getAttribute('data-date');
+      const code = btn.getAttribute('data-code');
+      if (!date || !code) return true;
+
+      if (code === 'work') {
+        await classifyClear(date);
+      } else {
+        const apiCode = (code === 'off')
+          ? 'off_full'
+          : (code === 'am_off')
+            ? 'off_am'
+            : (code === 'pm_off')
+              ? 'off_pm'
+              : (code === 'ignore')
+                ? 'ignore'
+                : 'working';
+        await classifySet(date, apiCode);
+      }
+      return true;
+    }
+
+    async function handleClassificationClearClick(e) {
+      const clr = e.target.closest('.classification-ui button[data-clear="1"]');
+      if (!clr) return false;
+
+      const wrap = clr.closest('.classification-ui');
+      const date = wrap?.getAttribute('data-date');
+      if (!date) return true;
+
+      await classifyClear(date);
+      return true;
+    }
+
+    async function handleMiniOffClick(e) {
+      const offBtn = e.target.closest('.mini-off-btn');
+      if (!offBtn) return false;
+
+      // 欠落行: 全休クイックボタン（行クリック等への影響を避けるため既存と同様 stopPropagation）
+      e.stopPropagation();
+      const date = offBtn.getAttribute('data-date');
+      if (!date) return true;
+      if (offBtn.disabled) return true;
+
+      await classifySet(date, 'off_full');
+      hideOverlay();
+      return true;
+    }
+
     // 分類ボタンのイベント委譲
     document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.classification-ui button.cls-btn');
-      if (btn) {
-        const wrap = btn.closest('.classification-ui');
-        const date = wrap.getAttribute('data-date');
-        const code = btn.getAttribute('data-code');
-        // work は clear 相当（上書き不要）→ CLEAR API
-        let apiCode = code;
-        if (code === 'work') { // クリアして既定に戻す
-          await classifyClear(date);
-        } else {
-          // map override codes
-          apiCode = code === 'off' ? 'off_full' : (code === 'am_off' ? 'off_am' : (code === 'pm_off' ? 'off_pm' : (code === 'ignore' ? 'ignore' : 'working')));
-          await classifySet(date, apiCode);
-        }
-      }
-      const clr = e.target.closest('.classification-ui button[data-clear="1"]');
-      if (clr) {
-        const wrap = clr.closest('.classification-ui');
-        const date = wrap.getAttribute('data-date');
-        await classifyClear(date);
-      }
-      // 欠落行: 全休クイックボタン
-      const offBtn = e.target.closest('.mini-off-btn');
-      if (offBtn) {
-        e.stopPropagation();
-        const date = offBtn.getAttribute('data-date');
-        if (offBtn.disabled) return;
-        await classifySet(date, 'off_full');
-        hideOverlay();
-      }
+      if (await handleClassificationButtonClick(e)) return;
+      if (await handleClassificationClearClick(e)) return;
+      if (await handleMiniOffClick(e)) return;
     });
     async function classifySet(date, overrideCode) {
       try {
@@ -2388,7 +2598,7 @@
       scrollArea.style.height = maxH + 'px';
     }
     window.addEventListener('resize', adjustScrollAreaHeight);
-    window.addEventListener('DOMContentLoaded', adjustScrollAreaHeight);
+
     // 管理者メニュー表示切り替え
     fetch('api/check_login.php')
       .then(res => res.json())
@@ -2400,21 +2610,19 @@
       });
 
     // 有給申請モーダル（最小実装）
-    function showPaidLeaveModal() {
-      const old = document.getElementById('paidLeaveModal');
+    function createModalBase({ id, innerHTML }) {
+      const old = document.getElementById(id);
       if (old) old.remove();
 
-      const monthVal = document.getElementById('monthSelect').value; // YYYY-MM
-      const now = new Date();
-      const pad = n => n.toString().padStart(2, '0');
-      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-      const defaultDate = todayStr.startsWith(monthVal) ? todayStr : `${monthVal}-01`;
-      const defaultHours = (Number(settings.work_hours || 0) + Number(settings.work_minutes || 0) / 60) || 8;
-
       const modal = document.createElement('div');
-      modal.id = 'paidLeaveModal';
+      modal.id = id;
       modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;display:flex;align-items:center;justify-content:center;';
-      modal.innerHTML = `
+      modal.innerHTML = innerHTML;
+      return modal;
+    }
+
+    function buildPaidLeaveModalHTML({ defaultDate, defaultHours }) {
+      return `
         <div style="background:#fff;padding:1.2em 1.2em 1em 1.2em;border-radius:8px;box-shadow:0 2px 16px #0002;min-width:280px;max-width:92vw;">
           <div style='font-size:1.2em;margin-bottom:0.8em;color:#1976d2;font-weight:bold;'>有給申請</div>
           <div style='display:grid;row-gap:0.6em;'>
@@ -2428,46 +2636,95 @@
             <button id='plSubmitBtn' class='footer-btn'>申請する</button>
           </div>
         </div>`;
+    }
+
+    function readPaidLeaveForm(modalEl) {
+      const plDate = modalEl.querySelector('#plDate');
+      const plHours = modalEl.querySelector('#plHours');
+      const plReason = modalEl.querySelector('#plReason');
+
+      const used_date = plDate ? plDate.value : '';
+      const hours = Number(plHours ? plHours.value : NaN);
+      const reason = (plReason ? plReason.value : '').trim();
+
+      return { used_date, hours, reason };
+    }
+
+    function validatePaidLeaveForm(values) {
+      if (!values.used_date) return '日付を入力してください';
+      if (!(values.hours > 0)) return '時間は0より大きい数で入力してください';
+      return null;
+    }
+
+    async function submitPaidLeave(values) {
+      const res = await fetchWithAuth('api/leave_requests_create.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values)
+      });
+      if (!res) throw new Error('未ログインまたはアクセス権限がありません');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || data.error) throw new Error((data && data.error) || '申請に失敗しました');
+      return data;
+    }
+
+    function bindPaidLeaveModalHandlers(modalEl) {
+      const plMsg = modalEl.querySelector('#plMsg');
+      const plSubmitBtn = modalEl.querySelector('#plSubmitBtn');
+      const plCancelBtn = modalEl.querySelector('#plCancelBtn');
+
+      if (plCancelBtn) plCancelBtn.onclick = () => modalEl.remove();
+      if (plSubmitBtn) {
+        plSubmitBtn.onclick = async () => {
+          if (plMsg) {
+            plMsg.style.color = '#e53935';
+            plMsg.textContent = '';
+          }
+
+          const values = readPaidLeaveForm(modalEl);
+          const err = validatePaidLeaveForm(values);
+          if (err) {
+            if (plMsg) plMsg.textContent = err;
+            return;
+          }
+
+          // 送信
+          if (plSubmitBtn) plSubmitBtn.disabled = true;
+          if (plCancelBtn) plCancelBtn.disabled = true;
+          if (plMsg) {
+            plMsg.style.color = '#1976d2';
+            plMsg.textContent = '送信中…';
+          }
+          try {
+            const data = await submitPaidLeave(values);
+            if (plMsg) {
+              plMsg.style.color = '#2e7d32';
+              plMsg.textContent = data.notified ? '申請を送信しました（承認者へ通知しました）。' : '申請を送信しました。';
+            }
+            setTimeout(() => modalEl.remove(), 1200);
+          } catch (err2) {
+            if (plMsg) {
+              plMsg.style.color = '#e53935';
+              plMsg.textContent = err2 && err2.message ? err2.message : 'エラーが発生しました';
+            }
+            if (plSubmitBtn) plSubmitBtn.disabled = false;
+            if (plCancelBtn) plCancelBtn.disabled = false;
+          }
+        };
+      }
+    }
+
+    function showPaidLeaveModal() {
+      const monthVal = getSelectedMonthVal(); // YYYY-MM
+      const defaultDate = getInitialAddDate(monthVal);
+      const defaultHours = (Number(settings.work_hours || 0) + Number(settings.work_minutes || 0) / 60) || 8;
+
+      const modal = createModalBase({
+        id: 'paidLeaveModal',
+        innerHTML: buildPaidLeaveModalHTML({ defaultDate, defaultHours })
+      });
       document.body.appendChild(modal);
-
-      const plDate = document.getElementById('plDate');
-      const plHours = document.getElementById('plHours');
-      const plReason = document.getElementById('plReason');
-      const plMsg = document.getElementById('plMsg');
-      const plSubmitBtn = document.getElementById('plSubmitBtn');
-      const plCancelBtn = document.getElementById('plCancelBtn');
-
-      plCancelBtn.onclick = () => modal.remove();
-      plSubmitBtn.onclick = async () => {
-        plMsg.style.color = '#e53935';
-        plMsg.textContent = '';
-        const used_date = plDate.value;
-        const hours = Number(plHours.value);
-        const reason = plReason.value.trim();
-        if (!used_date) { plMsg.textContent = '日付を入力してください'; return; }
-        if (!(hours > 0)) { plMsg.textContent = '時間は0より大きい数で入力してください'; return; }
-        // 送信
-        plSubmitBtn.disabled = true; plCancelBtn.disabled = true;
-        plMsg.style.color = '#1976d2';
-        plMsg.textContent = '送信中…';
-        try {
-          const res = await fetchWithAuth('api/leave_requests_create.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ used_date, hours, reason })
-          });
-          if (!res) { throw new Error('未ログインまたはアクセス権限がありません'); }
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data || data.error) { throw new Error((data && data.error) || '申請に失敗しました'); }
-          plMsg.style.color = '#2e7d32';
-          plMsg.textContent = data.notified ? '申請を送信しました（承認者へ通知しました）。' : '申請を送信しました。';
-          setTimeout(() => modal.remove(), 1200);
-        } catch (err) {
-          plMsg.style.color = '#e53935';
-          plMsg.textContent = err && err.message ? err.message : 'エラーが発生しました';
-          plSubmitBtn.disabled = false; plCancelBtn.disabled = false;
-        }
-      };
+      bindPaidLeaveModalHandlers(modal);
     }
 
     const paidLeaveBtn = document.getElementById('paidLeaveBtn');
@@ -2494,8 +2751,17 @@
         }
       } catch (e) { }
     }
-    async function openNotifModal() {
-      const old = document.getElementById('notifModal'); if (old) old.remove();
+    async function fetchNotifications({ onlyUnread } = {}) {
+      const url = onlyUnread ? 'api/notifications_get.php?only_unread=1' : 'api/notifications_get.php';
+      const res = await fetchWithAuth(url);
+      if (!res) throw new Error('auth');
+      return await res.json().catch(() => ({}));
+    }
+
+    function createNotifModalShell() {
+      const old = document.getElementById('notifModal');
+      if (old) old.remove();
+
       const wrap = document.createElement('div');
       wrap.id = 'notifModal';
       wrap.style = 'position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:10000;';
@@ -2509,54 +2775,92 @@
                   </div>
                 </div>`;
       document.body.appendChild(wrap);
-      document.getElementById('closeNotif').onclick = () => wrap.remove();
-      document.getElementById('markRead').onclick = async () => { await fetchWithAuth('api/notifications_read.php', { method: 'POST' }); await refreshNotifCount(); wrap.remove(); };
-      try {
-        const res = await fetchWithAuth('api/notifications_get.php');
-        const data = await res.json();
-        const list = document.getElementById('notifList');
-        list.innerHTML = '';
-        (data.items || []).forEach(it => {
-          const div = document.createElement('div');
-          div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
-          const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
-          const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body).replace(/\n/g, '<br>')}</div>` : '';
-          const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
-          const readBtn = it.status === 'unread'
-            ? `<div style="margin-top:6px;display:flex;gap:8px;align-items:center;"><button class="mark-one" data-id="${it.id}" style="padding:0.2em 0.6em;font-size:0.9em;border:1px solid #1976d2;border-radius:4px;background:#fff;color:#1976d2;">既読</button><span class=\"state\" style=\"font-size:0.85em;color:#e53935;\">未読</span></div>`
-            : `<div style=\"margin-top:6px;\"><span class=\"state\" style=\"font-size:0.85em;color:#777;\">既読</span></div>`;
-          div.innerHTML = title + body + link + `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ''}</div>` + readBtn;
-          list.appendChild(div);
-        });
-        if (!list.innerHTML) { list.textContent = '通知はありません'; }
+      return wrap;
+    }
 
-        // 個別既読ハンドラ
-        list.querySelectorAll('.mark-one').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const id = Number(btn.getAttribute('data-id'));
-            btn.disabled = true;
-            try {
-              const res2 = await fetchWithAuth('api/notifications_read.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: [id] })
-              });
-              if (!res2) throw new Error('auth');
-              const data2 = await res2.json().catch(() => ({}));
-              if (!res2.ok || !data2 || data2.error) throw new Error('failed');
-              const container = btn.closest('div');
-              if (container) {
-                const state = container.querySelector('.state');
-                if (state) { state.textContent = '既読'; state.style.color = '#777'; }
-              }
-              btn.remove();
-              await refreshNotifCount();
-            } catch (err) {
-              btn.disabled = false;
-              alert('既読にできませんでした');
+    function renderNotificationsList(containerEl, items) {
+      containerEl.innerHTML = '';
+      (items || []).forEach(it => {
+        const div = document.createElement('div');
+        div.style = 'border-bottom:1px solid #eee;padding:0.5em 0;';
+        const title = `<div style="font-weight:600;color:#333;">${escapeHtml(it.title || '')}</div>`;
+        const body = it.body ? `<div style="color:#555;margin-top:2px;">${escapeHtml(it.body).replace(/\n/g, '<br>')}</div>` : '';
+        const link = it.link ? `<div style="margin-top:4px;"><a href="${it.link}" target="_blank">開く</a></div>` : '';
+        const readBtn = it.status === 'unread'
+          ? `<div class="notif-unread">
+              <button class="mark-one" data-id="${it.id}">既読</button>
+              <span class="state" style="font-size:0.85em;color:#e53935;">未読</span>
+            </div>`
+          : `<div style="margin-top:6px;">
+              <span class="state" style="font-size:0.85em;color:#777;">既読</span>
+            </div>`;
+        div.innerHTML = title + body + link + `<div style="color:#999;font-size:0.85em;margin-top:2px;">${it.created_at || ''}</div>` + readBtn;
+        containerEl.appendChild(div);
+      });
+      if (!containerEl.innerHTML) containerEl.textContent = '通知はありません';
+    }
+
+    async function markNotificationRead(id) {
+      const res = await fetchWithAuth('api/notifications_read.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id] })
+      });
+      if (!res) throw new Error('auth');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || data.error) throw new Error('failed');
+      return data;
+    }
+
+    async function markAllNotificationsRead() {
+      await fetchWithAuth('api/notifications_read.php', { method: 'POST' });
+    }
+
+    function bindNotifModalHandlers(modalEl) {
+      const closeBtn = modalEl.querySelector('#closeNotif');
+      const markReadBtn = modalEl.querySelector('#markRead');
+      const list = modalEl.querySelector('#notifList');
+
+      if (closeBtn) closeBtn.onclick = () => modalEl.remove();
+      if (markReadBtn) {
+        markReadBtn.onclick = async () => {
+          await markAllNotificationsRead();
+          await refreshNotifCount();
+          modalEl.remove();
+        };
+      }
+
+      if (list) {
+        list.addEventListener('click', async (ev) => {
+          const btn = ev.target.closest('button.mark-one');
+          if (!btn) return;
+
+          const id = Number(btn.getAttribute('data-id'));
+          btn.disabled = true;
+          try {
+            await markNotificationRead(id);
+            const container = btn.closest('div');
+            if (container) {
+              const state = container.querySelector('.state');
+              if (state) { state.textContent = '既読'; state.style.color = '#777'; }
             }
-          });
+            btn.remove();
+            await refreshNotifCount();
+          } catch (err) {
+            btn.disabled = false;
+            alert('既読にできませんでした');
+          }
         });
+      }
+    }
+
+    async function openNotifModal() {
+      const wrap = createNotifModalShell();
+      bindNotifModalHandlers(wrap);
+      try {
+        const data = await fetchNotifications({ onlyUnread: false });
+        const list = wrap.querySelector('#notifList');
+        if (list) renderNotificationsList(list, data.items);
       } catch (e) { }
     }
     function escapeHtml(s) { const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return String(s || '').replace(/[&<>"']/g, c => m[c]); }
@@ -2652,34 +2956,14 @@
       await fetchWithAuth('api/logout.php', { method: 'POST' });
       window.location.href = 'login.html';
     };
-    // 承認完了後の再取得ハンドリング
-    function handleApprovalRefresh() {
-      try {
-        const params = new URLSearchParams(location.search);
-        const decided = params.get('leave_decided');
-        if (decided === '1') {
-          // 軽いトースト
-          try { console.log('有給申請の承認が反映されました'); } catch (e) { }
-          // フレックスサマリと有給履歴を再取得
-          if (typeof refreshFlexSummary === 'function') {
-            refreshFlexSummary();
-          }
-          if (typeof loadPaidLeaveHistory === 'function') {
-            loadPaidLeaveHistory();
-          }
-        }
-      } catch (e) { }
-    }
 
-    // フォーカス復帰時にも最新化（承認画面から戻ったケース）
-    window.addEventListener('focus', () => {
+    function refreshAfterLeaveChange() {
       try {
-        if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+        const monthVal = getSelectedMonthVal();
+        if (typeof refreshFlexSummary === 'function') refreshFlexSummary(monthVal);
         if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
       } catch (e) { }
-    });
-
-    document.addEventListener('DOMContentLoaded', handleApprovalRefresh);
+    }
 
     // 承認完了後の再取得ハンドリング
     function handleApprovalRefresh() {
@@ -2690,53 +2974,58 @@
           // 軽いトースト
           try { console.log('有給申請の承認が反映されました'); } catch (e) { }
           // フレックスサマリと有給履歴を再取得
-          if (typeof refreshFlexSummary === 'function') {
-            refreshFlexSummary();
-          }
-          if (typeof loadPaidLeaveHistory === 'function') {
-            loadPaidLeaveHistory();
-          }
+          refreshAfterLeaveChange();
         }
       } catch (e) { }
     }
 
     // フォーカス復帰時にも最新化（承認画面から戻ったケース）
     window.addEventListener('focus', () => {
-      try {
-        if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
-        if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
-      } catch (e) { }
+      refreshAfterLeaveChange();
     });
-
-    document.addEventListener('DOMContentLoaded', handleApprovalRefresh);
 
     // SSE接続（可視時のみ）
     let sse;
+    function createEventSource() {
+      return new EventSource('api/events_stream.php?timeout=60');
+    }
+
+    function scheduleReconnect() {
+      if (document.hidden) return;
+      setTimeout(connectSSE, 1500);
+    }
+
+    function bindSseHandlers(es) {
+      es.addEventListener('heartbeat', () => { });
+
+      es.addEventListener('leave_request_decided', (ev) => {
+        try {
+          JSON.parse(ev.data || '{}');
+          // 承認/却下結果に応じて必要な再取得のみ実施
+          refreshAfterLeaveChange();
+        } catch (e) { }
+      });
+
+      es.addEventListener('paid_leave_updated', () => {
+        try {
+          refreshAfterLeaveChange();
+        } catch (e) { }
+      });
+
+      es.addEventListener('end', () => {
+        try { es.close(); } catch (e) { }
+        // 可視時は再接続（ブラウザの自動再接続を補完）
+        scheduleReconnect();
+      });
+    }
+
     function connectSSE() {
       if (document.hidden) return;
       try {
-        if (sse) { sse.close(); }
-        sse = new EventSource('api/events_stream.php?timeout=60');
-        sse.addEventListener('heartbeat', () => { });
-        sse.addEventListener('leave_request_decided', (ev) => {
-          try {
-            const data = JSON.parse(ev.data || '{}');
-            // 承認/却下結果に応じて必要な再取得のみ実施
-            if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
-            if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
-          } catch (e) { }
-        });
-        sse.addEventListener('paid_leave_updated', () => {
-          try {
-            if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
-            if (typeof loadPaidLeaveHistory === 'function') loadPaidLeaveHistory();
-          } catch (e) { }
-        });
-        sse.addEventListener('end', () => {
-          try { if (sse) sse.close(); } catch (e) { }
-          // 可視時は再接続（ブラウザの自動再接続を補完）
-          if (!document.hidden) setTimeout(connectSSE, 1500);
-        });
+        try { if (sse) sse.close(); } catch (e) { }
+        const es = createEventSource();
+        bindSseHandlers(es);
+        sse = es;
       } catch (e) { }
     }
 
@@ -2747,9 +3036,14 @@
         connectSSE();
       }
     });
-    document.addEventListener('DOMContentLoaded', () => {
-      connectSSE();
-    });
+
+    function initOnDomReady() {
+      try { adjustScrollAreaHeight(); } catch (_) { }
+      try { handleApprovalRefresh(); } catch (_) { }
+      try { connectSSE(); } catch (_) { }
+    }
+
+    document.addEventListener('DOMContentLoaded', initOnDomReady);
   </script>
 </body>
 

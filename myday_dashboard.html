@@ -485,22 +485,6 @@
       color: #607d8b;
     }
 
-    .flex-delta {
-      font-weight: 600;
-    }
-
-    .flex-delta.positive {
-      color: #1b5e20;
-    }
-
-    .flex-delta.negative {
-      color: #c62828;
-    }
-
-    .flex-delta.neutral {
-      color: #455a64;
-    }
-
     /* 高さチューニング：主要アクションを 50〜75% 帯に寄せる */
     /*height: clamp(8dvh, 18dvh, 24dvh);*/
     .band-spacer {
@@ -1580,8 +1564,29 @@
       await fetchWithAuth('api/logout.php', { method: 'POST' });
       window.location.href = 'login.html';
     };
-
-  </script> // 承認完了後の再取得ハンドリング（ダッシュボード側） function handleApprovalRefreshDashboard() { try { const params = new URLSearchParams(location.search); const decided = params.get('leave_decided'); if (decided === '1') { try { console.log('有給申請の承認が反映されました（ダッシュボード）'); } catch (e) {} if (typeof refreshFlexSummary === 'function') { refreshFlexSummary(); } } } catch (e) {} } // フォーカス復帰で最新化 window.addEventListener('focus', () => { try { if (typeof refreshFlexSummary === 'function') refreshFlexSummary(); } catch (e) {} }); document.addEventListener('DOMContentLoaded', handleApprovalRefreshDashboard);
+    // 承認完了後の再取得ハンドリング（ダッシュボード側）
+    function handleApprovalRefreshDashboard() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const decided = params.get('leave_decided');
+        if (decided === '1') {
+          try {
+            console.log('有給申請の承認が反映されました（ダッシュボード）');
+          } catch (e) { }
+          if (typeof refreshFlexSummary === 'function') {
+            refreshFlexSummary();
+          }
+        }
+      } catch (e) { }
+    }
+    // フォーカス復帰で最新化
+    window.addEventListener('focus', () => {
+      try {
+        if (typeof refreshFlexSummary === 'function') refreshFlexSummary();
+      } catch (e) { }
+    });
+    document.addEventListener('DOMContentLoaded', handleApprovalRefreshDashboard);
+  </script>
 </body>
 
 </html>

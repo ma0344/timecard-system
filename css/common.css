@@ -217,3 +217,20 @@
 .expand-toggle:active {
   transform: scale(.96);
 }
+
+
+.flex-delta {
+  font-weight: 600;
+}
+
+.flex-delta.positive {
+  color: #1b5e20;
+}
+
+.flex-delta.negative {
+  color: #c62828;
+}
+
+.flex-delta.neutral {
+  color: #455a64;
+}
